@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Uninest Real Estate System</title>
+      <link rel="icon" href="https://drive.google.com/thumbnail?id=1m2-BANR1o6vLWay0ocn7TPkVTDVwYmoEQ&sz=w301-501" type="image/jpg">
+  
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background-color: #121212;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      /* Using min-height and padding-top is better for content that might scroll */
+      min-height: 100vh; 
+      padding-top: 21px; /* Space to clear the fixed navbar */
+    }
+
+    .custom-alert {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ff4c4c;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 500;
+  z-index: 501;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+    .content-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center; /* Centers children horizontally within the wrapper */
+      padding: 10px;
+      margin-top: 3px; 
+      /* Optional: You can also use margin-bottom for space below the wrapper if needed */
+    }
+    
+    .image-container img {
+        max-width: 120px;
+        height: auto;
+        border-radius: 5%; /* Optional: for a round logo */
+        margin-bottom: 4px; /* Space between the image and the login box */
+    }
+
+    .login-container {
+      background-color: #1f1f1f;
+      padding: 10px 41px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      width: 100%;
+      max-width: 380px;
+      box-sizing: border-box;
+    }
+
+    .login-container h2 {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 24px;
+      color: #ffd700;
+    }
+
+    /* .image-container { text-align: center; } <-- REMOVED, controlled by .content-wrapper */
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #ccc;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      background-color: #2a2a2a;
+      color: #fff;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    input:focus {
+      outline: 2px solid #ffd700;
+    }
+
+    .error {
+      color: #ff4c4c;
+      font-size: 14px;
+      margin-top: 6px;
+      display: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #ffd700;
+      border: none;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #000;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #e6c200;
+    }
+
+    .footer-text {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background-color: #1f1f1f;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      position: fixed;
+      width: 100%;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo img {
+      height: 40px;
+      width: auto;
+      border-radius: 4px;
+    }
+
+    .logo h1 {
+      font-size: 18px;
+      margin: 0;
+      font-weight: 600;
+    }
+
+    /* --------------------------------- */
+    /* DESKTOP NAVIGATION STYLES (New) */
+    /* --------------------------------- */
+    .nav-links {
+      display: flex; /* Show the links in a row on desktop */
+      gap: 25px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: #fff;
+      font-weight: 500;
+      padding: 5px 10px;
+      transition: color 0.3s ease;
+    }
+
+    .nav-links a:hover {
+      color: #ffd700; /* Subtle gold hover effect */
+    }
+    
+    .menu-btn {
+      display: none; /* Hide the mobile menu button on desktop */
+      background: none;
+      border: none;
+      font-size: 26px;
+      cursor: pointer;
+      color: #fff;
+    }
+    /* --------------------------------- */
+    /* END DESKTOP NAVIGATION STYLES */
+    /* --------------------------------- */
+
+
+    /* Dropdown menu (Mobile/Active State) */
+    .menu {
+      display: none;
+      position: absolute; /* Relative to the viewport/document */
+      top: 65px; 
+      right: 25px; /* Position close to the edge/button */
+      background: #1f1f1f;
+      box-shadow: 0 2px 10px rgba(255,255,255,0.2);
+      border-radius: 8px;
+      overflow: hidden;
+      min-width: 150px;
+    }
+
+    .menu.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .menu a {
+      display: block;
+      padding: 20px 26px;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .menu a:hover {
+      background: #333;
+    }
+
+    /* Responsive */
+    @media (max-width: 500px) {
+      .login-container {
+        margin: 20px;
+        padding: 30px 20px;
+      }
+
+      .login-container h2 {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="logo">
+      <img src="https://uninest.com.bd/wp-content/uploads/2025/12/logo-white.webp" alt="Uninest" />
+    </div>
+    <nav class="nav-links">
+      <a href="/www.uninest.com.bd">Home</a>
+      <a href="www.uninest.com.bd"></a>
+    </nav>
+    <button class="menu-btn" id="menu-btn">☰</button>
+    <div class="menu" id="menu">
+      <a href="/www.uninest.com.bd">Home</a>
+      <a href="www.uninest.com.bd"></a>
+    </div>
+  </header>
+
+  <div class="content-wrapper">
+    <div class="image-container">
+      <img src="https://uninest.com.bd/wp-content/uploads/2025/12/logo-white.webp" alt="Uninest"/>
+    </div>
+
+    <div class="login-container">
+      <!-- <h4>Login</h4> -->
+       <br>
+      <form id="loginForm" novalidate>
+          
+        <div class="form-group">
+          <label for="mobile">Mobile Number</label>
+
+          <input type="text" id="mobile" name="mobile" placeholder="01..... or +......" maxlength="14" required>
+          <div class="error" id="mobileError">Please enter your registered mobile number.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="text" id="password" name="password" placeholder="Enter your password" required minlength="6">
+          <div class="error" id="passwordError">Password must be at least 6 characters long.</div>
+        </div>
+
+        <button type="submit">Login</button>
+        <br><br>
+      </form>
+    </div>
+  </div>
+
+<script>
+  const form = document.getElementById('loginForm');
+  const mobileInput = document.getElementById('mobile');
+  const passwordInput = document.getElementById('password');
+  const mobileError = document.getElementById('mobileError');
+  const passwordError = document.getElementById('passwordError');
+  const loginBtn = form.querySelector('button[type="submit"]');
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    let valid = true;
+    mobileError.style.display = 'none';
+    passwordError.style.display = 'none';
+
+    const mobilePattern = /^(01\d{9}|\+\d{1,13})$/;
+
+    if (!mobilePattern.test(mobileInput.value.trim())) {
+      mobileError.style.display = 'block';
+      valid = false;
+    }
+
+    if (passwordInput.value.trim().length < 6) {
+      passwordError.style.display = 'block';
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    // -------------------------
+    // CHANGE BUTTON TO LOADING
+    // -------------------------
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Loading...";
+
+    const userData = {
+      mobile: mobileInput.value.trim(),
+      password: passwordInput.value.trim()
+    };
+
+    window.location.href = '/';
+
+    // fetch('/login', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify(userData),
+    //   credentials: 'include'
+    // })
+    // .then(res => res.json())
+    // .then(data => {
+    //   if (data.success) {
+    //     const userId = data.user.id;
+    //     if (userId === 1) {
+    //       window.location.href = '/dashboard';
+    //     } else {
+    //       window.location.href = '/profile';
+    //     }
+    //   } 
+      
+    //   else {
+    //     showCustomAlert('Login failed: ' + data.message);
+
+    //     // Restore button
+    //     loginBtn.disabled = false;
+    //     loginBtn.textContent = "Login";
+    //   }
+    // })
+    // .catch(err => {
+    //   console.error(err);
+    //   showCustomAlert("Please try again.");
+
+    //   // Restore button
+    //   loginBtn.disabled = false;
+    //   loginBtn.textContent = "Login";
+    // });
+    
+  });
+
+  function showCustomAlert(message) {
+  const alert = document.createElement('div');
+  alert.className = 'custom-alert';
+  alert.textContent = message;
+  document.body.appendChild(alert);
+  
+  // Fade in
+  setTimeout(() => alert.style.opacity = '1', 10);
+  
+  // Remove after 5 seconds
+  setTimeout(() => {
+    alert.style.opacity = '0';
+    setTimeout(() => alert.remove(), 300);
+  }, 5001);
+}
+
+</script>
+
+</body>
+</html>

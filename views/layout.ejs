@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/images/1.png">
+    <title>Uninest Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <%- include('partials/header') %>
+        
+        <main>
+            <%- include('partials/tabs') %>
+            
+            <div id="tab-content">
+                <% if (activeTab === 'financial-transparency') { %>
+                    <%- include('partials/financial-transparency', { financialData }) %>
+                <% } else if (activeTab === 'construction-progress') { %>
+                    <div class="tab-pane">
+                        <h2>Construction Progress</h2>
+                        <p>This tab would show construction progress data.</p>
+                    </div>
+<% } else if (activeTab === 'customization') { %>
+    <%- include('partials/customization') %>
+<% } %>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/js/main.js"></script>
+
+    <!-- Image Preview Modal -->
+<div id="image-modal" class="image-modal hidden">
+    <div class="image-modal-overlay"></div>
+    <img id="image-modal-img" src="" alt="Preview">
+</div>
+
+<!-- IMAGE PREVIEW MODAL -->
+<div id="image-modal" class="image-modal hidden">
+    <span class="image-modal-close">
+        <i class="fas fa-times"></i>
+    </span>
+    <img id="image-modal-img" src="" alt="Preview">
+</div>
+
+
+</body>
+</html>

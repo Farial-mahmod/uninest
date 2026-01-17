@@ -1,0 +1,206 @@
+<div class="tab-pane">
+    <div class="page-header">
+        <h1><%= financialData.title %></h1>
+        <p class="subtitle"><%= financialData.subtitle %></p>
+    </div>
+    
+<div class="balance-card">
+    <div class="balance-left">
+        <h3>Outstanding Balance (in BDT)</h3>
+        <div class="balance-amount"><%= financialData.outstandingBalance %></div>
+    </div>
+    
+    <div class="balance-right">
+        <div class="due-date-label">Due Date</div>
+        <div class="due-date"><%= financialData.nextDueDate.date %></div>
+        <div class="due-installment"><%= financialData.nextDueDate.installment %></div>
+    </div>
+</div>
+    
+    <div class="section-divider">
+        <hr>
+    </div>
+    
+    <div class="payment-sections">
+        <div class="payment-section">
+            <div class="section-header">
+                <h2><%= financialData.paymentSchedule.title %></h2>
+                <p class="section-subtitle"><%= financialData.paymentSchedule.subtitle %></p>
+            </div>
+            
+            <div class="payment-items">
+                <% financialData.paymentSchedule.items.forEach((item, index) => { %>
+                <div class="payment-item <%= item.status %>">
+                    <div class="payment-item-header">
+                        <div class="payment-status">
+                            <% if (item.status === 'pending') { %>
+                                <i class="far fa-circle"></i>
+                            <% } else if (item.status === 'completed') { %>
+                                <i class="fas fa-check-circle"></i>
+                            <% } %>
+                        </div>
+                        <div class="payment-info">
+                            <h4><%= item.name %></h4>
+                            <p class="payment-date"><%= item.date %></p>
+                        </div>
+                    </div>
+                    <div class="payment-amount">
+                        <span class="amount-badge"><%= item.amount %></span>
+                    </div>
+                </div>
+                <% }) %>
+            </div>
+        </div>
+        
+        <div class="payment-section">
+            <div class="section-header">
+                <h2><%= financialData.rdcLog.title %></h2>
+                <p class="section-subtitle"><%= financialData.rdcLog.subtitle %></p>
+            </div>
+            
+            <div class="payment-items">
+                <% financialData.rdcLog.items.forEach((item, index) => { %>
+                <div class="payment-item <%= item.status %>">
+                    <div class="payment-item-header">
+                        <div class="payment-status">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="payment-info">
+                            <h4><%= item.name %></h4>
+                            <p class="payment-date"><%= item.date %></p>
+                        </div>
+                    </div>
+                    <div class="payment-amounts">
+                        <span class="amount-badge scheduled"><%= item.scheduledAmount %></span>
+                        <span class="amount-separator">→</span>
+                        <span class="amount-badge paid"><%= item.paidAmount %></span>
+                    </div>
+                </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+    
+    <!-- NEW: Project Cost Breakdown Section -->
+    <div class="section-divider">
+        <hr>
+    </div>
+    
+    <div class="project-cost-breakdown">
+        <div class="section-header">
+            <h2><%= financialData.projectCostBreakdown.title %></h2>
+            <p class="section-subtitle"><%= financialData.projectCostBreakdown.subtitle %></p>
+        </div>
+        
+        <!-- Cost Breakdown Tabs -->
+        <div class="cost-tabs">
+            <% financialData.projectCostBreakdown.tabs.forEach((tab) => { %>
+            <button class="cost-tab-button <%= tab.active ? 'active' : '' %>" 
+                    data-tab-id="<%= tab.id %>">
+                <%= tab.name %>
+            </button>
+            <% }) %>
+        </div>
+        
+        <!-- Cost Breakdown Content -->
+        <div class="cost-tab-content">
+            <% if (financialData.projectCostBreakdown.activeTab === 'cost-overview') { %>
+                <!-- Cost Overview Tab -->
+                <div class="cost-overview">
+                    <div class="cost-summary-cards">
+                        <div class="cost-card">
+                            <h3>Total Projected Cost</h3>
+                            <div class="cost-amount projected">
+                                <%= financialData.projectCostBreakdown.costOverview.totalProjectedCost %>
+                            </div>
+                        </div>
+                        
+                        <div class="cost-card">
+                            <h3>Actual Expenditure</h3>
+                            <div class="cost-amount actual">
+                                <%= financialData.projectCostBreakdown.costOverview.actualExpenditure %>
+                            </div>
+                            <div class="budget-utilization">
+                                <%= financialData.projectCostBreakdown.costOverview.budgetUtilization %>% of budget utilized
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="expenditure-details">
+                        <h3>Detailed Expenditure by Category</h3>
+                        
+                        <div class="category-list">
+                            <% financialData.projectCostBreakdown.costOverview.categories.forEach((category) => { %>
+                            <div class="category-item">
+                                <div class="category-header">
+                                    <h4><%= category.name %></h4>
+                                    <div class="category-amounts">
+                                        <span class="spent-amount"><%= category.spent %></span>
+                                        <span class="amount-separator">/</span>
+                                        <span class="budget-amount"><%= category.budget %></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="progress-container">
+                                    <div class="progress-bar" 
+                                         style="width: <%= category.percentage %>%;
+                                                background-color: <%= category.color %>;">
+                                    </div>
+                                    <div class="progress-label"><%= category.percentage %>%</div>
+                                </div>
+                            </div>
+                            <% }) %>
+                        </div>
+                    </div>
+                </div>
+            <% } else { %>
+                <!-- Voucher Verification Tab -->
+
+                <!-- Voucher Verification Tab -->
+<div class="voucher-verification">
+
+    <div class="section-header">
+        <h2><%= financialData.projectCostBreakdown.vouchers.title %></h2>
+        <p class="section-subtitle">
+            <%= financialData.projectCostBreakdown.vouchers.subtitle %>
+        </p>
+    </div>
+
+    <div class="voucher-list">
+        <% financialData.projectCostBreakdown.vouchers.items.forEach(voucher => { %>
+
+            <div class="voucher-item">
+                
+                <div class="voucher-left">
+                    <div class="voucher-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+
+                    <div class="voucher-info">
+                        <h4><%= voucher.title %></h4>
+                        <p class="vendor-name"><%= voucher.vendor %></p>
+                        <p class="voucher-meta">
+                            <%= voucher.voucherNo %> • <%= voucher.date %>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="voucher-right">
+                    <div class="voucher-amount"><%= voucher.amount %></div>
+                    <a href="<%= voucher.invoiceUrl %>" 
+                       target="_blank"
+                       class="view-invoice-btn">
+                        <i class="fas fa-external-link-alt"></i>
+                        View Invoice
+                    </a>
+                </div>
+
+            </div>
+
+        <% }) %>
+    </div>
+</div>
+            <% } %>
+        </div>
+    </div>
+</div>

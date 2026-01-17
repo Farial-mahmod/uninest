@@ -1,0 +1,227 @@
+<div class="tab-pane">
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <h1><%= customizationData.title %></h1>
+        <p class="subtitle"><%= customizationData.subtitle %></p>
+    </div>
+    
+    <!-- YOUR SELECTIONS -->
+    <div class="customization-section">
+        <div class="section-header">
+            <h2><%= customizationData.yourSelection.title %></h2>
+            <p class="section-subtitle"><strong><%= customizationData.yourSelection.subtitle %></strong></p>
+        </div>
+        
+<div class="selection-items">
+    <% customizationData.yourSelection.items.forEach((item) => { %>
+    <div class="selection-item compact">
+        <div class="selection-header-compact">
+            <div class="selection-title">
+                <h4><%= item.name %>:</h4>
+                <span class="selection-value"><%= item.value %></span>
+            </div>
+            <div class="selection-meta">
+                <div class="brand-info-inline">
+                    <span class="label">Brand: </span>
+                    <span class="value"><%= item.brand %></span>
+                </div>
+                <div class="cost-info-inline">
+                    <span class="label">Upgrade: </span>
+                    <span class="cost <%= item.upgradeCost %>">
+                        <%= item.upgradeCost %>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <!-- Show selected tile image -->
+        <% if (item.image) { %>
+        <div class="selected-tile-preview-compact">
+            <img src="<%= item.image %>" alt="<%= item.value %>" class="tile-image-compact">
+        </div>
+        <% } %>
+    </div>
+    <% }) %>
+</div>
+        
+    </div>
+    
+    <!-- DIVIDER -->
+    <div class="section-divider">
+        <hr>
+    </div>
+    
+    <!-- CUSTOMIZATION OPTIONS -->
+    <div class="customization-section">
+        <div class="section-header">
+            <h2><%= customizationData.customizationOptions.title %></h2>
+            <p class="subtitle"><%= customizationData.customizationOptions.subtitle %></p>
+        </div>
+        
+        <% customizationData.customizationOptions.categories.forEach((category) => { %>
+        <div class="category-section">
+            <h3><%= category.name %></h3>
+            
+            <!-- Selection Window -->
+            <div class="selection-window <%= category.windowStatus === 'closed' ? 'closed' : 'open' %>">
+                <div class="window-label">
+                    <i class="fas fa-calendar-alt"></i>
+                    Customization Window:
+                </div>
+                <div class="window-dates"><%= category.window %></div>
+                <div class="window-status">
+                    <span class="status-badge <%= category.windowStatus %>">
+                        <i class="fas fa-<%= category.windowStatus === 'closed' ? 'lock' : 'unlock' %>"></i>
+                        Selection <%= category.windowStatus === 'closed' ? 'Closed' : 'Open' %>
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Only keep the Tile Image Gallery (REMOVED the Options List below it) -->
+            <div class="tile-gallery">
+                <% category.options.forEach((option, index) => { %>
+                <div class="tile-gallery-item <%= option.selected ? 'selected' : '' %> 
+                                   <%= category.windowStatus === 'closed' ? 'disabled' : '' %>"
+                     data-category="<%= category.name.toLowerCase().replace(/ /g, '-') %>"
+                     data-option-index="<%= index %>"
+                     onclick="<% if (category.windowStatus !== 'closed') { %>selectOption('<%= category.name.toLowerCase().replace(/ /g, '-') %>', <%= index %>)<% } %>">
+                    
+                    <% if (option.image) { %>
+                    <div class="tile-image-container">
+                        <img src="<%= option.image %>" alt="<%= option.name %>" class="tile-thumbnail">
+                        <% if (option.selected) { %>
+                        <div class="tile-selected-overlay">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <% } %>
+                    </div>
+                    <% } %>
+                    
+                    <div class="tile-info">
+                        <h5><%= option.name %></h5>
+                        <p class="tile-brand"><%= option.brand %></p>
+                        <p class="tile-surface"><%= option.surface %></p>
+                        <% if (option.upgradeCost) { %>
+                        <p class="tile-cost"><%= option.upgradeCost %></p>
+                        <% } else { %>
+                        <p class="tile-cost"></p>
+                        <% } %>
+                    </div>
+                </div>
+                <% }) %>
+            </div>
+            
+        </div>
+        <% }) %>
+        
+        <!-- Notice for closed window -->
+        <% if (customizationData.customizationOptions.categories[0]?.windowStatus === 'open') { %>
+        <div class="window-notice open">
+            <div class="notice-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <div class="notice-text">
+                <%= customizationData.customizationOptions.notice %>
+            </div>
+        </div>
+        <% } %>
+    </div>
+</div>
+
+<script>
+// Function to handle option selection
+function selectOption(category, optionIndex) {
+    // Show loading state on tile gallery item
+    const tileElement = document.querySelector(`.tile-gallery-item[data-option-index="${optionIndex}"]`);
+    
+    if (tileElement) tileElement.classList.add('loading');
+    
+    // Send selection to server
+    fetch(`/customization/update?category=${category}&optionIndex=${optionIndex}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the Your Selection section without full reload
+                updateYourSelection(data.customizationData.yourSelection);
+                
+                // Update selected states in the UI
+                updateSelectedStates(category, optionIndex);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Remove loading states
+            if (tileElement) tileElement.classList.remove('loading');
+        });
+}
+
+// Function to update selected states in the UI
+function updateSelectedStates(category, selectedIndex) {
+    // Update tile gallery items
+    const allTileItems = document.querySelectorAll('.tile-gallery-item');
+    allTileItems.forEach((item, index) => {
+        item.classList.remove('selected');
+        if (index == selectedIndex) {
+            item.classList.add('selected');
+        }
+    });
+}
+
+// Function to update Your Selection section without page reload
+function updateYourSelection(yourSelection) {
+    const selectionItems = document.querySelector('.selection-items');
+    if (!selectionItems) return;
+    
+    selectionItems.innerHTML = yourSelection.items.map(item => `
+        <div class="selection-item">
+            <div class="selection-header">
+                <h4>${item.name}:</h4>
+                <span class="selection-value">${item.value}</span>
+            </div>
+            <div class="selection-details">
+                <div class="brand-info">
+                    <span class="label">Brand:</span>
+                    <span class="value">${item.brand}</span>
+                </div>
+                <div class="cost-info">
+                    <span class="label">Total Upgrade Cost:</span>
+                    <span class="cost ${item.upgradeCost}">
+                        ${item.upgradeCost}
+                    </span>
+                </div>
+            </div>
+            ${item.image ? `
+                <div class="selected-tile-preview">
+                    <img src="${item.image}" alt="${item.value}" class="tile-image">
+                </div>
+            ` : ''}
+        </div>
+    `).join('');
+    
+    // Remove loading states
+    document.querySelectorAll('.loading').forEach(el => el.classList.remove('loading'));
+    
+    // Show success message
+    showSuccessMessage('Selection updated successfully!');
+}
+
+// Show temporary success message
+function showSuccessMessage(message) {
+    // Remove any existing success message
+    const existingMsg = document.querySelector('.success-message');
+    if (existingMsg) existingMsg.remove();
+    
+    const successMsg = document.createElement('div');
+    successMsg.className = 'success-message';
+    successMsg.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        <span>${message}</span>
+    `;
+    
+    document.querySelector('.customization-section').prepend(successMsg);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        successMsg.remove();
+    }, 3000);
+}
+</script>
