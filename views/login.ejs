@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Uninest Real Estate System</title>
-      <link rel="icon" href="https://drive.google.com/thumbnail?id=1m2-BANR1o6vLWay0ocn7TPkVTDVwYmoEQ&sz=w301-501" type="image/jpg">
-  
+         <link rel="icon" type="image/x-icon" href="https://uninest.com.bd/wp-content/uploads/2025/12/logo-white.webp">
+
   <style>
     body {
       margin: 0;
@@ -52,7 +52,7 @@
     }
 
     .login-container {
-      background-color: #1f1f1f;
+      background-color: honeydew;
       padding: 10px 41px;
       border-radius: 12px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.4);
@@ -65,7 +65,7 @@
       text-align: center;
       margin-bottom: 15px;
       font-size: 24px;
-      color: #ffd700;
+      color: #0c48a3;
     }
 
     /* .image-container { text-align: center; } <-- REMOVED, controlled by .content-wrapper */
@@ -78,7 +78,7 @@
       display: block;
       font-weight: 500;
       margin-bottom: 6px;
-      color: #ccc;
+      color: #0f0303;
     }
 
     input {
@@ -99,14 +99,14 @@
     .error {
       color: #ff4c4c;
       font-size: 14px;
-      margin-top: 6px;
+      margin-top: 5px;
       display: none;
     }
 
     button {
       width: 100%;
       padding: 12px;
-      background-color: #ffd700;
+      background-color: #9dffa1;
       border: none;
       border-radius: 6px;
       font-size: 18px;
@@ -117,7 +117,7 @@
     }
 
     button:hover {
-      background-color: #e6c200;
+      background-color: #d0ffba;
     }
 
     .footer-text {
@@ -241,12 +241,12 @@
       <img src="https://uninest.com.bd/wp-content/uploads/2025/12/logo-white.webp" alt="Uninest" />
     </div>
     <nav class="nav-links">
-      <a href="/www.uninest.com.bd">Home</a>
+      <a href="www.uninest.com.bd">Home</a>
       <a href="www.uninest.com.bd"></a>
     </nav>
     <button class="menu-btn" id="menu-btn">☰</button>
     <div class="menu" id="menu">
-      <a href="/www.uninest.com.bd">Home</a>
+      <a href="www.uninest.com.bd">Home</a>
       <a href="www.uninest.com.bd"></a>
     </div>
   </header>
@@ -256,6 +256,8 @@
       <img src="https://uninest.com.bd/wp-content/uploads/2025/12/logo-white.webp" alt="Uninest"/>
     </div>
 
+    <br>
+ 
     <div class="login-container">
       <!-- <h4>Login</h4> -->
        <br>
@@ -265,7 +267,7 @@
           <label for="mobile">Mobile Number</label>
 
           <input type="text" id="mobile" name="mobile" placeholder="01..... or +......" maxlength="14" required>
-          <div class="error" id="mobileError">Please enter your registered mobile number.</div>
+          <div class="error" id="mobileError">Please enter registered mobile number.</div>
         </div>
 
         <div class="form-group">
@@ -320,7 +322,7 @@
       password: passwordInput.value.trim()
     };
 
-    window.location.href = '/';
+    window.location.href = '/dashboard';
 
     // fetch('/login', {
     //   method: 'POST',

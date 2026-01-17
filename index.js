@@ -227,8 +227,13 @@ app.get('/login', (req, res) => {
   res.render('login');
 });
 
-// Home page
+// ====== IMPORTANT CHANGE: Redirect root to login ======
 app.get('/', (req, res) => {
+  res.redirect('/login');
+});
+
+// Dashboard page (changed from home to dashboard)
+app.get('/dashboard', (req, res) => {
   res.render('index', {
     activeTab: 'financial-transparency',
     financialData,
