@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Admin – Shareholders</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="https://uninest.com.bd/wp-content/uploads/2025/12/logo-white.webp">
+<title>Admin Dashboard</title>
 
 <style>
 :root {
@@ -22,14 +23,15 @@ body {
   padding: 24px;
 }
 
-/* Tabs */
 .tabs {
   display: flex;
-  background: #ededf0;
+  justify-content: center;  
+  background: #cfcfff;
   border-radius: 999px;
   padding: 6px;
-  gap: 6px;
+  gap: 17px;
 }
+
 
 .tab {
   padding: 10px 22px;
@@ -167,22 +169,87 @@ th {
   gap: 10px;
   margin-top: 20px;
 }
+
+/* Payments row */
+.payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Costs: Budget grid */
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.budget-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.budget-title {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.budget-amount {
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.budget-sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.budget-util {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #2563eb;
+}
+
+/* Voucher row */
+.voucher-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-top: 12px;
+}
+
+/* Light button */
+.light-btn {
+  background: #fff;
+  color: #000;
+  border: 1px solid var(--border);
+}
+
+
 </style>
 </head>
 
 <body>
 
-<!-- Tabs -->
 <div class="tabs">
-  <div class="tab active">Shareholders</div>
-  <div class="tab">Payments</div>
-  <div class="tab">Costs</div>
+  <div class="tab active" onclick="showTab('shareholders', this)">Shareholders</div>
+  <div class="tab" onclick="showTab('payments', this)">Payments</div>
+  <div class="tab" onclick="showTab('costs', this)">Costs</div>
   <div class="tab">Milestones</div>
   <div class="tab">Gallery</div>
   <div class="tab">Customization</div>
 </div>
 
-<!-- Card -->
+<div id="shareholdersView">
 <div class="card">
   <div class="card-header">
     <div>
@@ -190,6 +257,7 @@ th {
       <div class="subtitle">View and manage all shareholder information</div>
     </div>
     <button class="btn" onclick="openModal()">＋ Add Shareholder</button>
+  </div>
   </div>
 
   <input class="search" placeholder="Search by name, flat number, or share ID...">
@@ -201,15 +269,184 @@ th {
         <th>Name</th>
         <th>Flat</th>
         <th>Contact</th>
-        <th>Payment Status</th>
+        <th>Total Payment</th>
         <th>Status</th>
         <th>Actions</th>
       </tr>
     </thead>
-    <tbody id="tableBody">
-      <!-- Dynamic rows -->
-    </tbody>
+<tbody id="tableBody">
+  <tr>
+    <td>SH-SHEJ-7788</td>
+    <td>Shejahan Sharif</td>
+    <td>B-402</td>
+    <td>
+      +88017787788
+    </td>
+    <td>₹3,50,000</td>
+    <td><span class="status">Active</span></td>
+    <td>✏️ 🗑️</td>
+  </tr>
+</tbody>
+
   </table>
+</div>
+
+<!-- PAYMENTS VIEW -->
+<div class="card" id="paymentsView">
+
+  <div class="card-header">
+    <div>
+      <h2>Manage Payments & RDC Logs</h2>
+      <div class="subtitle">Add and verify shareholder payments</div>
+    </div>
+    <button class="btn" onclick="openPaymentModal()">＋ Add Payment</button>
+  </div>
+
+  <!-- Filters -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0;">
+    <select class="search">
+      <option>Filter by shareholder</option>
+      <option>Rajesh Kumar</option>
+      <option>Priya Sharma</option>
+    </select>
+
+    <select class="search">
+      <option>Filter by status</option>
+      <option>Verified</option>
+      <option>Pending</option>
+    </select>
+  </div>
+
+  <!-- Payment Item -->
+  <div class="payment-row">
+    <div>
+      <strong>Rajesh Kumar (A-504)</strong>
+      <div class="subtitle">5th Construction Installment</div>
+      <div class="subtitle">
+        RDC-2024-0523 • 2024-05-28 •
+        <span style="color:green">Verified</span>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <strong>₹4,50,000</strong><br>
+      <button class="btn" style="margin-top:6px;background:#fff;color:#000;border:1px solid var(--border)">
+        View Receipt
+      </button>
+    </div>
+  </div>
+
+  <div class="payment-row">
+    <div>
+      <strong>Priya Sharma (A-505)</strong>
+      <div class="subtitle">5th Construction Installment</div>
+      <div class="subtitle">
+        RDC-2024-0531 • 2024-06-02 •
+        <span style="color:green">Verified</span>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <strong>₹4,50,000</strong><br>
+      <button class="btn" style="margin-top:6px;background:#fff;color:#000;border:1px solid var(--border)">
+        View Receipt
+      </button>
+    </div>
+  </div>
+
+  <div class="payment-row">
+    <div>
+      <strong>Amit Patel (B-601)</strong>
+      <div class="subtitle">5th Construction Installment</div>
+      <div class="subtitle">
+        RDC-2024-0527 • 2024-05-30 •
+        <span style="color:orange">Pending</span>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <strong>₹5,20,000</strong><br>
+      <button class="btn" style="margin-top:6px;background:#fff;color:#000;border:1px solid var(--border)">
+        View Receipt
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- COSTS VIEW -->
+<div class="card" id="costsView" style="display:none">
+
+  <!-- Header -->
+  <div class="card-header">
+    <div>
+      <h2>Manage Project Costs</h2>
+      <div class="subtitle">Update budget allocation and add vendor vouchers</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn" style="background:#fff;color:#000;border:1px solid var(--border)">
+        Update Budget
+      </button>
+      <button class="btn">＋ Add Voucher</button>
+    </div>
+  </div>
+
+  <!-- Budget Overview -->
+  <h3 style="margin-top:24px">Budget Overview</h3>
+
+  <div class="budget-grid">
+
+    <div class="budget-card">
+      <div class="budget-title">Steel/Rebar</div>
+      <div class="budget-amount">₹28,50,000</div>
+      <div class="budget-sub">of ₹30,00,000</div>
+      <div class="budget-util">95.0% utilized</div>
+    </div>
+
+    <div class="budget-card">
+      <div class="budget-title">Cement/Aggregate</div>
+      <div class="budget-amount">₹21,00,000</div>
+      <div class="budget-sub">of ₹25,00,000</div>
+      <div class="budget-util">84.0% utilized</div>
+    </div>
+
+    <div class="budget-card">
+      <div class="budget-title">Labor & Manpower</div>
+      <div class="budget-amount">₹25,00,000</div>
+      <div class="budget-sub">of ₹40,00,000</div>
+      <div class="budget-util">62.5% utilized</div>
+    </div>
+
+    <div class="budget-card">
+      <div class="budget-title">Finishing Materials</div>
+      <div class="budget-amount">₹12,00,000</div>
+      <div class="budget-sub">of ₹35,00,000</div>
+      <div class="budget-util">34.3% utilized</div>
+    </div>
+
+    <div class="budget-card">
+      <div class="budget-title">Other Expenses</div>
+      <div class="budget-amount">₹6,00,000</div>
+      <div class="budget-sub">of ₹20,00,000</div>
+      <div class="budget-util">30.0% utilized</div>
+    </div>
+
+  </div>
+
+  <!-- Recent Vouchers -->
+  <h3 style="margin-top:28px">Recent Vouchers</h3>
+
+  <div class="voucher-row">
+    <div>
+      <strong>Steel Rebar – 5th Floor Slab</strong>
+      <div class="subtitle">Jindal Steel Suppliers</div>
+      <div class="subtitle">
+        VCH-2024-089 • 2024-05-15 • Steel/Rebar
+      </div>
+    </div>
+    <div style="text-align:right">
+      <strong>₹4,25,000</strong><br>
+      <button class="btn light-btn">View Invoice</button>
+    </div>
+  </div>
+
 </div>
 
 <!-- Modal -->
@@ -240,6 +477,57 @@ th {
 </div>
 
 <script>
+
+function generateRDC(name, installment) {
+  if (!name || !installment) return '';
+
+  const namePart = name.replace(/\s+/g, '').substring(0, 3).toUpperCase();
+  const instMatch = installment.match(/\d+/);
+  const instNumber = instMatch ? instMatch[0] : 'X';
+  const year = new Date().getFullYear();
+
+  return `RDC-${namePart}-${instNumber}-${year}`;
+}
+
+document.getElementById('paymentShareholder').addEventListener('change', updateRDC);
+document.getElementById('paymentInstallment').addEventListener('change', updateRDC);
+
+function updateRDC() {
+  const name = document.getElementById('paymentShareholder').value;
+  const installment = document.getElementById('paymentInstallment').value;
+  document.getElementById('rdcId').value = generateRDC(name, installment);
+}
+
+  function openPaymentModal() {
+  document.getElementById('paymentModal').classList.add('active');
+}
+
+function closePaymentModal() {
+  document.getElementById('paymentModal').classList.remove('active');
+}
+
+function showTab(tab, el) {
+  document.getElementById('shareholdersView').style.display = 'none';
+  document.getElementById('paymentsView').style.display = 'none';
+  document.getElementById('costsView').style.display = 'none';
+
+  if (tab === 'shareholders') {
+    document.getElementById('shareholdersView').style.display = 'block';
+  }
+
+  if (tab === 'payments') {
+    document.getElementById('paymentsView').style.display = 'block';
+  }
+
+  if (tab === 'costs') {
+    document.getElementById('costsView').style.display = 'block';
+  }
+
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+
 function openModal() {
   document.getElementById('modal').classList.add('active');
 }
@@ -286,8 +574,71 @@ function addShareholder() {
 
   document.getElementById('tableBody').insertAdjacentHTML('beforeend', row);
   closeModal();
+
+  // Default tab
+document.getElementById('shareholdersView').style.display = 'none';
+document.getElementById('paymentsView').style.display = 'block';
+document.getElementById('costsView').style.display = 'none';
+
 }
+
+
 </script>
+
+<!-- ADD PAYMENT MODAL -->
+<div class="modal" id="paymentModal">
+  <div class="modal-box" style="width:560px">
+
+    <div class="modal-header">
+      <div>
+        <h3>Record New Payment</h3>
+        <div class="subtitle">Enter payment details and upload receipt</div>
+      </div>
+      <span class="close" onclick="closePaymentModal()">×</span>
+    </div>
+
+    <div class="form-grid">
+<select id="paymentShareholder">
+  <option value="">Select shareholder</option>
+  <option>Rajesh Kumar</option>
+  <option>Priya Sharma</option>
+</select>
+
+<select id="paymentInstallment">
+  <option value="">Select installment</option>
+  <option>5th Construction Installment</option>
+  <option>6th Construction Installment</option>
+</select>
+
+<input id="rdcId" placeholder="RDC-AUTO-GENERATED" readonly>
+      <input placeholder="Amount Paid">
+      <input type="date">
+      <select>
+        <option>Verified</option>
+        <option>Pending</option>
+      </select>
+    </div>
+
+    <!-- Upload box -->
+    <div style="
+      margin-top:16px;
+      border:2px dashed var(--border);
+      border-radius:12px;
+      padding:24px;
+      text-align:center;
+      color:var(--muted);
+    ">
+      ⬆ Click to upload or drag and drop<br>
+      <small>PDF files up to 10MB</small>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" style="background:#ddd;color:#000" onclick="closePaymentModal()">Cancel</button>
+      <button class="btn">Add Payment</button>
+    </div>
+
+  </div>
+</div>
 
 </body>
 </html>

@@ -2505,3 +2505,129 @@ main {
     margin-right: auto;
     display: block;
 }
+
+.payment-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 0;
+  border-bottom:1px solid var(--border);
+}
+
+/* Budget Cards */
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.budget-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.budget-title {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.budget-amount {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 6px 0;
+}
+
+.budget-sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.budget-util {
+  font-size: 13px;
+  color: #2563eb;
+  margin-top: 6px;
+}
+
+/* Vouchers */
+.voucher-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-top: 12px;
+}
+
+.light-btn {
+  background: #fff;
+  color: #000;
+  border: 1px solid var(--border);
+  margin-top: 6px;
+}
+
+/* Payments row */
+.payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Costs: Budget grid */
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.budget-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.budget-title {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.budget-amount {
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.budget-sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.budget-util {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #2563eb;
+}
+
+/* Voucher row */
+.voucher-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-top: 12px;
+}
+
+/* Light button */
+.light-btn {
+  background: #fff;
+  color: #000;
+  border: 1px solid var(--border);
+}
