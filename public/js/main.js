@@ -85,6 +85,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     tabContent.innerHTML = contentHtml;
+
+attachImagePreviewListeners();
+attachCostTabListeners();
+
+
+
                 })
                 .catch(error => {
                     console.error('Error loading tab content:', error);
@@ -238,10 +244,22 @@ function generateFinancialTransparencyHTML(data) {
                                     </div>
                                 </div>
                                 <div class="payment-amounts">
-                                    <span class="amount-badge scheduled">${item.scheduledAmount}</span>
-                                    <span class="amount-separator">→</span>
                                     <span class="amount-badge paid">${item.paidAmount}</span>
                                 </div>
+
+                                <div class="payment-amounts">
+    <a
+        href="https://zenodo.org/records/18187513/files/The%20State%20of%20Quantum%20Computing%20-%20Farial%20Mahmod.pdf?download=1"
+        class="amount-badge paid download-receipt"
+        target="_blank"
+        download
+    >
+        <i class="fas fa-receipt"></i>
+        Download Receipt
+    </a>
+</div>
+
+
                             </div>
                         `).join('')}
                     </div>
@@ -392,10 +410,19 @@ function generateFinancialTransparencyHTML(data) {
                                 <div class="timeline-content">
                                     <div class="timeline-header">
                                         <h4>${step.title}</h4>
-                                        <span class="status-badge ${step.status}">
-                                            ${step.label}
-                                        </span>
+<span class="status-badge ${step.status}">
+    ${step.label}
+</span>
+<br>
+<img
+    src="https://images.stockcake.com/public/3/8/6/386aacf3-17a8-4057-b42c-b7e3e00eff6b_large/construction-workers-working-stockcake.jpg"
+    class="status-image"
+    alt="Construction status"
+    data-full="https://images.stockcake.com/public/3/8/6/386aacf3-17a8-4057-b42c-b7e3e00eff6b_large/construction-workers-working-stockcake.jpg"
+/>
+
                                     </div>
+                                    
                                     <p class="timeline-date">
                                         ${step.startDate} – ${step.endDate}
                                     </p>
@@ -406,23 +433,6 @@ function generateFinancialTransparencyHTML(data) {
                                            </div>`
                                         : ''}
                                 </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-                <!-- Media Gallery -->
-                <div class="construction-media">
-                    <div class="section-header">
-                        <h2>Photo & Video Gallery</h2>
-                        <p class="section-subtitle">
-                            Visual updates from the construction site
-                        </p>
-                    </div>
-                    <div class="media-grid">
-                        ${data.media.map(item => `
-                            <div class="media-card">
-                                <img src="${item.thumbnail}" alt="${item.title}">
-                                <span class="media-tag">${item.category}</span>
                             </div>
                         `).join('')}
                     </div>
@@ -611,35 +621,32 @@ function generateCustomizationHTML(data) {
         }
     }
 
-    function attachImagePreviewListeners() {
-        const modal = document.getElementById('image-modal');
-        const modalImg = document.getElementById('image-modal-img');
-        const closeBtn = document.querySelector('.image-modal-close');
+function attachImagePreviewListeners() {
+    const modal = document.getElementById('image-modal');
+    const modalImg = document.getElementById('image-modal-img');
+    const closeBtn = document.querySelector('.image-modal-close');
 
-        if (!modal || !modalImg || !closeBtn) return;
+    if (!modal || !modalImg || !closeBtn) return;
 
-        // Click image → open modal
-        document.querySelectorAll('.media-card img, .voucher-item img').forEach(img => {
-            img.style.cursor = 'zoom-in';
+    document.querySelectorAll('.status-image').forEach(img => {
+        img.style.cursor = 'zoom-in';
 
-            img.addEventListener('click', function (e) {
-                e.stopPropagation();
-                modalImg.src = this.src;
-                modal.classList.remove('hidden');
-            });
-        });
-
-        // Click cross icon → close modal
-        closeBtn.addEventListener('click', function (e) {
+        img.onclick = function (e) {
             e.stopPropagation();
-            modal.classList.add('hidden');
-            modalImg.src = '';
-        });
+            modalImg.src = this.dataset.full || this.src;
+            modal.classList.remove('hidden');
+        };
+    });
 
-        // Click outside image → close modal
-        modal.addEventListener('click', () => {
-            modal.classList.add('hidden');
-            modalImg.src = '';
-        });
-    }
+    closeBtn.onclick = function (e) {
+        e.stopPropagation();
+        modal.classList.add('hidden');
+        modalImg.src = '';
+    };
+
+    modal.onclick = function () {
+        modal.classList.add('hidden');
+        modalImg.src = '';
+    };
+}
 });

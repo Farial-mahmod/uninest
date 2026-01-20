@@ -56,7 +56,7 @@ const financialData = {
     ]
   },
   rdcLog: {
-    title: "RDC Log",
+    title: "Completed Payments",
     subtitle: "All payments made by you",
     items: [
       {
@@ -169,7 +169,6 @@ vouchers: {
 const constructionProgress = {
   title: "Construction Progress",
   subtitle: "Visual, transparent project milestones",
-
   timeline: [
     {
       title: "Land Clearance & Preparation",
@@ -227,10 +226,15 @@ app.get('/login', (req, res) => {
   res.render('login');
 });
 
-// ====== IMPORTANT CHANGE: Redirect root to login ======
+
 app.get('/', (req, res) => {
   res.redirect('/login');
 });
+
+app.get('/admin', (req, res) => {
+  res.render('admin');
+});
+
 
 // Dashboard page (changed from home to dashboard)
 app.get('/dashboard', (req, res) => {

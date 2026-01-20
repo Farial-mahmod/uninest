@@ -2435,3 +2435,73 @@ main {
         grid-column: 2;
     }
 }
+
+/* Status image next to badge */
+.status-image {
+    width: 84px;
+    height: 84px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-left: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    cursor: zoom-in;
+}
+
+
+/* Modal */
+.image-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.image-modal.hidden {
+    display: none;
+}
+
+.image-modal-content {
+    position: relative;
+    background: #fff;
+    padding: 12px;
+    border-radius: 8px;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.image-modal-content img {
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 6px;
+}
+
+.image-modal-close {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* Make timeline header a two-row layout */
+.timeline-header {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: center; /* equal left & right spacing */
+}
+
+/* Keep title visually unchanged */
+.timeline-header h4 {
+    justify-self: start;
+}
+
+/* Center status + image horizontally */
+.timeline-header .status-badge,
+.timeline-header .status-image {
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}

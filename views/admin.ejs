@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin – Shareholders</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root {
+  --primary: #0b0d1c;
+  --bg: #f4f4f6;
+  --card: #ffffff;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+}
+
+* { box-sizing: border-box; font-family: Inter, system-ui, sans-serif; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  padding: 24px;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  background: #ededf0;
+  border-radius: 999px;
+  padding: 6px;
+  gap: 6px;
+}
+
+.tab {
+  padding: 10px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.tab.active {
+  background: white;
+}
+
+/* Card */
+.card {
+  background: var(--card);
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 14px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header h2 {
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Button */
+.btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Search */
+.search {
+  margin: 16px 0;
+  padding: 10px 14px;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  text-align: left;
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.status {
+  background: var(--primary);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-box {
+  background: white;
+  width: 520px;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+}
+
+.close {
+  cursor: pointer;
+  font-size: 20px;
+}
+
+/* Form */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.form-grid input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active">Shareholders</div>
+  <div class="tab">Payments</div>
+  <div class="tab">Costs</div>
+  <div class="tab">Milestones</div>
+  <div class="tab">Gallery</div>
+  <div class="tab">Customization</div>
+</div>
+
+<!-- Card -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2>Manage Shareholders</h2>
+      <div class="subtitle">View and manage all shareholder information</div>
+    </div>
+    <button class="btn" onclick="openModal()">＋ Add Shareholder</button>
+  </div>
+
+  <input class="search" placeholder="Search by name, flat number, or share ID...">
+
+  <table>
+    <thead>
+      <tr>
+        <th>Share ID</th>
+        <th>Name</th>
+        <th>Flat</th>
+        <th>Contact</th>
+        <th>Payment Status</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <!-- Dynamic rows -->
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3>Add New Shareholder</h3>
+        <div class="subtitle">Enter shareholder details below</div>
+      </div>
+      <span class="close" onclick="closeModal()">×</span>
+    </div>
+
+    <div class="form-grid">
+      <input id="name" placeholder="Full Name">
+      <input id="flat" placeholder="Flat Number">
+      <input id="email" placeholder="Email">
+      <input id="phone" placeholder="Phone">
+      <input id="shareId" placeholder="Share ID" readonly>
+      <input id="amount" placeholder="Total Amount">
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" style="background:#ddd;color:#000" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="addShareholder()">Add Shareholder</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openModal() {
+  document.getElementById('modal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+
+/* Generate Share ID from name + mobile */
+function generateShareId(name, phone) {
+  const cleanName = name.replace(/\s+/g, '').substring(0, 4).toUpperCase();
+  const lastDigits = phone.slice(-4);
+  return `SH-${cleanName}-${lastDigits}`;
+}
+
+document.getElementById('phone').addEventListener('input', () => {
+  const name = document.getElementById('name').value;
+  const phone = document.getElementById('phone').value;
+  if (name && phone.length >= 4) {
+    document.getElementById('shareId').value = generateShareId(name, phone);
+  }
+});
+
+function addShareholder() {
+  const name = document.getElementById('name').value;
+  const flat = document.getElementById('flat').value;
+  const email = document.getElementById('email').value;
+  const phone = document.getElementById('phone').value;
+  const shareId = document.getElementById('shareId').value;
+
+  if (!name || !phone) return alert("Name & phone required");
+
+  const row = `
+    <tr>
+      <td>${shareId}</td>
+      <td>${name}</td>
+      <td>${flat}</td>
+      <td>${email}<br>${phone}</td>
+      <td>₹0</td>
+      <td><span class="status">Active</span></td>
+      <td>✏️ 🗑️</td>
+    </tr>
+  `;
+
+  document.getElementById('tableBody').insertAdjacentHTML('beforeend', row);
+  closeModal();
+}
+</script>
+
+</body>
+</html>
