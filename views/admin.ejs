@@ -26,12 +26,11 @@ body {
 .tabs {
   display: flex;
   justify-content: center;  
-  background: #cfcfff;
+  background: #b6faff;
   border-radius: 999px;
   padding: 6px;
   gap: 17px;
 }
-
 
 .tab {
   padding: 10px 22px;
@@ -78,7 +77,6 @@ body {
   font-weight: 600;
 }
 
-/* Search */
 .search {
   margin: 16px 0;
   padding: 10px 14px;
@@ -87,7 +85,6 @@ body {
   border: 1px solid var(--border);
 }
 
-/* Table */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -113,7 +110,6 @@ th {
   font-size: 12px;
 }
 
-/* Modal */
 .modal {
   position: fixed;
   inset: 0;
@@ -234,17 +230,85 @@ th {
   border: 1px solid var(--border);
 }
 
+.badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.badge.completed {
+  background: #000;
+  color: #fff;
+}
+
+.badge.delayed {
+  background: #ffe4cc;
+  color: #c2410c;
+}
+
+.milestone-card {
+  border: 1px solid var(--border);
+  padding: 16px;
+  border-radius: 12px;
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.delay-box {
+  margin-top: 10px;
+  background: #fff4e5;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+/* ===== FIX light button rendering ===== */
+.btn.light-btn {
+  background-color: #f3f4f6 !important;
+  color: #111827 !important;
+  border: 1px solid #e5e7eb !important;
+
+  padding: 10px 16px;
+  border-radius: 10px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+/* Emoji size fix */
+.btn.light-btn span,
+.btn.light-btn::first-letter {
+  font-size: 13px;
+}
+
+/* Hover */
+.btn.light-btn:hover {
+  background-color: #e5e7eb !important;
+}
+
+/* Click */
+.btn.light-btn:active {
+  transform: scale(0.97);
+}
 
 </style>
 </head>
-
 <body>
 
 <div class="tabs">
   <div class="tab active" onclick="showTab('shareholders', this)">Shareholders</div>
   <div class="tab" onclick="showTab('payments', this)">Payments</div>
   <div class="tab" onclick="showTab('costs', this)">Costs</div>
-  <div class="tab">Milestones</div>
+  <div class="tab" onclick="showTab('milestones', this)">Milestones</div>
   <div class="tab">Gallery</div>
   <div class="tab">Customization</div>
 </div>
@@ -259,9 +323,7 @@ th {
     <button class="btn" onclick="openModal()">＋ Add Shareholder</button>
   </div>
   </div>
-
   <input class="search" placeholder="Search by name, flat number, or share ID...">
-
   <table>
     <thead>
       <tr>
@@ -282,9 +344,9 @@ th {
     <td>
       +88017787788
     </td>
-    <td>₹3,50,000</td>
+    <td>3,50,000</td>
     <td><span class="status">Active</span></td>
-    <td>✏️ 🗑️</td>
+    <td>✏️</td>
   </tr>
 </tbody>
 
@@ -328,7 +390,7 @@ th {
       </div>
     </div>
     <div style="text-align:right">
-      <strong>₹4,50,000</strong><br>
+      <strong>৳4,50,000</strong><br>
       <button class="btn" style="margin-top:6px;background:#fff;color:#000;border:1px solid var(--border)">
         View Receipt
       </button>
@@ -345,7 +407,7 @@ th {
       </div>
     </div>
     <div style="text-align:right">
-      <strong>₹4,50,000</strong><br>
+      <strong>৳4,50,000</strong><br>
       <button class="btn" style="margin-top:6px;background:#fff;color:#000;border:1px solid var(--border)">
         View Receipt
       </button>
@@ -362,7 +424,7 @@ th {
       </div>
     </div>
     <div style="text-align:right">
-      <strong>₹5,20,000</strong><br>
+      <strong>৳5,20,000</strong><br>
       <button class="btn" style="margin-top:6px;background:#fff;color:#000;border:1px solid var(--border)">
         View Receipt
       </button>
@@ -381,10 +443,7 @@ th {
       <div class="subtitle">Update budget allocation and add vendor vouchers</div>
     </div>
     <div style="display:flex;gap:10px">
-      <button class="btn" style="background:#fff;color:#000;border:1px solid var(--border)">
-        Update Budget
-      </button>
-      <button class="btn">＋ Add Voucher</button>
+      <button class="btn" onclick="openVoucherModal()">＋ Add Voucher</button>
     </div>
   </div>
 
@@ -395,36 +454,36 @@ th {
 
     <div class="budget-card">
       <div class="budget-title">Steel/Rebar</div>
-      <div class="budget-amount">₹28,50,000</div>
-      <div class="budget-sub">of ₹30,00,000</div>
+      <div class="budget-amount">৳28,50,000</div>
+      <div class="budget-sub">of ৳30,00,000</div>
       <div class="budget-util">95.0% utilized</div>
     </div>
 
     <div class="budget-card">
       <div class="budget-title">Cement/Aggregate</div>
-      <div class="budget-amount">₹21,00,000</div>
-      <div class="budget-sub">of ₹25,00,000</div>
+      <div class="budget-amount">৳21,00,000</div>
+      <div class="budget-sub">of ৳25,00,000</div>
       <div class="budget-util">84.0% utilized</div>
     </div>
 
     <div class="budget-card">
       <div class="budget-title">Labor & Manpower</div>
-      <div class="budget-amount">₹25,00,000</div>
-      <div class="budget-sub">of ₹40,00,000</div>
+      <div class="budget-amount">৳25,00,000</div>
+      <div class="budget-sub">of ৳40,00,000</div>
       <div class="budget-util">62.5% utilized</div>
     </div>
 
     <div class="budget-card">
       <div class="budget-title">Finishing Materials</div>
-      <div class="budget-amount">₹12,00,000</div>
-      <div class="budget-sub">of ₹35,00,000</div>
+      <div class="budget-amount">৳12,00,000</div>
+      <div class="budget-sub">of ৳35,00,000</div>
       <div class="budget-util">34.3% utilized</div>
     </div>
 
     <div class="budget-card">
       <div class="budget-title">Other Expenses</div>
-      <div class="budget-amount">₹6,00,000</div>
-      <div class="budget-sub">of ₹20,00,000</div>
+      <div class="budget-amount">৳6,00,000</div>
+      <div class="budget-sub">of ৳20,00,000</div>
       <div class="budget-util">30.0% utilized</div>
     </div>
 
@@ -442,9 +501,51 @@ th {
       </div>
     </div>
     <div style="text-align:right">
-      <strong>₹4,25,000</strong><br>
+      <strong>৳4,25,000</strong><br>
       <button class="btn light-btn">View Invoice</button>
     </div>
+  </div>
+
+</div>
+
+<div class="card" id="milestonesView" style="display:none">
+
+  <div class="card-header">
+    <div>
+      <h2>Manage Construction Milestones</h2>
+      <div class="subtitle">
+        Add and update project milestones and timeline
+      </div>
+    </div>
+    <button class="btn" onclick="openMilestoneModal()">＋ Add Milestone</button>
+  </div>
+
+  <!-- Milestone Item -->
+  <div class="milestone-card">
+    <div>
+      <strong>Land Clearance & Site Preparation</strong>
+      <span class="badge completed">Completed</span>
+      <div class="subtitle">
+        <br>
+        Planned: 2023-02-01 • Completed: 2023-02-05
+      </div>
+    </div>
+    ✏ Edit
+  </div>
+
+  <div class="milestone-card">
+    <div>
+      <strong>10th Floor Slab Cast</strong>
+      <span class="badge completed">Completed</span>
+      <span class="badge delayed">Delayed</span>
+      <div class="subtitle"><br>
+        Planned: 2024-09-30 • Completed: 2024-10-15
+      </div>
+      <div class="delay-box">
+        Delay Reason: Monsoon season caused 15-day delay
+      </div>
+    </div>
+    ✏ Edit
   </div>
 
 </div>
@@ -475,6 +576,38 @@ th {
     </div>
   </div>
 </div>
+
+<div class="modal" id="milestoneModal">
+  <div class="modal-box" style="width:520px">
+
+    <div class="modal-header">
+      <div>
+        <h3>Add New Milestone</h3>
+        <div class="subtitle">Create a new construction milestone</div>
+      </div>
+      <span class="close" onclick="closeMilestoneModal()">×</span>
+    </div>
+
+    <div class="form-grid">
+      <input placeholder="e.g., 11th Floor Slab Cast">
+      <input type="date">
+      <select>
+        <option>Planned</option>
+        <option>In Progress</option>
+        <option>Completed</option>
+        <option>Delayed</option>
+      </select>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" style="background:#ddd;color:#000"
+              onclick="closeMilestoneModal()">Cancel</button>
+      <button class="btn">Add Milestone</button>
+    </div>
+
+  </div>
+</div>
+
 
 <script>
 
@@ -507,9 +640,11 @@ function closePaymentModal() {
 }
 
 function showTab(tab, el) {
+  // Hide all views
   document.getElementById('shareholdersView').style.display = 'none';
   document.getElementById('paymentsView').style.display = 'none';
   document.getElementById('costsView').style.display = 'none';
+  document.getElementById('milestonesView').style.display = 'none';
 
   if (tab === 'shareholders') {
     document.getElementById('shareholdersView').style.display = 'block';
@@ -523,10 +658,13 @@ function showTab(tab, el) {
     document.getElementById('costsView').style.display = 'block';
   }
 
+  if (tab === 'milestones') {
+    document.getElementById('milestonesView').style.display = 'block';
+  }
+
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
 }
-
 
 function openModal() {
   document.getElementById('modal').classList.add('active');
@@ -566,29 +704,40 @@ function addShareholder() {
       <td>${name}</td>
       <td>${flat}</td>
       <td>${email}<br>${phone}</td>
-      <td>₹0</td>
+      <td>0</td>
       <td><span class="status">Active</span></td>
-      <td>✏️ 🗑️</td>
+      <td>✏️</td>
     </tr>
   `;
 
   document.getElementById('tableBody').insertAdjacentHTML('beforeend', row);
   closeModal();
-
   // Default tab
 document.getElementById('shareholdersView').style.display = 'none';
 document.getElementById('paymentsView').style.display = 'block';
 document.getElementById('costsView').style.display = 'none';
-
 }
 
+function openVoucherModal() {
+  document.getElementById('voucherModal').classList.add('active');
+}
+
+function closeVoucherModal() {
+  document.getElementById('voucherModal').classList.remove('active');
+}
+
+function openMilestoneModal() {
+  document.getElementById('milestoneModal').classList.add('active');
+}
+
+function closeMilestoneModal() {
+  document.getElementById('milestoneModal').classList.remove('active');
+}
 
 </script>
 
-<!-- ADD PAYMENT MODAL -->
 <div class="modal" id="paymentModal">
   <div class="modal-box" style="width:560px">
-
     <div class="modal-header">
       <div>
         <h3>Record New Payment</h3>
@@ -596,7 +745,6 @@ document.getElementById('costsView').style.display = 'none';
       </div>
       <span class="close" onclick="closePaymentModal()">×</span>
     </div>
-
     <div class="form-grid">
 <select id="paymentShareholder">
   <option value="">Select shareholder</option>
@@ -618,8 +766,54 @@ document.getElementById('costsView').style.display = 'none';
         <option>Pending</option>
       </select>
     </div>
+    <div style="
+      margin-top:16px;
+      border:2px dashed var(--border);
+      border-radius:12px;
+      padding:24px;
+      text-align:center;
+      color:var(--muted);
+    ">
+      ⬆ Click to upload or drag and drop<br>
+      <small>PDF files up to 10MB</small>
+    </div>
+    <div class="form-actions">
+      <button class="btn" style="background:#ddd;color:#000" onclick="closePaymentModal()">Cancel</button>
+      <button class="btn">Add Payment</button>
+    </div>
+  </div>
+</div>
 
-    <!-- Upload box -->
+<!-- ADD VOUCHER MODAL -->
+<div class="modal" id="voucherModal">
+  <div class="modal-box" style="width:560px">
+
+    <div class="modal-header">
+      <div>
+        <h3>Add Vendor Voucher</h3>
+        <div class="subtitle">Record major purchase and upload invoice</div>
+      </div>
+      <span class="close" onclick="closeVoucherModal()">×</span>
+    </div>
+
+    <div class="form-grid">
+      <input placeholder="VCH-2024-XXX">
+      <input type="date">
+
+      <input placeholder="e.g., Steel Rebar - 5th Floor Slab">
+      <input placeholder="e.g., Jindal Steel Suppliers">
+
+      <input placeholder="Amount">
+      <select>
+        <option>Select category</option>
+        <option>Steel/Rebar</option>
+        <option>Cement/Aggregate</option>
+        <option>Labor & Manpower</option>
+        <option>Finishing Materials</option>
+        <option>Other Expenses</option>
+      </select>
+    </div>
+
     <div style="
       margin-top:16px;
       border:2px dashed var(--border);
@@ -633,8 +827,12 @@ document.getElementById('costsView').style.display = 'none';
     </div>
 
     <div class="form-actions">
-      <button class="btn" style="background:#ddd;color:#000" onclick="closePaymentModal()">Cancel</button>
-      <button class="btn">Add Payment</button>
+      <button class="btn" style="background:#ddd;color:#000" onclick="closeVoucherModal()">
+        Cancel
+      </button>
+      <button class="btn">
+        Add Voucher
+      </button>
     </div>
 
   </div>

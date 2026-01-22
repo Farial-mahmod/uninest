@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bismillah Developer And Traders</title>
+    <link rel="icon" href="bismillah_golden.jpg" type="image/jpg">
+    <style>
+        /* Base Styles */
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            background-color: #121212;
+            overflow-x: hidden; 
+        }
+        /* Navbar */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background-color: #1f1f1f;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo img {
+            height: 40px;
+            width: auto;
+            border-radius: 4px;
+        }
+        .logo h1 {
+            font-size: 18px;
+            margin: 0;
+            font-weight: 600;
+        }
+        /* Desktop Navigation Links */
+        .nav-links {
+            display: flex; 
+            gap: 25px;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: #fff;
+            font-weight: 500;
+            padding: 5px 10px;
+            transition: color 0.3s ease;
+        }
+        .nav-links a:hover {
+            color: #ffd700; 
+        }
+        /* Mobile Menu Button (Hidden on Desktop) */
+        .menu-btn {
+            display: none; 
+            background: none;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            color: #fff;
+        }
+        /* Dropdown Menu (Mobile/Active State) */
+        .menu {
+            display: none;
+            position: absolute; 
+            top: 65px; 
+            right: 25px; 
+            background: #1f1f1f;
+            box-shadow: 0 2px 10px rgba(255,255,255,0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            min-width: 150px;
+            z-index: 900;
+        }
+        .menu.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        .menu a {
+            display: block;
+            padding: 20px 26px;
+            text-decoration: none;
+            color: #fff;
+            font-weight: 500;
+        }
+        .menu a:hover {
+            background: #333;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Hero Section (DESKTOP) */
+        .hero-section {
+            padding-top: 80px; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 50vh; 
+            padding-left: 5%;
+            padding-right: 5%;
+            padding-bottom: 40px;
+            gap: 40px;
+        }
+        /* Hero Text */
+        .hero-text {
+            flex: 1;
+            max-width: 45%;
+        }
+        .hero-text h2 {
+            font-size: 42px;
+            margin-bottom: 15px;
+        }
+        .hero-text p {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #ddd;
+        }
+        /* Slider Container */
+        .slider-container {
+            flex: 1;
+            max-width: 50%;
+            height: 400px;
+            min-height: 250px; 
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+        .slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        .slide.active {
+            opacity: 1;
+        }
+        /* Image Caption */
+        .caption {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+        .caption.active {
+            opacity: 1;
+        }
+
+        /* NEW GALLERY SECTION STYLES */
+        .gallery-section {
+            padding: 10px 5%;
+            background-color: #1a1a1a;
+            text-align: center;
+        }
+        
+        .gallery-title {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #ffd700;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .gallery-title:after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background-color: #ffd700;
+        }
+        
+        .gallery-container {
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+        }
+        
+        .gallery-track {
+            display: flex;
+            transition: transform 0.8s ease;
+        }
+        
+        .gallery-slide {
+            min-width: 100%;
+            height: 500px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .gallery-slide img {
+            width: 90%;
+            height: 90%;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+        }
+        
+        .gallery-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+            gap: 20px;
+        }
+        
+        .gallery-btn {
+            background-color: #ffd700;
+            color: #121212;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .gallery-btn:hover {
+            background-color: #ffed4e;
+            transform: scale(1.1);
+        }
+        
+        .gallery-dots {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .gallery-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #555;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .gallery-dot.active {
+            background-color: #ffd700;
+            transform: scale(1.2);
+        }
+        
+        .gallery-caption {
+            margin-top: 15px;
+            font-size: 18px;
+            color: #ddd;
+            font-weight: 500;
+            min-height: 30px;
+        }
+
+        /* Responsive (Mobile) Styles */
+        @media (max-width: 900px) {
+            .nav-links {
+                display: none; 
+            }
+            .menu-btn {
+                display: block; 
+            }
+            .menu {
+                top: 65px; 
+                right: 20px; 
+            }
+            
+            /* Hero Section adjustments */
+            .hero-section {
+                flex-direction: column; 
+                height: auto;
+                min-height: auto; 
+                text-align: center;
+                padding: 80px 20px 40px 20px; 
+            }
+
+            .hero-text, .slider-container {
+                max-width: 100%;
+                width: 100%; 
+            }
+          
+            .slider-container {
+                height: 280px; 
+                margin-top: 30px; 
+            }
+
+            .hero-text h2 {
+                font-size: 32px;
+            }
+
+            .hero-text p {
+                font-size: 16px;
+            }
+            
+            /* Gallery adjustments for mobile */
+            .gallery-section {
+                padding: 10px 10px;
+            }
+            
+            .gallery-title {
+                font-size: 28px;
+                margin-bottom: 30px;
+            }
+            
+            .gallery-slide {
+                height: 350px;
+            }
+            
+            .gallery-slide img {
+                width: 95%;
+                height: 85%;
+            }
+            
+            .gallery-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
+        }
+
+        /* Footer Styles */
+        .main-footer {
+            background-color: #1f1f1f;
+            color: #ccc;
+            padding: 40px 20px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.4);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 30px;
+        }
+
+        .footer-section {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .footer-section h4 {
+            color: #ffd700;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .footer-section p, .footer-section address {
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .footer-links ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-links a {
+            color: #ccc;
+            text-decoration: none;
+            display: block;
+            padding: 4px 0;
+            transition: color 0.3s ease;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover {
+            color: #ffd700;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .social-icons a img {
+            width: 30px; 
+            height: 30px;
+            transition: opacity 0.3s ease;
+        }
+
+        .social-icons a img:hover {
+            opacity: 0.7;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            margin-top: 30px;
+            border-top: 1px solid #333;
+            font-size: 13px;
+            color: #888;
+        }
+
+        /* Responsive adjustments for footer */
+        @media (max-width: 768px) {
+            .footer-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .footer-section {
+                min-width: 100%;
+                margin-bottom: 20px;
+            }
+            .footer-section h4 {
+                border-bottom: none;
+                padding-bottom: 0;
+            }
+        }
+
+    #whatsapp-widget {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+  }
+  
+.whatsapp-button {
+  background-color: #25D366;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  background-image: url('wp.png');
+  background-size: 70%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Remove the font awesome icon from HTML or hide it */
+.whatsapp-button i {
+  display: none;
+}
+
+/* Keep the call indicator */
+.whatsapp-button::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background-color: white;
+  border-radius: 50%;
+  bottom: 4px;
+  right: 4px;
+  border: 2px solid #25D366;
+  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+}
+
+.whatsapp-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.6);
+}
+
+.whatsapp-chat-window {
+  position: absolute;
+  bottom: 40px;
+  right: 0;
+  width: 280px; /* Reduced from 310px */
+  height: 380px; /* Add fixed height */
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.whatsapp-chat-window.open {
+  display: flex;
+  animation: slideUp 0.3s ease;
+}
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .chat-header {
+    background-color: #075E54;
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .chat-header-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .chat-header-info i {
+    font-size: 23px;
+  }
+  
+  .chat-header-info h3 {
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+  
+  .chat-header-info p {
+    font-size: 11px;
+    opacity: 0.8;
+  }
+  
+  .close-chat {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+  }
+  
+  .close-chat:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+  
+.chat-body {
+  padding: 12px; /* Reduced from 15px */
+  height: 180px; /* Reduced from 250px */
+  overflow-y: auto;
+  background-color: #ECE5DD;
+  flex-grow: 1;
+}
+  
+  .chat-message {
+    margin-bottom: 15px;
+    max-width: 80%;
+    padding: 10px;
+    border-radius: 8px;
+    position: relative;
+    word-wrap: break-word;
+  }
+  
+  .bot-message {
+    background-color: white;
+    align-self: flex-start;
+    border-top-left-radius: 0;
+  }
+  
+  .message-time {
+    font-size: 11px;
+    color: #999;
+    display: block;
+    text-align: right;
+    margin-top: 5px;
+  }
+  
+  .chat-footer {
+    padding: 15px;
+    border-top: 1px solid #eee;
+    background-color: white;
+  }
+  
+  .input-container {
+    position: relative;
+    margin-bottom: 10px;
+  }
+  
+  #whatsapp-message {
+      outline: none;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    resize: none;
+    font-family: inherit;
+    font-size: 14px;
+  }
+  
+  #whatsapp-message:focus {
+  outline: none;
+  border-color: #ddd;
+}
+  
+  .char-count {
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    font-size: 12px;
+    color: #999;
+  }
+  
+  .send-button {
+    background-color: #25D366;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background-color 0.3s;
+  }
+  
+  .send-button:hover {
+    background-color: #128C7E;
+  }
+  
+  .send-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  @media (max-width: 480px) {
+    .whatsapp-chat-window {
+      width: 300px;
+      right: -10px;
+    }
+    
+    #whatsapp-widget {
+      bottom: 10px;
+      right: 10px;
+    }
+  }
+  
+.chat-body, .bot-message, .bot-message p {
+  color: #333 !important;
+}
+
+.wp-icon-small {
+  width: 28px;
+  height: 28px;
+  background-image: url('wp.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.send-icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-image: url('wp.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.send-button {
+  background-color: #25D366;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.3s;
+}
+        
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo">
+            <img src="bismillah_golden.jpg" alt="Bismillah Developers & Traders" />
+            <h1>Bismillah Developer And Traders</h1>
+        </div>
+
+        <nav class="nav-links">
+            <a href="/login">Login</a>
+            <a href=""></a>
+        </nav>
+        
+        <button class="menu-btn" id="menu-btn">☰☰ </button>
+
+        <div class="menu" id="menu">
+            <a href="/login">Login</a>
+        </div>
+    </header>
+
+    <!-- CONTENT SECTION START -->
+    <section class="hero-section">
+        <div class="hero-text">
+            <h2>Find Your Perfect Home</h2>
+            <p>
+                Discover modern apartments designed for comfort and elegance. 
+                We build your dream homes with care, quality and excellence.
+            </p>
+        </div>
+
+        <div class="slider-container" id="sliderContainer">
+            <span class="caption" data-slide-index="0">Bismillah Tower 1</span>
+            <span class="caption" data-slide-index="1">Bismillah Tower 2</span>
+            <span class="caption" data-slide-index="1">Purchased Land<br>for Project</span>
+            
+            <img src="t1.jpg" class="slide" data-slide-index="0" alt="Bismillah Tower 1" />
+            <img src="t2.jpg" class="slide" data-slide-index="1" alt="Bismillah Tower 2" />
+            <img src="land.jpg" class="slide" data-slide-index="2" alt="Bismillah Tower 2" />
+        </div>
+    </section>
+    
+    <div id="whatsapp-widget">
+  <div class="whatsapp-button" id="toggle-chat">
+    <i class="fab fa-whatsapp"></i>
+  </div>
+  
+  <div class="whatsapp-chat-window" id="chat-window">
+    <div class="chat-header">
+<div class="chat-header-info">
+  <div class="wp-icon-small"></div>
+  <div>
+    <h4>Bismillah Developer And Traders</h4>
+  </div>
+</div>
+      <button class="close-chat" id="close-chat">×</button>
+    </div>
+    
+    <div class="chat-body">
+      <div class="chat-message bot-message">
+        <p>Welcome! How may we help you?</p>
+      </div>
+    </div>
+    
+    <div class="chat-footer">
+      <div class="input-container">
+        <textarea 
+          id="whatsapp-message" 
+          placeholder="Type your message here..." 
+          maxlength="500"
+          rows="2"
+        ></textarea>
+        <div class="char-count">
+          <span id="char-counter">0</span>/500
+        </div>
+      </div>
+
+<button id="send-whatsapp" class="send-button">
+  <span class="send-icon"></span> Send
+</button>
+
+    </div>
+  </div>
+</div>
+    
+<!--  GALLERY SECTION -->
+<section class="gallery-section">
+    <h2 class="gallery-title">Gallery of Projects</h2>
+    
+    <div class="gallery-container">
+        <div class="gallery-track" id="galleryTrack">
+            <!-- Slide 1 -->
+            
+                        <!-- Slide 2 -->
+            <div class="gallery-slide">
+                <img src="b111.jpg" alt="Rooftop">
+            </div>
+            
+            <div class="gallery-slide">
+                <img src="b12.jpg" alt="Modern Apartment Exterior">
+            </div>
+
+            <!-- Slide 3 -->
+            <div class="gallery-slide">
+                <img src="b2.jpg" alt="Rooftop">
+            </div>
+            <!-- Slide 4 -->
+            <div class="gallery-slide">
+                <img src="b3.jpg" alt="Rooftop">
+            </div>
+            <!-- Slide 5 -->
+            <div class="gallery-slide">
+                <img src="b4.jpg" alt="Rooftop">
+            </div>
+            <!-- Slide 6 -->
+            <div class="gallery-slide">
+                <img src="b5.jpg" alt="Rooftop">
+            </div>
+            <!-- Slide 7 -->
+            <div class="gallery-slide">
+                <img src="land.jpg" alt="Purchased Land">
+            </div>
+            <!-- Slide 8 -->
+            <div class="gallery-slide">
+                <img src="b11.jpg" alt="Rooftop">
+            </div>
+            <!-- Slide 9 -->
+            <div class="gallery-slide">
+                <img src="b8.jpg" alt="Rooftop">
+            </div>
+            <!-- Slide 10 -->
+            <div class="gallery-slide">
+                <img src="b9.jpg" alt="Rooftop">
+            </div>
+        </div>
+    </div>
+    
+    <div class="gallery-caption" id="galleryCaption">
+        Modern Apartment Exterior
+    </div>
+    
+    <div class="gallery-nav">
+        <button class="gallery-btn" id="prevBtn">‹</button>
+        
+        <div class="gallery-dots" id="galleryDots">
+            <!-- Dots will be generated by JavaScript -->
+        </div>
+        
+        <button class="gallery-btn" id="nextBtn">›</button>
+    </div>
+</section>
+    
+    <footer class="main-footer">
+        <div class="footer-content">
+            <div class="footer-section footer-about">
+                <h4>Bismillah Developers & Traders</h4>
+                <p>
+                    Leading innovative development since 2020.<br>
+                    Your partner in progress and quality investment.
+                </p>
+                <div class="footer-section footer-contact">
+                    <a href="wp.png" alt="WhatsApp" />
+                </div>
+            </div>
+            <div class="footer-section footer-links">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="/login">Login</a></li>
+                    <li><a href="">Our Projects</a></li>
+                    <li><a href="#footer">Contact Us</a></li>
+                </ul>
+            </div>
+            <div class="footer-section footer-contact">
+                <h4>Get In Touch</h4>
+                <address>
+                    Bismillah Tower 1, Holding 20/1, Krishi Bank Road, Boithakhali, Alifnagar<br>
+                    Mobile Number: 01611203688
+                    <br>
+                    Location on Map:
+                    <br><br>
+                    <div style="position: relative; width: 100%; max-width: 600px; height: 0; padding-bottom: 56.25%; margin: auto;">
+                        <iframe 
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d29210.303738635826!2d90.39930881083981!3d23.772757799999994!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755c70078fc51b5%3A0x1b15ba50dff1a01c!2sBismillah%20Tower!5e0!3m2!1sen!2sbd!4v1762602935942!5m2!1sen!2sbd" 
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" 
+                            allowfullscreen="" 
+                            loading="lazy" 
+                            referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
+                    </div>
+                </address>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            &copy; 2025 Bismillah Developers & Traders. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+    // SLIDER FUNCTIONALITY
+    let slideIndex = 0;
+    const slides = document.querySelectorAll('.slide');
+    const captions = document.querySelectorAll('.caption');
+    function showSlide(index) {
+        slides.forEach(slide => slide.classList.remove('active'));
+        captions.forEach(caption => caption.classList.remove('active'));
+        
+        slides[index].classList.add('active');
+        captions[index].classList.add('active');
+    }
+    function showNextSlide() {
+        slideIndex = (slideIndex + 1) % slides.length;
+        showSlide(slideIndex);
+    }
+    function initSlider() {
+        if (slides.length > 0) {
+            slides.forEach(slide => slide.classList.remove('active'));
+            captions.forEach(caption => caption.classList.remove('active'));
+            slideIndex = 0; 
+            showSlide(slideIndex);
+            setInterval(showNextSlide, 3000);
+        }
+    }
+    
+    // MENU FUNCTIONALITY
+    const menuBtn = document.getElementById('menu-btn');
+    const menu = document.getElementById('menu');
+    menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.classList.toggle('active');
+    });
+    window.addEventListener('click', (e) => {
+        if (!menu.contains(e.target) && e.target !== menuBtn) {
+            menu.classList.remove('active');
+        }
+    });
+    
+    // NEW GALLERY FUNCTIONALITY
+    const galleryTrack = document.getElementById('galleryTrack');
+    const galleryCaption = document.getElementById('galleryCaption');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const galleryDots = document.getElementById('galleryDots');
+    
+    // MODIFIED: Using local image files b11.jpg, b111.jpg, etc.
+    const galleryImages = [
+        { src: "b11.jpg", caption: "Rooftop" },
+        { src: "b111.jpg", caption: "Rooftop" },
+        { src: "b2.jpg", caption: "Rooftop" },
+        { src: "b3.jpg", caption: "Rooftop" },
+        { src: "b4.jpg", caption: "Rooftop" },
+        { src: "b5.jpg", caption: "Rooftop" },
+        { src: "land.jpg", caption: "Land Purchased" },
+        { src: "b7.jpg", caption: "Rooftop" },
+        { src: "b8.jpg", caption: "Rooftop" },
+        { src: "b9.jpg", caption: "Rooftop" }
+    ];
+    
+    let currentGalleryIndex = 0;
+    const totalGallerySlides = galleryImages.length;
+    
+    // Create dots for navigation
+    function createDots() {
+        galleryDots.innerHTML = '';
+        for (let i = 0; i < totalGallerySlides; i++) {
+            const dot = document.createElement('div');
+            dot.classList.add('gallery-dot');
+            if (i === currentGalleryIndex) {
+                dot.classList.add('active');
+            }
+            dot.addEventListener('click', () => {
+                goToSlide(i);
+            });
+            galleryDots.appendChild(dot);
+        }
+    }
+    
+    // Update gallery position and caption
+    function updateGallery() {
+        galleryTrack.style.transform = `translateX(-${currentGalleryIndex * 100}%)`;
+        galleryCaption.textContent = galleryImages[currentGalleryIndex].caption;
+        
+        // Update active dot
+        const dots = document.querySelectorAll('.gallery-dot');
+        dots.forEach((dot, index) => {
+            if (index === currentGalleryIndex) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+    }
+    
+    // Go to specific slide
+    function goToSlide(index) {
+        currentGalleryIndex = index;
+        if (currentGalleryIndex >= totalGallerySlides) {
+            currentGalleryIndex = 0;
+        } else if (currentGalleryIndex < 0) {
+            currentGalleryIndex = totalGallerySlides - 1;
+        }
+        updateGallery();
+    }
+    
+    // Next slide
+    function nextSlide() {
+        currentGalleryIndex++;
+        if (currentGalleryIndex >= totalGallerySlides) {
+            currentGalleryIndex = 0;
+        }
+        updateGallery();
+    }
+    
+    // Previous slide
+    function prevSlide() {
+        currentGalleryIndex--;
+        if (currentGalleryIndex < 0) {
+            currentGalleryIndex = totalGallerySlides - 1;
+        }
+        updateGallery();
+    }
+    
+    // Initialize gallery
+    function initGallery() {
+        createDots();
+        updateGallery();
+        
+        // Auto slide every 5 seconds
+        setInterval(nextSlide, 5000);
+    }
+    
+    // Event listeners for gallery buttons
+    prevBtn.addEventListener('click', prevSlide);
+    nextBtn.addEventListener('click', nextSlide);
+    
+    // Initialize everything when page loads
+    window.onload = function() {
+        initSlider();
+        initGallery();
+    };
+    
+    
+  // WhatsApp Widget Functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    // Configuration - Change this to your WhatsApp number
+    const WHATSAPP_NUMBER = "8801611203688";
+    const DEFAULT_MESSAGE = "Hello!";
+    
+    // DOM Elements
+    const toggleChatBtn = document.getElementById('toggle-chat');
+    const closeChatBtn = document.getElementById('close-chat');
+    const chatWindow = document.getElementById('chat-window');
+    const messageInput = document.getElementById('whatsapp-message');
+    const sendBtn = document.getElementById('send-whatsapp');
+    const charCounter = document.getElementById('char-counter');
+    
+    // Toggle chat window
+    toggleChatBtn.addEventListener('click', function() {
+      chatWindow.classList.toggle('open');
+      if (chatWindow.classList.contains('open')) {
+        messageInput.focus();
+      }
+    });
+    
+    // Close chat window
+    closeChatBtn.addEventListener('click', function() {
+      chatWindow.classList.remove('open');
+    });
+    
+    // Character counter for message input
+    messageInput.addEventListener('input', function() {
+      const length = messageInput.value.length;
+      charCounter.textContent = length;
+      
+      // Enable/disable send button based on message length
+      if (length > 0 && length <= 500) {
+        sendBtn.disabled = false;
+      } else {
+        sendBtn.disabled = true;
+      }
+    });
+    
+    // Send message function
+    sendBtn.addEventListener('click', function() {
+      sendWhatsAppMessage();
+    });
+    
+    // Allow sending message with Enter key (but not Shift+Enter)
+    messageInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendWhatsAppMessage();
+      }
+    });
+    
+    function sendWhatsAppMessage() {
+      const message = messageInput.value.trim();
+      
+      // Use default message if input is empty
+      const finalMessage = message || DEFAULT_MESSAGE;
+      
+      // Encode the message for URL
+      const encodedMessage = encodeURIComponent(finalMessage);
+      
+      // Create WhatsApp URL
+      const whatsappURL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+      
+      // Redirect to WhatsApp
+      window.open(whatsappURL, '_blank');
+      
+      // Clear input and close chat
+      messageInput.value = '';
+      charCounter.textContent = '0';
+      sendBtn.disabled = true;
+      
+      // Close chat window after a short delay
+      setTimeout(() => {
+        chatWindow.classList.remove('open');
+      }, 500);
+    }
+    
+    // Initialize with default message in input
+    messageInput.value = DEFAULT_MESSAGE;
+    charCounter.textContent = DEFAULT_MESSAGE.length;
+    
+    // Auto-close chat when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+      if (window.innerWidth <= 768) {
+        const isClickInside = chatWindow.contains(event.target) || toggleChatBtn.contains(event.target);
+        if (!isClickInside && chatWindow.classList.contains('open')) {
+          chatWindow.classList.remove('open');
+        }
+      }
+    });
+  });
+
+
+</script>
+    
+</body>
+</html>
