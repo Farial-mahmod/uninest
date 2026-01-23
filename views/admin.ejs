@@ -300,6 +300,63 @@ th {
   transform: scale(0.97);
 }
 
+.gallery-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:18px;
+}
+
+.gallery-card{
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+  cursor:pointer;
+  background:#fff;
+  position:relative;
+}
+
+.gallery-card img{
+  width:100%;
+  height:180px;
+  object-fit:cover;
+}
+
+.gallery-info{
+  padding:12px;
+}
+
+.media-badge{
+  position:absolute;
+  top:10px;
+  left:10px;
+  background:#fff;
+  padding:4px 8px;
+  border-radius:8px;
+  font-size:12px;
+  font-weight:600;
+}
+
+.upload-box {
+  border: 2px dashed var(--border, #e5e7eb);
+  border-radius: 12px;
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--muted, #6b7280);
+  transition: all 0.2s ease;
+}
+
+.upload-box:hover {
+  background: #f9fafb;
+}
+
+.upload-box.has-file {
+  border-color: #22c55e;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+
 </style>
 </head>
 <body>
@@ -309,7 +366,7 @@ th {
   <div class="tab" onclick="showTab('payments', this)">Payments</div>
   <div class="tab" onclick="showTab('costs', this)">Costs</div>
   <div class="tab" onclick="showTab('milestones', this)">Milestones</div>
-  <div class="tab">Gallery</div>
+  <div class="tab" onclick="showTab('gallery', this)">Gallery</div>
   <div class="tab">Customization</div>
 </div>
 
@@ -362,21 +419,6 @@ th {
       <div class="subtitle">Add and verify shareholder payments</div>
     </div>
     <button class="btn" onclick="openPaymentModal()">＋ Add Payment</button>
-  </div>
-
-  <!-- Filters -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0;">
-    <select class="search">
-      <option>Filter by shareholder</option>
-      <option>Rajesh Kumar</option>
-      <option>Priya Sharma</option>
-    </select>
-
-    <select class="search">
-      <option>Filter by status</option>
-      <option>Verified</option>
-      <option>Pending</option>
-    </select>
   </div>
 
   <!-- Payment Item -->
@@ -550,6 +592,57 @@ th {
 
 </div>
 
+<div class="card" id="galleryView" style="display:none">
+
+  <div class="card-header">
+    <div>
+      <h2>Manage Photo & Video Gallery</h2>
+      <div class="subtitle">Upload weekly construction site updates</div>
+    </div>
+    <button class="btn" onclick="openAddMediaModal()">＋ Add Media</button>
+  </div>
+
+  </div>
+
+  <!-- Gallery Grid -->
+  <div class="gallery-grid">
+
+    <!-- PHOTO -->
+    <div class="gallery-card" onclick="openMedia('image','/images/1.PNG')">
+      <span class="media-badge">📷 Photo</span>
+      <img src="/images/1.PNG">
+      <div class="gallery-info">
+        <strong>10th floor slab completed – aerial view</strong>
+        <div class="subtitle">10th Floor Slab Cast</div>
+        <small>2024-11-10</small>
+      </div>
+    </div>
+
+    <!-- PHOTO -->
+    <div class="gallery-card" onclick="openMedia('image','/images/2.PNG')">
+      <span class="media-badge">📷 Photo</span>
+      <img src="/images/2.PNG">
+      <div class="gallery-info">
+        <strong>Concrete pouring in progress</strong>
+        <div class="subtitle">10th Floor Slab Cast</div>
+        <small>2024-11-03</small>
+      </div>
+    </div>
+
+    <!-- VIDEO -->
+    <div class="gallery-card" onclick="openMedia('video','https://www.w3schools.com/html/mov_bbb.mp4')">
+      <span class="media-badge">🎥 Video</span>
+      <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e">
+      <div class="gallery-info">
+        <strong>Structural framework completion</strong>
+        <div class="subtitle">10th Floor Slab Cast</div>
+        <small>2024-10-20</small>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- Modal -->
 <div class="modal" id="modal">
   <div class="modal-box">
@@ -608,8 +701,81 @@ th {
   </div>
 </div>
 
+<div class="modal" id="addMediaModal">
+  <div class="modal-box" style="width:520px">
+
+    <div class="modal-header">
+      <div>
+        <h3>Upload Photo/Video</h3>
+        <div class="subtitle">Add construction site media to the gallery</div>
+      </div>
+      <span class="close" onclick="closeAddMediaModal()">×</span>
+    </div>
+
+    <div class="form-grid">
+      <div>
+      Choose Media Type: 
+      <select>
+        <option>Photo</option>
+        <option>Video</option>
+      </select></div>
+
+<div class="upload-box" onclick="triggerFileUpload()">
+  ⬆ Click to upload or drag and drop<br>
+  <small id="upload-hint">
+    Photos: JPG/PNG up to 10MB • Videos: MP4 up to 50MB
+  </small>
+
+  <!-- hidden file input -->
+  <input type="file"
+         id="mediaInput"
+         hidden
+         onchange="handleFileSelect(this)">
+</div>
+
+
+      <input type="date" placeholder="Date Captured">
+
+      <input style="grid-column:1/-1"
+             placeholder="Brief description of the photo/video">
+    </div>
+
+    <div class="form-actions">
+      <button class="btn light-btn" onclick="closeAddMediaModal()">Cancel</button>
+      <button class="btn">Upload Media</button>
+    </div>
+
+  </div>
+</div>
+
 
 <script>
+
+function triggerFileUpload() {
+  document.getElementById('mediaInput').click();
+}
+
+function handleFileSelect(input) {
+  if (!input.files || !input.files.length) return;
+
+  const file = input.files[0];
+  const uploadBox = input.closest('.upload-box');
+
+  uploadBox.classList.add('has-file');
+  uploadBox.innerHTML = `
+    ✅ File selected<br>
+    <strong>${file.name}</strong>
+    <br><small>${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+  `;
+}
+
+function openAddMediaModal(){
+  document.getElementById('addMediaModal').classList.add('active');
+}
+
+function closeAddMediaModal(){
+  document.getElementById('addMediaModal').classList.remove('active');
+}
 
 function generateRDC(name, installment) {
   if (!name || !installment) return '';
@@ -661,6 +827,10 @@ function showTab(tab, el) {
   if (tab === 'milestones') {
     document.getElementById('milestonesView').style.display = 'block';
   }
+  if(tab === 'gallery'){
+  document.getElementById('galleryView').style.display = 'block';
+}
+
 
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
@@ -732,6 +902,31 @@ function openMilestoneModal() {
 
 function closeMilestoneModal() {
   document.getElementById('milestoneModal').classList.remove('active');
+}
+
+function openMedia(type, src){
+  document.getElementById('mediaModal').classList.add('active');
+
+  const img = document.getElementById('mediaImage');
+  const video = document.getElementById('mediaVideo');
+
+  img.style.display = 'none';
+  video.style.display = 'none';
+  video.pause();
+
+  if(type === 'image'){
+    img.src = src;
+    img.style.display = 'block';
+  } else {
+    video.src = src;
+    video.style.display = 'block';
+    video.play();
+  }
+}
+
+function closeMedia(){
+  document.getElementById('mediaModal').classList.remove('active');
+  document.getElementById('mediaVideo').pause();
 }
 
 </script>
@@ -835,6 +1030,16 @@ function closeMilestoneModal() {
       </button>
     </div>
 
+  </div>
+</div>
+
+<div class="modal" id="mediaModal">
+  <div class="modal-box" style="width:800px">
+    <span class="close" onclick="closeMedia()">×</span>
+
+    <img id="mediaImage" style="width:100%;display:none;border-radius:12px">
+    
+    <video id="mediaVideo" controls style="width:100%;display:none;border-radius:12px"></video>
   </div>
 </div>
 
