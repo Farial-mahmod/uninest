@@ -360,14 +360,13 @@ th {
 </style>
 </head>
 <body>
-
 <div class="tabs">
   <div class="tab active" onclick="showTab('shareholders', this)">Shareholders</div>
   <div class="tab" onclick="showTab('payments', this)">Payments</div>
   <div class="tab" onclick="showTab('costs', this)">Costs</div>
   <div class="tab" onclick="showTab('milestones', this)">Milestones</div>
   <div class="tab" onclick="showTab('gallery', this)">Gallery</div>
-  <div class="tab">Customization</div>
+  <div class="tab" onclick="showTab('customization', this)">Customization</div>
 </div>
 
 <div id="shareholdersView">
@@ -592,8 +591,8 @@ th {
 
 </div>
 
+<!-- GALLERY VIEW -->
 <div class="card" id="galleryView" style="display:none">
-
   <div class="card-header">
     <div>
       <h2>Manage Photo & Video Gallery</h2>
@@ -601,12 +600,9 @@ th {
     </div>
     <button class="btn" onclick="openAddMediaModal()">＋ Add Media</button>
   </div>
-
-  </div>
-
-  <!-- Gallery Grid -->
+  
+  <!-- Gallery Grid - MOVED INSIDE THE CARD -->
   <div class="gallery-grid">
-
     <!-- PHOTO -->
     <div class="gallery-card" onclick="openMedia('image','/images/1.PNG')">
       <span class="media-badge">📷 Photo</span>
@@ -617,7 +613,6 @@ th {
         <small>2024-11-10</small>
       </div>
     </div>
-
     <!-- PHOTO -->
     <div class="gallery-card" onclick="openMedia('image','/images/2.PNG')">
       <span class="media-badge">📷 Photo</span>
@@ -628,7 +623,6 @@ th {
         <small>2024-11-03</small>
       </div>
     </div>
-
     <!-- VIDEO -->
     <div class="gallery-card" onclick="openMedia('video','https://www.w3schools.com/html/mov_bbb.mp4')">
       <span class="media-badge">🎥 Video</span>
@@ -639,10 +633,55 @@ th {
         <small>2024-10-20</small>
       </div>
     </div>
-
   </div>
 </div>
 
+
+<div id="customizationView" style="display:none">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>Manage Customization Options</h2>
+        <div class="subtitle">Control customization windows and available options.</div>
+      </div>
+      <div>
+        <button class="btn" onclick="openCustomizationModal()">＋ Add Option</button>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Status</th>
+          <th>Options</th>
+          <th>Window</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Floor Tiles</td>
+          <td><span class="status">Closed</span></td>
+          <td>3 options</td>
+          <td>2025-12-01 to 2026-01-15</td>
+        </tr>
+        <tr>
+          <td>Bathroom Fixtures</td>
+          <td><span class="status">Closed</span></td>
+          <td>3 options</td>
+          <td>2025-12-01 to 2026-01-15</td>
+        </tr>
+        <tr>
+          <td>Wall Paint Palette</td>
+          <td><span class="status upcoming">Upcoming</span></td>
+          <td>3 options</td>
+          <td>2026-02-01 to 2026-03-15</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
 <!-- Modal -->
 <div class="modal" id="modal">
   <div class="modal-box">
@@ -811,31 +850,28 @@ function showTab(tab, el) {
   document.getElementById('paymentsView').style.display = 'none';
   document.getElementById('costsView').style.display = 'none';
   document.getElementById('milestonesView').style.display = 'none';
+  document.getElementById('galleryView').style.display = 'none';
+  document.getElementById('customizationView').style.display = 'none';
 
+  // Show the selected tab
   if (tab === 'shareholders') {
     document.getElementById('shareholdersView').style.display = 'block';
-  }
-
-  if (tab === 'payments') {
+  } else if (tab === 'payments') {
     document.getElementById('paymentsView').style.display = 'block';
-  }
-
-  if (tab === 'costs') {
+  } else if (tab === 'costs') {
     document.getElementById('costsView').style.display = 'block';
-  }
-
-  if (tab === 'milestones') {
+  } else if (tab === 'milestones') {
     document.getElementById('milestonesView').style.display = 'block';
+  } else if (tab === 'gallery') {
+    document.getElementById('galleryView').style.display = 'block';
+  } else if (tab === 'customization') {
+    document.getElementById('customizationView').style.display = 'block';
   }
-  if(tab === 'gallery'){
-  document.getElementById('galleryView').style.display = 'block';
-}
 
-
+  // Update tab styling
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
 }
-
 function openModal() {
   document.getElementById('modal').classList.add('active');
 }
@@ -927,6 +963,14 @@ function openMedia(type, src){
 function closeMedia(){
   document.getElementById('mediaModal').classList.remove('active');
   document.getElementById('mediaVideo').pause();
+}
+
+function openCustomizationModal() {
+  document.getElementById('customizationModal').classList.add('active');
+}
+
+function closeCustomizationModal() {
+  document.getElementById('customizationModal').classList.remove('active');
 }
 
 </script>
@@ -1042,6 +1086,41 @@ function closeMedia(){
     <video id="mediaVideo" controls style="width:100%;display:none;border-radius:12px"></video>
   </div>
 </div>
+
+<div class="modal" id="customizationModal">
+  <div class="modal-box" style="width:560px">
+    <div class="modal-header">
+      <div>
+        <h3>Add Customization Option</h3>
+        <div class="subtitle">Create a new option for shareholders to choose</div>
+      </div>
+      <span class="close" onclick="closeCustomizationModal()">×</span>
+    </div>
+    <div class="form-grid">
+      <select>
+        <option>Select category</option>
+        <option>Floor Tiles</option>
+        <option>Bathroom Fixtures</option>
+        <option>Wall Paint Palette</option>
+      </select>
+      <input placeholder="e.g., Premium Vitrified Tiles">
+      <input placeholder="e.g., Kajaria">
+      <input placeholder="0 for standard, amount for up">
+      <select>
+        <option>Upgrade (Additional Cost)</option>
+        <option>Standard (No Cost)</option>
+      </select>
+      <input placeholder="Image URL or upload">
+      <input type="date" placeholder="Opening Date">
+      <input type="date" placeholder="Closing Date">
+    </div>
+    <div class="form-actions">
+      <button class="btn" style="background:#ddd;color:#000" onclick="closeCustomizationModal()">Cancel</button>
+      <button class="btn">Add Option</button>
+    </div>
+  </div>
+</div>
+
 
 </body>
 </html>
