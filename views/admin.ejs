@@ -20,27 +20,27 @@
 body {
   margin: 0;
   background: var(--bg);
-  padding: 24px;
 }
 
 .tabs {
   display: flex;
-  justify-content: center;  
-  background: #b6faff;
-  border-radius: 999px;
+  justify-content: center;
+  background: #8301ce;
   padding: 6px;
   gap: 17px;
 }
 
 .tab {
   padding: 10px 22px;
-  border-radius: 999px;
+  border-radius: 99px;
   cursor: pointer;
   font-weight: 500;
+  color: #ffffff;
 }
 
 .tab.active {
   background: white;
+  color: #8301ce;
 }
 
 /* Card */
@@ -414,8 +414,8 @@ th {
 
   <div class="card-header">
     <div>
-      <h2>Manage Payments & RDC Logs</h2>
-      <div class="subtitle">Add and verify shareholder payments</div>
+      <h2>Manage Payments</h2>
+      <div class="subtitle">Add shareholder payments</div>
     </div>
     <button class="btn" onclick="openPaymentModal()">＋ Add Payment</button>
   </div>
@@ -423,11 +423,10 @@ th {
   <!-- Payment Item -->
   <div class="payment-row">
     <div>
-      <strong>Rajesh Kumar (A-504)</strong>
+      <strong>Maryam (A-504)</strong>
       <div class="subtitle">5th Construction Installment</div>
       <div class="subtitle">
         RDC-2024-0523 • 2024-05-28 •
-        <span style="color:green">Verified</span>
       </div>
     </div>
     <div style="text-align:right">
@@ -440,11 +439,10 @@ th {
 
   <div class="payment-row">
     <div>
-      <strong>Priya Sharma (A-505)</strong>
+      <strong>Musab (A-505)</strong>
       <div class="subtitle">5th Construction Installment</div>
       <div class="subtitle">
         RDC-2024-0531 • 2024-06-02 •
-        <span style="color:green">Verified</span>
       </div>
     </div>
     <div style="text-align:right">
@@ -457,7 +455,7 @@ th {
 
   <div class="payment-row">
     <div>
-      <strong>Amit Patel (B-601)</strong>
+      <strong>Maymuna (B-601)</strong>
       <div class="subtitle">5th Construction Installment</div>
       <div class="subtitle">
         RDC-2024-0527 • 2024-05-30 •
@@ -496,36 +494,26 @@ th {
     <div class="budget-card">
       <div class="budget-title">Steel/Rebar</div>
       <div class="budget-amount">৳28,50,000</div>
-      <div class="budget-sub">of ৳30,00,000</div>
-      <div class="budget-util">95.0% utilized</div>
     </div>
 
     <div class="budget-card">
       <div class="budget-title">Cement/Aggregate</div>
       <div class="budget-amount">৳21,00,000</div>
-      <div class="budget-sub">of ৳25,00,000</div>
-      <div class="budget-util">84.0% utilized</div>
     </div>
 
     <div class="budget-card">
       <div class="budget-title">Labor & Manpower</div>
       <div class="budget-amount">৳25,00,000</div>
-      <div class="budget-sub">of ৳40,00,000</div>
-      <div class="budget-util">62.5% utilized</div>
     </div>
 
     <div class="budget-card">
       <div class="budget-title">Finishing Materials</div>
       <div class="budget-amount">৳12,00,000</div>
-      <div class="budget-sub">of ৳35,00,000</div>
-      <div class="budget-util">34.3% utilized</div>
     </div>
 
     <div class="budget-card">
       <div class="budget-title">Other Expenses</div>
       <div class="budget-amount">৳6,00,000</div>
-      <div class="budget-sub">of ৳20,00,000</div>
-      <div class="budget-util">30.0% utilized</div>
     </div>
 
   </div>
@@ -560,6 +548,7 @@ th {
     </div>
     <button class="btn" onclick="openMilestoneModal()">＋ Add Milestone</button>
   </div>
+  <br>
 
   <!-- Milestone Item -->
   <div class="milestone-card">
@@ -600,6 +589,7 @@ th {
     </div>
     <button class="btn" onclick="openAddMediaModal()">＋ Add Media</button>
   </div>
+  <br>
   
   <!-- Gallery Grid - MOVED INSIDE THE CARD -->
   <div class="gallery-grid">
@@ -648,6 +638,7 @@ th {
         <button class="btn" onclick="openCustomizationModal()">＋ Add Option</button>
       </div>
     </div>
+    <br>
 
     <table>
       <thead>
@@ -987,8 +978,8 @@ function closeCustomizationModal() {
     <div class="form-grid">
 <select id="paymentShareholder">
   <option value="">Select shareholder</option>
-  <option>Rajesh Kumar</option>
-  <option>Priya Sharma</option>
+  <option>Maryam</option>
+  <option>Musab</option>
 </select>
 
 <select id="paymentInstallment">
@@ -1000,10 +991,6 @@ function closeCustomizationModal() {
 <input id="rdcId" placeholder="RDC-AUTO-GENERATED" readonly>
       <input placeholder="Amount Paid">
       <input type="date">
-      <select>
-        <option>Verified</option>
-        <option>Pending</option>
-      </select>
     </div>
     <div style="
       margin-top:16px;

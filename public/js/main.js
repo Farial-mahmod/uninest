@@ -1,3 +1,14 @@
+function showSuccessPopup() {
+    const popup = document.getElementById('success-popup');
+    if (!popup) return;
+
+    popup.classList.remove('hidden');
+
+    setTimeout(() => {
+        popup.classList.add('hidden');
+    }, 2500);
+}
+
 // Global function for customization selection
 window.selectOption = function(category, optionIndex) {
     // Show loading state
@@ -9,15 +20,20 @@ window.selectOption = function(category, optionIndex) {
     // Send selection to server
     fetch(`/customization/update?category=${category}&optionIndex=${optionIndex}`)
         .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Reload the customization tab to show updated selections
-                const customizationButton = document.querySelector('.tab-button[data-tab="customization"]');
-                if (customizationButton) {
-                    customizationButton.click();
-                }
+.then(data => {
+    if (data.success) {
+
+        showSuccessPopup();
+
+        // Optional small delay so popup is visible before reload
+        setTimeout(() => {
+            const customizationButton = document.querySelector('.tab-button[data-tab="customization"]');
+            if (customizationButton) {
+                customizationButton.click();
             }
-        })
+        }, 500);
+    }
+})
         .catch(error => {
             console.error('Error:', error);
             if (optionCard) {
@@ -35,6 +51,21 @@ document.addEventListener('DOMContentLoaded', function() {
         kitchen: null,
         wallColor: null
     };
+
+    const userMenu = document.getElementById('userMenu');
+const userDropdown = document.getElementById('userDropdown');
+
+if (userMenu && userDropdown) {
+    userMenu.addEventListener('click', function (e) {
+        e.stopPropagation();
+        userDropdown.classList.toggle('hidden');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function () {
+        userDropdown.classList.add('hidden');
+    });
+}
 
     // Main dashboard tabs (Financial, Construction, Customization)
     const tabButtons = document.querySelectorAll('.tab-button');
@@ -249,7 +280,7 @@ function generateFinancialTransparencyHTML(data) {
 
                                 <div class="payment-amounts">
     <a
-        href="https://zenodo.org/records/18187513/files/The%20State%20of%20Quantum%20Computing%20-%20Farial%20Mahmod.pdf?download=1"
+        href="https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf?download=1"
         class="amount-badge paid download-receipt"
         target="_blank"
         download
@@ -315,9 +346,6 @@ function generateFinancialTransparencyHTML(data) {
                         <h3>Actual Expenditure</h3>
                         <div class="cost-amount actual">
                             ${costOverview.actualExpenditure}
-                        </div>
-                        <div class="budget-utilization">
-                            ${costOverview.budgetUtilization}% of budget utilized
                         </div>
                     </div>
                 </div>
@@ -415,10 +443,10 @@ function generateFinancialTransparencyHTML(data) {
 </span>
 <br>
 <img
-    src="https://images.stockcake.com/public/3/8/6/386aacf3-17a8-4057-b42c-b7e3e00eff6b_large/construction-workers-working-stockcake.jpg"
+    src="/images/1.PNG"
     class="status-image"
     alt="Construction status"
-    data-full="https://images.stockcake.com/public/3/8/6/386aacf3-17a8-4057-b42c-b7e3e00eff6b_large/construction-workers-working-stockcake.jpg"
+    data-full="/images/1.PNG"
 />
 
                                     </div>

@@ -101,7 +101,6 @@ const financialData = {
     costOverview: {
       totalProjectedCost: "৳1,50,00,000",
       actualExpenditure: "৳92,50,000",
-      budgetUtilization: "61.7",
       categories: [
         {
           name: "Steel/Rebar",
@@ -143,7 +142,7 @@ vouchers: {
       voucherNo: "VCH-2024-089",
       date: "2024-05-15",
       amount: "৳4,25,000",
-      invoiceUrl: "/invoices/steel-rebar.pdf"
+      invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
     },
     {
       title: "Cement - 50 bags Premium Grade",
@@ -151,7 +150,7 @@ vouchers: {
       voucherNo: "VCH-2024-078",
       date: "2024-04-28",
       amount: "৳1,85,000",
-      invoiceUrl: "/invoices/cement.pdf"
+      invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
     },
     {
       title: "Labor Payment - April 2024",
@@ -159,7 +158,7 @@ vouchers: {
       voucherNo: "VCH-2024-065",
       date: "2024-04-10",
       amount: "৳3,20,000",
-      invoiceUrl: "/invoices/labor-april.pdf"
+      invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
     }
   ]
 }
@@ -254,7 +253,7 @@ app.get('/tabs/:tabName', (req, res) => {
     activeTab: tabName,
     financialData: tabName === 'financial-transparency' ? financialData : null,
     constructionProgress: tabName === 'construction-progress' ? constructionProgress : null,
-    customizationData: tabName === 'customization' ? customizationData : null  // ADD THIS LINE
+    customizationData: tabName === 'customization' ? customizationData : null
   };
 
   res.json(responseData);
@@ -282,7 +281,7 @@ const customizationData = {
   subtitle: "Personalize your finishing materials",
   yourSelection: {
     title: "Your Selection",
-    subtitle: "Customized customization choice",
+    subtitle: "Customized choice",
     items: [
       {
         name: "Room Tile",
@@ -299,7 +298,7 @@ const customizationData = {
     categories: [
       {
         name: "Room Tile",
-        window: "2025-01-01 to 2026-01-31",
+        window: "01-01-2026 to 31-01-2026",
         windowStatus: "open",
         options: [
           {

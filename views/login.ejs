@@ -52,7 +52,7 @@
     }
 
     .login-container {
-      background-color: honeydew;
+      background-color: rgb(255, 255, 255);
       padding: 10px 41px;
       border-radius: 12px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.4);
@@ -264,15 +264,15 @@
       <form id="loginForm" novalidate>
           
         <div class="form-group">
-          <label for="mobile">Mobile Number</label>
+          <label for="mobile"><b>Mobile Number</b></label>
 
           <input type="text" id="mobile" name="mobile" placeholder="01..... or +......" maxlength="14" required>
           <div class="error" id="mobileError">Please enter registered mobile number.</div>
         </div>
 
         <div class="form-group">
-          <label for="password">Password</label>
-          <input type="text" id="password" name="password" placeholder="Enter your password" required minlength="6">
+          <label for="password"><b>Password</b></label>
+          <input type="password" id="password" name="password" placeholder="Enter your password" required minlength="6">
           <div class="error" id="passwordError">Password must be at least 6 characters long.</div>
         </div>
 
@@ -322,7 +322,7 @@
       password: passwordInput.value.trim()
     };
 
-    window.location.href = '/dashboard';
+    window.location.href = mobileInput.value == '01676625520' ? '/admin' : '/dashboard';
 
     // fetch('/login', {
     //   method: 'POST',
