@@ -42,6 +42,25 @@ window.selectOption = function(category, optionIndex) {
         });
 };
 
+window.switchProject = function (projectName) {
+    const popupText = document.getElementById('success-popup-text');
+    if (popupText) {
+        popupText.textContent = `"${projectName}" selected successfully!`;
+    }
+
+    showSuccessPopup();
+
+    // Optional: send to server
+    fetch(`/project/switch?name=${encodeURIComponent(projectName)}`)
+        .catch(err => console.warn('Switch project request failed', err));
+
+    // Reload after popup
+    setTimeout(() => {
+        window.location.reload();
+    }, 1200);
+};
+
+
 // Tab switching functionality
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -54,6 +73,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const userMenu = document.getElementById('userMenu');
 const userDropdown = document.getElementById('userDropdown');
+
+const switchBtn = document.getElementById('switchProjectBtn');
+const switchMenu = document.getElementById('switchProjectMenu');
+
+if (switchBtn && switchMenu) {
+    switchBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        switchMenu.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', function () {
+        switchMenu.classList.add('hidden');
+    });
+}
 
 if (userMenu && userDropdown) {
     userMenu.addEventListener('click', function (e) {
@@ -297,11 +330,6 @@ function generateFinancialTransparencyHTML(data) {
                 </div>
             </div>
             
-            <!-- Project Cost Breakdown Section -->
-            <div class="section-divider">
-                <hr>
-            </div>
-            
             <div class="project-cost-breakdown">
                 <div class="section-header">
                     <h2>${data.projectCostBreakdown.title}</h2>
@@ -343,7 +371,7 @@ function generateFinancialTransparencyHTML(data) {
                     </div>
                     
                     <div class="cost-card">
-                        <h3>Actual Expenditure</h3>
+                        <h3>Expenditure So Far</h3>
                         <div class="cost-amount actual">
                             ${costOverview.actualExpenditure}
                         </div>

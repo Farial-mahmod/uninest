@@ -281,7 +281,7 @@ const customizationData = {
   subtitle: "Personalize your finishing materials",
   yourSelection: {
     title: "Your Selection",
-    subtitle: "Customized choice",
+    subtitle: "Customized customization choice",
     items: [
       {
         name: "Room Tile",
