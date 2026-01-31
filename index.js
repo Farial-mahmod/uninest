@@ -5,17 +5,359 @@ const app = express();
 // Set EJS as the template engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
-// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'assets')));
+const mongoose = require('mongoose');
+const multer = require('multer');
+const { GridFsStorage } = require('multer-gridfs-storage');
+const { GridFSBucket } = require('mongodb');
+const cors = require('cors');
+require('dotenv').config();
+
+app.use(cors());
+app.use(express.json());
+
+// MongoDB Connection
+const mongoURI = process.env.URI;
+
+const conn = mongoose.createConnection(mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});
+
+// Init gfs and GridFSBucket
+let gfs;
+let gridFSBucket;
+
+conn.once('open', () => {
+  // Initialize GridFSBucket
+  gridFSBucket = new GridFSBucket(conn.db, {
+    bucketName: 'media'
+  });
+  
+  gfs = conn.db.collection('media.files');
+  console.log('MongoDB Connected & GridFS Initialized');
+});
+
+//
+app.get('/api/shareholder/aurora', async (req, res) => {
+  try {
+    const db = conn.useDb('aurora');
+    const collection = db.collection('shareholder');
+
+    const doc = await collection.findOne(
+      { "shareholder.project": "aurora" },
+      { projection: { shareholder: 1, _id: 0 } }
+    );
+
+    if (!doc || !doc.shareholder || doc.shareholder.length === 0) {
+      return res.status(404).json({ message: 'No shareholders found' });
+    }
+
+    res.json(doc.shareholder);
+  } catch (error) {
+    console.error('Error fetching shareholders:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+//
+app.post('/api/shareholder/:project', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase();
+    const db = conn.useDb(project);
+    const collection = db.collection('shareholder');
+
+    const {
+      id,
+      project: bodyProject,
+      name,
+      flat_number,
+      email,
+      mobile,
+      password,
+      total_installments,
+      installment_amount
+    } = req.body;
+
+    if (!id || !name || !flat_number || !mobile) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // -------- AUTO GENERATE PAYMENTS ARRAY --------
+    const payments = Array.from(
+      { length: Number(total_installments) },
+      (_, i) => ({
+        installment_number: i + 1,
+        amount_paid: 0,
+        payment_date: "",
+        status: "due"
+      })
+    );
+
+    const newShareholder = {
+      id,
+      project: bodyProject || project,
+      name,
+      flat_number,
+      email,
+      mobile,
+      password,
+      total_installments: Number(total_installments),
+      installment_amount: Number(installment_amount),
+      payments
+    };
+
+    const result = await collection.updateOne(
+      { "shareholder.project": project },
+      { $push: { shareholder: newShareholder } }
+    );
+
+    if (!result.matchedCount) {
+      return res.status(404).json({ message: 'Project document not found' });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Shareholder added',
+      data: newShareholder
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+//
+app.post('/api/payment/:project', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase();
+    const db = conn.useDb(project);
+    const collection = db.collection('shareholder');
+
+    const {
+      shareholderId,
+      installment_number,
+      amount_paid,
+      payment_date
+    } = req.body;
+
+    const result = await collection.updateOne(
+      {}, // 🔑 match the project document only
+      {
+        $set: {
+          "shareholder.$[sh].payments.$[p].amount_paid": Number(amount_paid),
+          "shareholder.$[sh].payments.$[p].payment_date": payment_date,
+          "shareholder.$[sh].payments.$[p].status": "Paid"
+        }
+      },
+      {
+        arrayFilters: [
+          { "sh.id": shareholderId },
+          { "p.installment_number": Number(installment_number) }
+        ]
+      }
+    );
+
+    if (!result.modifiedCount) {
+      return res.status(404).json({ message: 'Payment not updated' });
+    }
+
+    res.json({ success: true, message: 'Payment recorded' });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// Create storage engine using the factory function pattern
+const storage = new GridFsStorage({
+  url: mongoURI,
+  options: { useNewUrlParser: true, useUnifiedTopology: true },
+  file: (req, file) => {
+    return new Promise((resolve, reject) => {
+      const filename = `${Date.now()}_${file.originalname}`;
+      const fileInfo = {
+        filename: filename,
+        bucketName: 'media',
+        metadata: {
+          uploadDate: new Date(),
+          contentType: file.mimetype,
+          originalName: file.originalname,
+          uploader: req.body.uploader || 'anonymous',
+          project: req.body.project || 'default',
+          description: req.body.description || '',
+          mediaType: file.mimetype.startsWith('image/') ? 'image' : 
+                    file.mimetype.startsWith('video/') ? 'video' : 'other'
+        }
+      };
+      resolve(fileInfo);
+    });
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  fileFilter: (req, file, cb) => {
+    // Accept images and videos
+    const allowedTypes = /jpeg|jpg|png|gif|mp4|mov|avi|mkv/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image and video files are allowed'));
+    }
+  }
+});
+
+// Upload endpoint
+app.post('/api/upload', (req, res, next) => {
+  console.log('🔥 Upload hit');
+  next();
+},
+  upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fileData = {
+      id: req.file.id,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      contentType: req.file.contentType,
+      uploadDate: req.file.uploadDate || new Date(),
+      size: req.file.size,
+      metadata: req.file.metadata || {},
+      url: `/api/files/${req.file.filename}`
+    };
+
+    res.status(201).json({
+      success: true,
+      message: 'File uploaded successfully',
+      data: fileData
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Upload failed', 
+      details: error.message 
+    });
+  }
+});
+
+// Get all files
+app.get('/api/files', async (req, res) => {
+  try {
+    const files = await gfs.find().toArray();
+    
+    if (!files || files.length === 0) {
+      return res.status(404).json({ error: 'No files found' });
+    }
+
+    res.json({ 
+      success: true, 
+      count: files.length, 
+      files: files.map(file => ({
+        ...file,
+        url: `/api/files/${file.filename}`
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single file by filename
+app.get('/api/files/:filename', async (req, res) => {
+  try {
+    const file = await gfs.findOne({ filename: req.params.filename });
+    
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Check if file is an image or video
+    if (file.contentType.startsWith('image/') || file.contentType.startsWith('video/')) {
+      res.set('Content-Type', file.contentType);
+      res.set('Content-Disposition', `inline; filename="${file.filename}"`);
+    } else {
+      res.set('Content-Disposition', `attachment; filename="${file.filename}"`);
+    }
+
+    const downloadStream = gridFSBucket.openDownloadStreamByName(file.filename);
+    downloadStream.pipe(res);
+    
+    downloadStream.on('error', (error) => {
+      res.status(404).json({ error: 'File not found' });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete file
+app.delete('/api/files/:id', async (req, res) => {
+  try {
+    const fileId = new mongoose.Types.ObjectId(req.params.id);
+    await gridFSBucket.delete(fileId);
+    res.json({ success: true, message: 'File deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get files by project
+app.get('/api/files/project/:project', async (req, res) => {
+  try {
+    const files = await gfs.find({ 
+      'metadata.project': req.params.project 
+    }).toArray();
+    
+    res.json({ 
+      success: true, 
+      count: files.length, 
+      files: files.map(file => ({
+        ...file,
+        url: `/api/files/${file.filename}`
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get file metadata by ID
+app.get('/api/files/metadata/:id', async (req, res) => {
+  try {
+    const fileId = new mongoose.Types.ObjectId(req.params.id);
+    const file = await gfs.findOne({ _id: fileId });
+    
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.json({
+      success: true,
+      data: file
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Mock data for the financial transparency module
 const financialData = {
   title: "Transparent Financial Breakdown",
   subtitle: "Clear, auditable records for your share",
   outstandingBalance: "8,50,000",
-    nextDueDate: {
+  nextDueDate: {
     date: "10-01-2026",
     installment: "6th Construction Installment"
   },
@@ -93,7 +435,7 @@ const financialData = {
   projectCostBreakdown: {
     title: "Project Cost Breakdown",
     subtitle: "Transparent view of construction expenditure",
-    activeTab: "cost-overview", // or "voucher-verification"
+    activeTab: "cost-overview",
     tabs: [
       { id: "cost-overview", name: "Cost Overview", active: true },
       { id: "voucher-verification", name: "Voucher Verification", active: false }
@@ -132,36 +474,36 @@ const financialData = {
         }
       ]
     },
-vouchers: {
-  title: "Voucher Verification",
-  subtitle: "View scanned copies of vendor invoices for major purchases",
-  items: [
-    {
-      title: "Steel Rebar - 5th Floor Slab",
-      vendor: "Jindal Steel Suppliers",
-      voucherNo: "VCH-2024-089",
-      date: "2024-05-15",
-      amount: "৳4,25,000",
-      invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
-    },
-    {
-      title: "Cement - 50 bags Premium Grade",
-      vendor: "Ultratech Cement Dealers",
-      voucherNo: "VCH-2024-078",
-      date: "2024-04-28",
-      amount: "৳1,85,000",
-      invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
-    },
-    {
-      title: "Labor Payment - April 2024",
-      vendor: "Construction Workforce",
-      voucherNo: "VCH-2024-065",
-      date: "2024-04-10",
-      amount: "৳3,20,000",
-      invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
+    vouchers: {
+      title: "Voucher Verification",
+      subtitle: "View scanned copies of vendor invoices for major purchases",
+      items: [
+        {
+          title: "Steel Rebar - 5th Floor Slab",
+          vendor: "Jindal Steel Suppliers",
+          voucherNo: "VCH-2024-089",
+          date: "2024-05-15",
+          amount: "৳4,25,000",
+          invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
+        },
+        {
+          title: "Cement - 50 bags Premium Grade",
+          vendor: "Ultratech Cement Dealers",
+          voucherNo: "VCH-2024-078",
+          date: "2024-04-28",
+          amount: "৳1,85,000",
+          invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
+        },
+        {
+          title: "Labor Payment - April 2024",
+          vendor: "Construction Workforce",
+          voucherNo: "VCH-2024-065",
+          date: "2024-04-10",
+          amount: "৳3,20,000",
+          invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
+        }
+      ]
     }
-  ]
-}
   }
 };
 
@@ -199,7 +541,6 @@ const constructionProgress = {
       label: "Upcoming"
     }
   ],
-
   media: [
     {
       title: "Foundation work",
@@ -220,11 +561,9 @@ const constructionProgress = {
 };
 
 // Routes
-
 app.get('/login', (req, res) => {
   res.render('login');
 });
-
 
 app.get('/', (req, res) => {
   res.redirect('/login');
@@ -234,8 +573,7 @@ app.get('/admin', (req, res) => {
   res.render('admin');
 });
 
-
-// Dashboard page (changed from home to dashboard)
+// Dashboard page
 app.get('/dashboard', (req, res) => {
   res.render('index', {
     activeTab: 'financial-transparency',
@@ -259,11 +597,10 @@ app.get('/tabs/:tabName', (req, res) => {
   res.json(responseData);
 });
 
-// NEW: Route to handle cost breakdown tab switching
+// Route to handle cost breakdown tab switching
 app.get('/cost-tabs/:tabId', (req, res) => {
   const { tabId } = req.params;
   
-  // Update active tab in the data
   financialData.projectCostBreakdown.tabs.forEach(tab => {
     tab.active = (tab.id === tabId);
   });
@@ -332,28 +669,24 @@ const customizationData = {
   }
 };
 
-// Update the /customization/update route to properly handle selections
+// Update the /customization/update route
 app.get('/customization/update', (req, res) => {
   const { category, optionIndex } = req.query;
   
-  // Find the category
   const categoryIndex = customizationData.customizationOptions.categories
     .findIndex(cat => cat.name.toLowerCase().replace(/ /g, '-') === category);
   
   if (categoryIndex >= 0 && optionIndex >= 0) {
     const cat = customizationData.customizationOptions.categories[categoryIndex];
     
-    // Reset all options to not selected
     cat.options.forEach(opt => {
       opt.selected = false;
     });
     
-    // Select the chosen option
     if (optionIndex >= 0 && optionIndex < cat.options.length) {
       const selectedOption = cat.options[optionIndex];
       selectedOption.selected = true;
       
-      // Update your selection based on chosen option
       if (category === 'room-tile') {
         customizationData.yourSelection.items[0] = {
           name: "Room Tile",
@@ -363,39 +696,6 @@ app.get('/customization/update', (req, res) => {
           image: selectedOption.image || null
         };
       }
-    }
-  }
-  
-  res.json({
-    success: true,
-    customizationData
-  });
-});
-
-// Add API route for customization
-app.get('/customization/update', (req, res) => {
-  const { category, optionIndex } = req.query;
-  
-  // In a real app, you would update the database here
-  // For now, we'll just update the mock data
-  if (customizationData.customizationOptions.categories[0]) {
-    // Reset all options to not selected
-    customizationData.customizationOptions.categories[0].options.forEach(opt => {
-      opt.selected = false;
-    });
-    
-    // Select the chosen option
-    if (optionIndex >= 0 && optionIndex < customizationData.customizationOptions.categories[0].options.length) {
-      customizationData.customizationOptions.categories[0].options[optionIndex].selected = true;
-      
-      // Update your selection based on chosen option
-      const selectedOption = customizationData.customizationOptions.categories[0].options[optionIndex];
-      customizationData.yourSelection.items[0] = {
-        name: "Room Tile",
-        value: selectedOption.name,
-        brand: selectedOption.brand,
-        upgradeCost: selectedOption.upgradeCost
-      };
     }
   }
   

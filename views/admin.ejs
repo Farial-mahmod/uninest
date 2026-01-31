@@ -425,6 +425,53 @@ th {
   }
 }
 
+.upload-box {
+  cursor: pointer;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+  transition: all 0.3s ease;
+  margin: 16px 0;
+}
+
+.upload-box:hover {
+  border-color: var(--primary);
+  background-color: rgba(52, 152, 219, 0.05);
+}
+
+.upload-box.has-file {
+  border-color: #2ecc71;
+  background-color: rgba(46, 204, 113, 0.05);
+}
+
+.upload-box.uploading {
+  border-color: #f39c12;
+  background-color: rgba(243, 156, 18, 0.05);
+}
+
+.upload-box.upload-success {
+  border-color: #2ecc71;
+  background-color: rgba(46, 204, 113, 0.1);
+}
+
+.upload-box.upload-error {
+  border-color: #e74c3c;
+  background-color: rgba(231, 76, 60, 0.05);
+}
+
+.media-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
 </style>
 </head>
 <body>
@@ -452,302 +499,40 @@ th {
       <h2>Manage Shareholders</h2>
       <div class="subtitle">View and manage all shareholder information</div>
     </div>
-    <button class="btn" onclick="openModal()">＋ Add Shareholder</button>
+    <button class="btn" onclick="openModal()">Add Shareholder</button>
   </div>
   </div>
   <!-- <input class="search" placeholder="Search by name, flat number, or share ID..."> -->
-  <table>
-    <thead>
-      <tr>
-        <th>Share ID</th>
-        <th>Name</th>
-        <th>Flat</th>
-        <th>Contact</th>
-        <th>Total Payment</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-<tbody id="tableBody">
-  <tr>
-    <td>SH-SHEJ-7788</td>
-    <td>Shejahan Sharif</td>
-    <td>B-402</td>
-    <td>
-      +88017787788
-    </td>
-    <td>3,50,000</td>
-    <td><span class="status">Active</span></td>
-    <td>✏️</td>
-  </tr>
-</tbody>
+<table>
+  <thead>
+    <tr>
+      <th>Share ID</th>
+      <th>Name</th>
+      <th>Flat</th>
+      <th>Contact</th>
+      <th>Total Payment</th>
+      <!-- <th>Status</th> -->
+      <!-- <th>Actions</th> -->
+    </tr>
+  </thead>
 
-  </table>
+  <tbody id="tableBody">
+    <!-- JS will inject rows here -->
+  </tbody>
+</table>
 </div>
 
 <!-- PAYMENTS VIEW -->
-<div class="card" id="paymentsView">
-
+<div class="card" id="paymentsView" style="display:none">
   <div class="card-header">
     <div>
       <h2>Manage Payments</h2>
-      <div class="subtitle">Add shareholder payments</div>
     </div>
-    <button class="btn" onclick="openPaymentModal()">＋ Add Payment</button>
-  </div>
-
-  <!-- Payment Item -->
-  <div class="payment-row">
-    <div>
-      <strong>Maryam (A-504)</strong>
-      <div class="subtitle">5th Construction Installment</div>
-      <div class="subtitle">
-        RDC-2024-0523 • 2024-05-28 •
-      </div>
-    </div>
-    <div style="text-align:right">
-      <strong>৳4,50,000</strong><br>
-      <button class="btn" style="margin-top:6px;background:#fff;color:#000;border:1px solid var(--border)">
-        View Receipt
-      </button>
-    </div>
-  </div>
-
-  <div class="payment-row">
-    <div>
-      <strong>Musab (A-505)</strong>
-      <div class="subtitle">5th Construction Installment</div>
-      <div class="subtitle">
-        RDC-2024-0531 • 2024-06-02 •
-      </div>
-    </div>
-    <div style="text-align:right">
-      <strong>৳4,50,000</strong><br>
-      <button class="btn" style="margin-top:6px;background:#fff;color:#000;border:1px solid var(--border)">
-        View Receipt
-      </button>
-    </div>
-  </div>
-
-  <div class="payment-row">
-    <div>
-      <strong>Maymuna (B-601)</strong>
-      <div class="subtitle">5th Construction Installment</div>
-      <div class="subtitle">
-        RDC-2024-0527 • 2024-05-30 •
-        <span style="color:orange">Pending</span>
-      </div>
-    </div>
-    <div style="text-align:right">
-      <strong>৳5,20,000</strong><br>
-      <button class="btn" style="margin-top:6px;background:#fff;color:#000;border:1px solid var(--border)">
-        View Receipt
-      </button>
-    </div>
-  </div>
-
-</div>
-
-<!-- COSTS VIEW -->
-<div class="card" id="costsView" style="display:none">
-
-  <!-- Header -->
-  <div class="card-header">
-    <div>
-      <h2>Manage Project Costs</h2>
-      <div class="subtitle">Update budget allocation and add vendor vouchers</div>
-    </div>
-    <div style="display:flex;gap:10px">
-      <button class="btn" onclick="openVoucherModal()">＋ Add Voucher</button>
-    </div>
-  </div>
-
-  <!-- Budget Overview -->
-  <h3 style="margin-top:24px">Budget Overview</h3>
-
-  <div class="budget-grid">
-
-    <div class="budget-card">
-      <div class="budget-title">Steel/Rebar</div>
-      <div class="budget-amount">৳28,50,000</div>
-    </div>
-
-    <div class="budget-card">
-      <div class="budget-title">Cement/Aggregate</div>
-      <div class="budget-amount">৳21,00,000</div>
-    </div>
-
-    <div class="budget-card">
-      <div class="budget-title">Labor & Manpower</div>
-      <div class="budget-amount">৳25,00,000</div>
-    </div>
-
-    <div class="budget-card">
-      <div class="budget-title">Finishing Materials</div>
-      <div class="budget-amount">৳12,00,000</div>
-    </div>
-
-    <div class="budget-card">
-      <div class="budget-title">Other Expenses</div>
-      <div class="budget-amount">৳6,00,000</div>
-    </div>
-
-  </div>
-
-  <!-- Recent Vouchers -->
-  <h3 style="margin-top:28px">Recent Vouchers</h3>
-
-  <div class="voucher-row">
-    <div>
-      <strong>Steel Rebar – 5th Floor Slab</strong>
-      <div class="subtitle">Jindal Steel Suppliers</div>
-      <div class="subtitle">
-        VCH-2024-089 • 2024-05-15 • Steel/Rebar
-      </div>
-    </div>
-    <div style="text-align:right">
-      <strong>৳4,25,000</strong><br>
-      <button class="btn light-btn">View Invoice</button>
-    </div>
-  </div>
-
-</div>
-
-<div class="card" id="milestonesView" style="display:none">
-
-  <div class="card-header">
-    <div>
-      <h2>Manage Construction Milestones</h2>
-      <div class="subtitle">
-        Add and update project milestones and timeline
-      </div>
-    </div>
-    <button class="btn" onclick="openMilestoneModal()">＋ Add Milestone</button>
-  </div>
-  <br>
-
-  <!-- Milestone Item -->
-  <div class="milestone-card">
-    <div>
-      <strong>Land Clearance & Site Preparation</strong>
-      <span class="badge completed">Completed</span>
-      <div class="subtitle">
-        <br>
-        Planned: 2023-02-01 • Completed: 2023-02-05
-      </div>
-    </div>
-    ✏ Edit
-  </div>
-
-  <div class="milestone-card">
-    <div>
-      <strong>10th Floor Slab Cast</strong>
-      <span class="badge completed">Completed</span>
-      <span class="badge delayed">Delayed</span>
-      <div class="subtitle"><br>
-        Planned: 2024-09-30 • Completed: 2024-10-15
-      </div>
-      <div class="delay-box">
-        Delay Reason: Monsoon season caused 15-day delay
-      </div>
-    </div>
-    ✏ Edit
-  </div>
-
-</div>
-
-<!-- GALLERY VIEW -->
-<div class="card" id="galleryView" style="display:none">
-  <div class="card-header">
-    <div>
-      <h2>Manage Photo & Video Gallery</h2>
-      <div class="subtitle">Upload weekly construction site updates</div>
-    </div>
-    <button class="btn" onclick="openAddMediaModal()">＋ Add Media</button>
-  </div>
-  <br>
-  
-  <!-- Gallery Grid - MOVED INSIDE THE CARD -->
-  <div class="gallery-grid">
-    <!-- PHOTO -->
-    <div class="gallery-card" onclick="openMedia('image','/images/1.PNG')">
-      <span class="media-badge">📷 Photo</span>
-      <img src="/images/1.PNG">
-      <div class="gallery-info">
-        <strong>10th floor slab completed – aerial view</strong>
-        <div class="subtitle">10th Floor Slab Cast</div>
-        <small>2024-11-10</small>
-      </div>
-    </div>
-    <!-- PHOTO -->
-    <div class="gallery-card" onclick="openMedia('image','/images/2.PNG')">
-      <span class="media-badge">📷 Photo</span>
-      <img src="/images/2.PNG">
-      <div class="gallery-info">
-        <strong>Concrete pouring in progress</strong>
-        <div class="subtitle">10th Floor Slab Cast</div>
-        <small>2024-11-03</small>
-      </div>
-    </div>
-    <!-- VIDEO -->
-    <div class="gallery-card" onclick="openMedia('video','https://www.w3schools.com/html/mov_bbb.mp4')">
-      <span class="media-badge">🎥 Video</span>
-      <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e">
-      <div class="gallery-info">
-        <strong>Structural framework completion</strong>
-        <div class="subtitle">10th Floor Slab Cast</div>
-        <small>2024-10-20</small>
-      </div>
-    </div>
+    <button class="btn" onclick="openPaymentModal()">Add Payment</button>
   </div>
 </div>
 
 
-<div id="customizationView" style="display:none">
-  <div class="card">
-    <div class="card-header">
-      <div>
-        <h2>Manage Customization Options</h2>
-        <div class="subtitle">Control customization windows and available options.</div>
-      </div>
-      <div>
-        <button class="btn" onclick="openCustomizationModal()">＋ Add Option</button>
-      </div>
-    </div>
-    <br>
-    <table>
-      <thead>
-        <tr>
-          <th>Category</th>
-          <th>Status</th>
-          <th>Options</th>
-          <th>Window</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Floor Tiles</td>
-          <td><span class="status">Closed</span></td>
-          <td>3 options</td>
-          <td>2025-12-01 to 2026-01-15</td>
-        </tr>
-        <tr>
-          <td>Bathroom Fixtures</td>
-          <td><span class="status">Closed</span></td>
-          <td>3 options</td>
-          <td>2025-12-01 to 2026-01-15</td>
-        </tr>
-        <tr>
-          <td>Wall Paint Palette</td>
-          <td><span class="status upcoming">Upcoming</span></td>
-          <td>3 options</td>
-          <td>2026-02-01 to 2026-03-15</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-</div>
 <!-- Modal -->
 <div class="modal" id="modal">
   <div class="modal-box">
@@ -759,14 +544,22 @@ th {
       <span class="close" onclick="closeModal()">×</span>
     </div>
 
-    <div class="form-grid">
-      <input id="name" placeholder="Full Name">
-      <input id="flat" placeholder="Flat Number">
-      <input id="email" placeholder="Email">
-      <input id="phone" placeholder="Phone">
-      <input id="shareId" placeholder="Share ID" readonly>
-      <input id="amount" placeholder="Total Amount">
-    </div>
+<div class="form-grid">
+  <input id="sh_id" placeholder="Share ID (e.g. au-sh-a1)">
+  <input id="sh_project" placeholder="Project (aurora)">
+
+  <input id="sh_name" placeholder="Full Name">
+  <input id="sh_flat" placeholder="Flat Number">
+
+  <input id="sh_email" placeholder="Email">
+  <input id="sh_mobile" placeholder="Mobile">
+
+  <input id="sh_password" type="password" placeholder="Password">
+
+  <input id="sh_total_installments" type="number" placeholder="Total Installments">
+  <input id="sh_installment_amount" type="number" placeholder="Installment Amount">
+</div>
+
 
     <div class="form-actions">
       <button class="btn" style="background:#ddd;color:#000" onclick="closeModal()">Cancel</button>
@@ -808,7 +601,6 @@ th {
 
 <div class="modal" id="addMediaModal">
   <div class="modal-box" style="width:520px">
-
     <div class="modal-header">
       <div>
         <h3>Upload Photo/Video</h3>
@@ -816,7 +608,6 @@ th {
       </div>
       <span class="close" onclick="closeAddMediaModal()">×</span>
     </div>
-
     <div class="form-grid">
       <div>
       Choose Media Type: 
@@ -824,54 +615,400 @@ th {
         <option>Photo</option>
         <option>Video</option>
       </select></div>
-
 <div class="upload-box" onclick="triggerFileUpload()">
-  ⬆ Click to upload or drag and drop<br>
-  <small id="upload-hint">
-    Photos: JPG/PNG up to 10MB • Videos: MP4 up to 50MB
-  </small>
-
-  <!-- hidden file input -->
-  <input type="file"
-         id="mediaInput"
-         hidden
-         onchange="handleFileSelect(this)">
+  ⬆ Click to upload or drag and drop
 </div>
 
+  <!-- hidden file input -->
+<input
+  type="file"
+  id="mediaInput"
+  accept="image/*,video/*"
+  hidden
+  onchange="handleFileSelect(this)"
+/>
 
       <input type="date" placeholder="Date Captured">
-
-      <input style="grid-column:1/-1"
-             placeholder="Brief description of the photo/video">
+      <input style="grid-column:1/-1" placeholder="Brief description of the photo/video">
     </div>
-
-    <div class="form-actions">
-      <button class="btn light-btn" onclick="closeAddMediaModal()">Cancel</button>
-      <button class="btn">Upload Media</button>
-    </div>
-
+<div class="form-actions">
+  <button class="btn light-btn" onclick="closeAddMediaModal()">Cancel</button>
+  <button class="btn" onclick="uploadSelectedFile()">Upload Media</button>
+</div>
   </div>
 </div>
 
-
 <script>
 
-function triggerFileUpload() {
-  document.getElementById('mediaInput').click();
+document.addEventListener('DOMContentLoaded', fetchShareholders);
+
+document.addEventListener('DOMContentLoaded', () => {
+  fetchShareholders();
+  document.getElementById('shareholdersView').style.display = 'block';
+});
+
+async function fetchShareholders() {
+  try {
+
+    const res = await fetch('/api/shareholder/aurora');
+    const shareholders = await res.json();
+    const tableBody = document.getElementById('tableBody');
+    tableBody.innerHTML = '';
+
+    shareholders.forEach(sh => {
+      const totalPaid = sh.payments
+        .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
+
+      const status = totalPaid > 0 ? 'Active' : 'Inactive';
+
+      const row = `
+        <tr>
+          <td>${sh.id}</td>
+          <td>${sh.name}</td>
+          <td>${sh.flat_number}</td>
+          <td>${sh.mobile}</td>
+          <td>${totalPaid.toLocaleString()}</td>
+        </tr>
+      `;
+
+      tableBody.insertAdjacentHTML('beforeend', row);
+    });
+
+  } catch (err) {
+    console.error('Failed to load shareholders:', err);
+  }
 }
 
-function handleFileSelect(input) {
+async function addShareholder() {
+  const payload = {
+    id: document.getElementById('sh_id').value,
+    project: document.getElementById('sh_project').value,
+    name: document.getElementById('sh_name').value,
+    flat_number: document.getElementById('sh_flat').value,
+    email: document.getElementById('sh_email').value,
+    mobile: document.getElementById('sh_mobile').value,
+    password: document.getElementById('sh_password').value,
+    total_installments: document.getElementById('sh_total_installments').value,
+    installment_amount: document.getElementById('sh_installment_amount').value
+  };
+
+  if (!payload.id || !payload.name || !payload.mobile) {
+    return alert('ID, Name & Mobile are required');
+  }
+
+  try {
+    const res = await fetch(`/api/shareholder/${payload.project}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.message);
+
+    closeModal();
+    showSuccessPopup('Shareholder added successfully');
+
+    // 🔁 reload from DB
+    fetchShareholders();
+
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function populatePaymentShareholders() {
+  const res = await fetch('/api/shareholder/aurora');
+  const shareholders = await res.json();
+
+  const select = document.getElementById('paymentShareholder');
+  select.innerHTML = '<option value="">Select shareholder</option>';
+
+  shareholders.forEach(sh => {
+    const opt = document.createElement('option');
+    opt.value = sh.id;        // IMPORTANT → ID
+    opt.textContent = sh.name; // DISPLAY NAME
+    select.appendChild(opt);
+  });
+}
+
+function openPaymentModal() {
+  populatePaymentShareholders();
+  document.getElementById('paymentModal').classList.add('active');
+}
+
+async function submitPayment() {
+  const payload = {
+    shareholderId: document.getElementById('paymentShareholder').value,
+    installment_number: document.getElementById('paymentInstallment').value,
+    amount_paid: document.getElementById('paymentAmount').value,
+    payment_date: document.getElementById('paymentDate').value
+  };
+
+  if (!payload.shareholderId || !payload.installment_number) {
+    return alert('All fields are required');
+  }
+
+  try {
+    const res = await fetch('/api/payment/aurora', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+    console.log(result.modifiedCount);
+    if (!res.ok) throw new Error(result.message);
+
+    closePaymentModal();
+    showSuccessPopup('Payment recorded');
+
+    fetchPayments(); // 🔁 refresh payments list
+
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// Function to upload the selected file
+async function uploadSelectedFile() {
+  const fileInput = document.getElementById('mediaInput');
+  
+  if (!fileInput.files || !fileInput.files.length) {
+    alert('Please select a file first');
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const uploadBox = fileInput.closest('.upload-box');
+  
+  // Show uploading state
+  uploadBox.classList.add('uploading');
+  uploadBox.innerHTML = `
+    ⏳ Uploading...<br>
+    <strong>${file.name}</strong>
+    <br><small>${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+  `;
+
+  try {
+    // Get form data from modal inputs
+    const mediaType = document.querySelector('#addMediaModal select').value;
+    const description = document.querySelector('#addMediaModal input[placeholder*="description"]').value;
+    const dateCaptured = document.querySelector('#addMediaModal input[type="date"]').value;
+    
+    // Upload file
+    const uploadedFile = await uploadMedia(file, {
+      mediaType,
+      description,
+      dateCaptured,
+      project: 'UniNest Aurora' // Or get from current project
+    });
+
+    // Update UI with success
+    uploadBox.classList.remove('uploading');
+    uploadBox.classList.add('upload-success');
+    uploadBox.innerHTML = `
+      ✅ Uploaded!<br>
+      <strong>${file.name}</strong>
+      <br><small>View ID: ${uploadedFile.id}</small>
+    `;
+
+    // Show success message
+    showSuccessPopup('Media uploaded successfully!');
+    
+    // Close modal after 2 seconds
+    setTimeout(() => {
+      closeAddMediaModal();
+      // Optionally refresh gallery
+      loadGallery();
+    }, 2000);
+
+  } catch (error) {
+    uploadBox.classList.remove('uploading');
+    uploadBox.classList.add('upload-error');
+    uploadBox.innerHTML = `
+      ❌ Upload failed<br>
+      <strong>${file.name}</strong>
+      <br><small>Click to try again</small>
+    `;
+    
+    alert('Upload failed: ' + error.message);
+  }
+}
+
+  async function uploadMedia(file, formData) {
+  try {
+    // Create FormData object
+    const uploadFormData = new FormData();
+    uploadFormData.append('file', file);
+    uploadFormData.append('project', formData.project || 'Example: Uninest Aurora');
+    uploadFormData.append('description', formData.description || '');
+    uploadFormData.append('uploader', formData.uploader || 'Admin');
+    uploadFormData.append('mediaType', formData.mediaType || 'photo');
+    uploadFormData.append('dateCaptured', formData.dateCaptured || new Date().toISOString());
+
+    const response = await fetch('http://localhost:5000/api/upload', {
+      method: 'POST',
+      body: uploadFormData
+      // Note: Don't set Content-Type header for FormData
+    });
+
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+
+    const result = await response.json();
+    
+    if (result.success) {
+      showSuccessPopup('Media uploaded successfully!');
+      return result.data;
+    } else {
+      throw new Error(result.error || 'Upload failed');
+    }
+  } catch (error) {
+    console.error('Upload error:', error);
+    alert('Failed to upload file: ' + error.message);
+    throw error;
+  }
+}
+
+//
+async function fetchPayments() {
+  const res = await fetch('/api/shareholder/aurora');
+  const shareholders = await res.json();
+
+  const container = document.getElementById('paymentsView');
+  container.querySelectorAll('.payment-row').forEach(e => e.remove());
+
+  shareholders.forEach(sh => {
+    sh.payments
+      .filter(p => p.amount_paid > 0)
+      .forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'payment-row';
+
+        row.innerHTML = `
+          <div>
+            <strong>${sh.name} (${sh.flat_number})</strong>
+            <div class="subtitle">${p.installment_number}th Installment</div>
+            <div class="subtitle">
+              ${p.payment_date} • <span style="color:green">Paid</span>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <strong>৳${p.amount_paid.toLocaleString()}</strong>
+          </div>
+        `;
+
+        container.appendChild(row);
+      });
+  });
+}
+
+// Modified handleFileSelect to include upload
+async function handleFileSelect(input) {
   if (!input.files || !input.files.length) return;
 
   const file = input.files[0];
   const uploadBox = input.closest('.upload-box');
-
-  uploadBox.classList.add('has-file');
+  
+  // Show uploading state
+  uploadBox.classList.add('uploading');
   uploadBox.innerHTML = `
-    ✅ File selected<br>
+    ⏳ Uploading...<br>
     <strong>${file.name}</strong>
     <br><small>${(file.size / 1024 / 1024).toFixed(2)} MB</small>
   `;
+
+  try {
+    // Get form data
+    const mediaType = document.querySelector('#addMediaModal select').value;
+    const description = document.querySelector('#addMediaModal input[placeholder*="description"]').value;
+    const dateCaptured = document.querySelector('#addMediaModal input[type="date"]').value;
+    
+    // Upload file
+    const uploadedFile = await uploadMedia(file, {
+      mediaType,
+      description,
+      dateCaptured,
+      project: 'UniNest Aurora' // Or get from current project
+    });
+
+    // Update UI with success
+    uploadBox.classList.remove('uploading');
+    uploadBox.classList.add('upload-success');
+    uploadBox.innerHTML = `
+      ✅ Uploaded!<br>
+      <strong>${file.name}</strong>
+      <br><small>View ID: ${uploadedFile.id}</small>
+    `;
+
+    // Optionally refresh gallery
+    setTimeout(() => {
+      loadGallery();
+    }, 1500);
+
+  } catch (error) {
+    uploadBox.classList.remove('uploading');
+    uploadBox.classList.add('upload-error');
+    uploadBox.innerHTML = `
+      ❌ Upload failed<br>
+      <strong>${file.name}</strong>
+      <br><small>Click to try again</small>
+    `;
+    
+    // Restore click functionality
+    uploadBox.onclick = () => {
+      uploadBox.classList.remove('upload-error');
+      uploadBox.innerHTML = `⬆ Click to upload or drag and drop<br>
+        <small id="upload-hint">
+          Photos: JPG/PNG up to 10MB • Videos: MP4 up to 50MB
+        </small>`;
+      triggerFileUpload();
+    };
+  }
+}
+
+// Function to load gallery from API
+async function loadGallery() {
+  try {
+    const response = await fetch('http://localhost:5000/api/files/project/UniNest%20Aurora');
+    const data = await response.json();
+    
+    if (data.success && data.files.length > 0) {
+      updateGalleryGrid(data.files);
+    }
+  } catch (error) {
+    console.error('Failed to load gallery:', error);
+  }
+}
+
+function updateGalleryGrid(files) {
+  const galleryGrid = document.querySelector('.gallery-grid');
+  galleryGrid.innerHTML = '';
+  
+  files.forEach(file => {
+    const mediaType = file.metadata.mediaType || 'image';
+    const card = document.createElement('div');
+    card.className = 'gallery-card';
+    card.onclick = () => openMedia(mediaType, `/api/files/${file.filename}`);
+    
+    card.innerHTML = `
+      <span class="media-badge">${mediaType === 'image' ? '📷 Photo' : '🎥 Video'}</span>
+      <img src="/api/files/${file.filename}" alt="${file.metadata.description}">
+      <div class="gallery-info">
+        <strong>${file.metadata.description || file.originalName}</strong>
+        <div class="subtitle">${file.metadata.project || 'Project'}</div>
+        <small>${new Date(file.metadata.dateCaptured || file.uploadDate).toLocaleDateString()}</small>
+      </div>
+    `;
+    
+    galleryGrid.appendChild(card);
+  });
+}
+
+function triggerFileUpload() {
+  document.getElementById('mediaInput').click();
 }
 
 function openAddMediaModal(){
@@ -902,42 +1039,42 @@ function updateRDC() {
   document.getElementById('rdcId').value = generateRDC(name, installment);
 }
 
-  function openPaymentModal() {
-  document.getElementById('paymentModal').classList.add('active');
-}
-
 function closePaymentModal() {
   document.getElementById('paymentModal').classList.remove('active');
 }
 
 function showTab(tab, el) {
-  // Hide all views
-  document.getElementById('shareholdersView').style.display = 'none';
-  document.getElementById('paymentsView').style.display = 'none';
-  document.getElementById('costsView').style.display = 'none';
-  document.getElementById('milestonesView').style.display = 'none';
-  document.getElementById('galleryView').style.display = 'none';
-  document.getElementById('customizationView').style.display = 'none';
 
-  // Show the selected tab
-  if (tab === 'shareholders') {
-    document.getElementById('shareholdersView').style.display = 'block';
-  } else if (tab === 'payments') {
-    document.getElementById('paymentsView').style.display = 'block';
-  } else if (tab === 'costs') {
-    document.getElementById('costsView').style.display = 'block';
-  } else if (tab === 'milestones') {
-    document.getElementById('milestonesView').style.display = 'block';
-  } else if (tab === 'gallery') {
-    document.getElementById('galleryView').style.display = 'block';
-  } else if (tab === 'customization') {
-    document.getElementById('customizationView').style.display = 'block';
+  // Map tab names to view IDs
+  const views = {
+    shareholders: 'shareholdersView',
+    payments: 'paymentsView',
+    costs: 'costsView',
+    milestones: 'milestonesView',
+    gallery: 'galleryView',
+    customization: 'customizationView'
+  };
+
+  // Hide all existing views
+  Object.values(views).forEach(id => {
+    const view = document.getElementById(id);
+    if (view) view.style.display = 'none';
+  });
+
+  // Show selected view
+  const activeView = document.getElementById(views[tab]);
+  if (activeView) {
+    activeView.style.display = 'block';
   }
 
-  // Update tab styling
+  // Activate tab UI
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+
+  // Lazy-load data
+  if (tab === 'payments') fetchPayments();
 }
+
 function openModal() {
   document.getElementById('modal').classList.add('active');
 }
@@ -950,7 +1087,7 @@ function closeModal() {
 function generateShareId(name, phone) {
   const cleanName = name.replace(/\s+/g, '').substring(0, 4).toUpperCase();
   const lastDigits = phone.slice(-4);
-  return `SH-${cleanName}-${lastDigits}`;
+  return `au-${cleanName}-${lastDigits}`;
 }
 
 document.getElementById('phone').addEventListener('input', () => {
@@ -960,35 +1097,6 @@ document.getElementById('phone').addEventListener('input', () => {
     document.getElementById('shareId').value = generateShareId(name, phone);
   }
 });
-
-function addShareholder() {
-  const name = document.getElementById('name').value;
-  const flat = document.getElementById('flat').value;
-  const email = document.getElementById('email').value;
-  const phone = document.getElementById('phone').value;
-  const shareId = document.getElementById('shareId').value;
-
-  if (!name || !phone) return alert("Name & phone required");
-
-  const row = `
-    <tr>
-      <td>${shareId}</td>
-      <td>${name}</td>
-      <td>${flat}</td>
-      <td>${email}<br>${phone}</td>
-      <td>0</td>
-      <td><span class="status">Active</span></td>
-      <td>✏️</td>
-    </tr>
-  `;
-
-  document.getElementById('tableBody').insertAdjacentHTML('beforeend', row);
-  closeModal();
-  // Default tab
-document.getElementById('shareholdersView').style.display = 'none';
-document.getElementById('paymentsView').style.display = 'block';
-document.getElementById('costsView').style.display = 'none';
-}
 
 function openVoucherModal() {
   document.getElementById('voucherModal').classList.add('active');
@@ -1044,7 +1152,6 @@ function openSwitchProjectMenu(e) {
   document.getElementById('switchProjectMenu').classList.toggle('hidden');
 }
 
-/* CORE LOGIC */
 function switchProject(projectName) {
   const text = document.getElementById('success-popup-text');
   text.textContent = `✅ Switched to ${projectName}`;
@@ -1060,7 +1167,6 @@ function switchProject(projectName) {
   }, 2200);
 }
 
-/* Close dropdown on outside click */
 document.addEventListener('click', (e) => {
   const menu = document.getElementById('switchProjectMenu');
   const switchTab = e.target.closest('.tab');
@@ -1070,7 +1176,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* Popup helper (you already have this element) */
 function showSuccessPopup() {
   const popup = document.getElementById('success-popup');
   popup.classList.remove('hidden');
@@ -1091,37 +1196,22 @@ function showSuccessPopup() {
       </div>
       <span class="close" onclick="closePaymentModal()">×</span>
     </div>
+
     <div class="form-grid">
-<select id="paymentShareholder">
+
+<select id="paymentShareholder" required>
   <option value="">Select shareholder</option>
-  <option>Maryam</option>
-  <option>Musab</option>
 </select>
 
-<select id="paymentInstallment">
-  <option value="">Select installment</option>
-  <option>5th Construction Installment</option>
-  <option>6th Construction Installment</option>
-</select>
+<input id="paymentInstallment" type="number" placeholder="Installment Number" min="1" required>
+<input id="paymentAmount" type="number" placeholder="Amount Paid" required>
+<input id="paymentDate" type="date" required>
+      
+    </div>
 
-<input id="rdcId" placeholder="RDC-AUTO-GENERATED" readonly>
-      <input placeholder="Amount Paid">
-      <input type="date">
-    </div>
-    <div style="
-      margin-top:16px;
-      border:2px dashed var(--border);
-      border-radius:12px;
-      padding:24px;
-      text-align:center;
-      color:var(--muted);
-    ">
-      ⬆ Click to upload or drag and drop<br>
-      <small>PDF files up to 10MB</small>
-    </div>
     <div class="form-actions">
       <button class="btn" style="background:#ddd;color:#000" onclick="closePaymentModal()">Cancel</button>
-      <button class="btn">Add Payment</button>
+<button class="btn" onclick="submitPayment()">Add Payment</button>
     </div>
   </div>
 </div>
