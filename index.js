@@ -351,7 +351,260 @@ app.get('/api/files/metadata/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+//
+// GET costs for a project
+app.get('/api/costs/:project', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase(); // Fix: Extract project first
+    const db = conn.useDb(project);
+    const collection = db.collection('cost');
 
+    // Find the document for this project
+    const doc = await collection.findOne(
+      { "project": project },
+      { projection: { cost: 1, _id: 0 } }
+    );
+
+    if (!doc || !doc.cost || doc.cost.length === 0) {
+      return res.status(404).json({ message: 'No costs found for this project' });
+    }
+
+    res.json(doc);
+  } catch (error) {
+    console.error('Error fetching costs:', error);
+    res.status(500).json({ error: 'Failed to fetch costs' });
+  }
+});
+
+// POST new cost/voucher
+app.post('/api/costs/:project', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase();
+    const db = conn.useDb(project);
+    const collection = db.collection('cost');
+    
+    const {
+      material,
+      date,
+      description,
+      brand,
+      amount,
+      voucher_link
+    } = req.body;
+
+    if (!material || !date || !description || !amount) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const newCost = {
+      material,
+      date,
+      description,
+      brand: brand || '',
+      amount: Number(amount),
+      voucher_link: voucher_link || ''
+    };
+
+    // Check if project document exists
+    const projectExists = await collection.findOne({ project });
+    
+    if (!projectExists) {
+      // Create new project document with first cost
+      const result = await collection.insertOne({
+        project,
+        cost: [newCost],
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Cost added to new project',
+        insertedId: result.insertedId
+      });
+    } else {
+      // Add to existing project's cost array
+      const result = await collection.updateOne(
+        { project },
+        {
+          $push: { cost: newCost },
+          $set: { updated_at: new Date() }
+        }
+      );
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Cost added to existing project',
+        modifiedCount: result.modifiedCount
+      });
+    }
+
+  } catch (error) {
+    console.error('Error adding cost:', error);
+    res.status(500).json({ error: 'Failed to add cost' });
+  }
+});
+
+// milestone
+// GET milestones for a project (matching your JSON structure)
+app.get('/api/milestones/:project', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase();
+    const db = conn.useDb(project);
+    const collection = db.collection('milestone'); // Collection name is 'milestone'
+
+    // Find milestones for this project
+    const doc = await collection.findOne(
+      { "project": project },
+      { projection: { milestone: 1, _id: 0 } } // Get milestone array
+    );
+
+    if (!doc || !doc.milestone || doc.milestone.length === 0) {
+      return res.status(404).json({ message: 'No milestones found' });
+    }
+
+    res.json(doc);
+  } catch (error) {
+    console.error('Error fetching milestones:', error);
+    res.status(500).json({ error: 'Failed to fetch milestones' });
+  }
+});
+
+// POST new milestone (matching your JSON structure)
+app.post('/api/milestones/:project', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase();
+    const db = conn.useDb(project);
+    const collection = db.collection('milestone'); // Collection name is 'milestone'
+    
+    const {
+      description,
+      planned_date,
+      completion_date,
+      status,
+      note
+    } = req.body;
+
+    // Validate required fields
+    if (!description || !planned_date) {
+      return res.status(400).json({ error: 'Description and planned date are required' });
+    }
+
+    const newMilestone = {
+      description: description.trim(),
+      planned_date,
+      completion_date: completion_date || '',
+      status: status || 'Planned',
+      note: note || '',
+      created_at: new Date()
+    };
+
+    // Check if project document exists
+    const projectExists = await collection.findOne({ project });
+    
+    if (!projectExists) {
+      // Create new project document with first milestone
+      const result = await collection.insertOne({
+        project,
+        milestone: [newMilestone],
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Milestone added to new project',
+        insertedId: result.insertedId
+      });
+    } else {
+      // Add to existing project's milestone array
+      const result = await collection.updateOne(
+        { project },
+        {
+          $push: { milestone: newMilestone },
+          $set: { updated_at: new Date() }
+        }
+      );
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Milestone added to existing project',
+        modifiedCount: result.modifiedCount
+      });
+    }
+
+  } catch (error) {
+    console.error('Error adding milestone:', error);
+    res.status(500).json({ error: 'Failed to add milestone' });
+  }
+});
+
+//
+// PUT (update) a specific milestone
+app.put('/api/milestones/:project/:index', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase();
+    const index = parseInt(req.params.index);
+    const db = conn.useDb(project);
+    const collection = db.collection('milestone');
+    
+    const {
+      description,
+      planned_date,
+      completion_date,
+      status,
+      note
+    } = req.body;
+
+    // Validate required fields
+    if (!description || !planned_date) {
+      return res.status(400).json({ error: 'Description and planned date are required' });
+    }
+
+    // Find the project document
+    const projectDoc = await collection.findOne({ project });
+    
+    if (!projectDoc || !projectDoc.milestone || index >= projectDoc.milestone.length) {
+      return res.status(404).json({ error: 'Milestone not found' });
+    }
+
+    // Prepare updated milestone
+    const updatedMilestone = {
+      description: description.trim(),
+      planned_date,
+      completion_date: completion_date || '',
+      status: status || 'Planned',
+      note: note || '',
+      updated_at: new Date()
+    };
+
+    // Update the specific milestone in the array
+    const updatePath = `milestone.${index}`;
+    const result = await collection.updateOne(
+      { project },
+      {
+        $set: {
+          [updatePath]: updatedMilestone,
+          updated_at: new Date()
+        }
+      }
+    );
+
+    if (!result.modifiedCount) {
+      return res.status(404).json({ error: 'Failed to update milestone' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Milestone updated successfully',
+      modifiedCount: result.modifiedCount
+    });
+
+  } catch (error) {
+    console.error('Error updating milestone:', error);
+    res.status(500).json({ error: 'Failed to update milestone' });
+  }
+});
 // Mock data for the financial transparency module
 const financialData = {
   title: "Transparent Financial Breakdown",

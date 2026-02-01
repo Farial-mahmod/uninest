@@ -474,6 +474,7 @@ th {
 
 </style>
 </head>
+
 <body>
 <div class="tabs">
   <div class="tab active" onclick="showTab('shareholders', this)">Shareholders</div>
@@ -501,7 +502,7 @@ th {
     </div>
     <button class="btn" onclick="openModal()">Add Shareholder</button>
   </div>
-  </div>
+  </div><br>
   <!-- <input class="search" placeholder="Search by name, flat number, or share ID..."> -->
 <table>
   <thead>
@@ -522,16 +523,106 @@ th {
 </table>
 </div>
 
-<!-- PAYMENTS VIEW -->
 <div class="card" id="paymentsView" style="display:none">
   <div class="card-header">
     <div>
       <h2>Manage Payments</h2>
     </div>
     <button class="btn" onclick="openPaymentModal()">Add Payment</button>
+  </div><br>
+</div>
+<!-- COSTS VIEW -->
+<div class="card" id="costsView" style="display:none">
+  <div class="card-header">
+    <div>
+      <h2>Manage Costs & Vouchers</h2>
+      <div class="subtitle">Track project expenses and vendor payments</div>
+    </div>
+    <button class="btn" onclick="openVoucherModal()">Add Voucher</button>
+  </div> <br><br>
+  
+  <!-- Costs Table -->
+  <table>
+    <thead>
+      <tr>
+        <th>Voucher ID</th>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Vendor</th>
+        <th>Category</th>
+        <th>Amount</th>
+        <th>Invoice</th>
+      </tr>
+    </thead>
+    <tbody id="costsTableBody">
+      <!-- JS will inject rows here -->
+    </tbody>
+  </table>
+</div>
+
+<!-- MILESTONES VIEW -->
+<div class="card" id="milestonesView" style="display:none">
+  <div class="card-header">
+    <div>
+      <h2>Progress Milestones</h2>
+      <div class="subtitle">Track project progress and key deadlines</div>
+    </div>
+    <button class="btn" onclick="openMilestoneModal()">Add Milestone</button>
+  </div>
+  <br><br>
+  
+  <!-- Milestones Timeline/Table -->
+  <div id="milestonesContainer">
+    <table>
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Dates</th>
+          <th>Status</th>
+          <th>Progress</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="milestonesTableBody">
+        <!-- JS will inject rows here -->
+      </tbody>
+    </table>
   </div>
 </div>
 
+<!-- GALLERY VIEW -->
+<div class="card" id="galleryView" style="display:none">
+  <div class="card-header">
+    <div>
+      <h2>Project Gallery</h2>
+      <div class="subtitle">Construction photos and videos</div>
+    </div>
+    <button class="btn" onclick="openAddMediaModal()">Upload Media</button>
+  </div>
+  <br><br>
+  
+  <!-- Gallery Grid -->
+  <div class="gallery-grid">
+    <!-- JS will inject gallery cards here -->
+  </div>
+</div>
+
+<!-- CUSTOMIZATION VIEW -->
+<div class="card" id="customizationView" style="display:none">
+  <div class="card-header">
+    <div>
+      <h2>Customization Options</h2>
+      <div class="subtitle">Shareholder upgrade choices</div>
+    </div>
+    <button class="btn" onclick="openCustomizationModal()">Add Option</button>
+  </div>
+  <br><br>
+  
+  <!-- Customization Options Grid -->
+  <div class="options-grid">
+    <!-- JS will inject options here -->
+  </div>
+</div>
 
 <!-- Modal -->
 <div class="modal" id="modal">
@@ -570,7 +661,6 @@ th {
 
 <div class="modal" id="milestoneModal">
   <div class="modal-box" style="width:520px">
-
     <div class="modal-header">
       <div>
         <h3>Add New Milestone</h3>
@@ -580,22 +670,58 @@ th {
     </div>
 
     <div class="form-grid">
-      <input placeholder="e.g., 11th Floor Slab Cast">
-      <input type="date">
-      <select>
-        <option>Planned</option>
-        <option>In Progress</option>
-        <option>Completed</option>
-        <option>Delayed</option>
+      <input id="milestoneDescription" placeholder="Milestone Description (e.g., Foundation)">
+      <input id="milestonePlannedDate" type="date" placeholder="Planned Date">
+      <input id="milestoneCompletionDate" type="date" placeholder="Completion Date (optional)">
+      <select id="milestoneStatus">
+        <option value="Planned">Planned</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Completed">Completed</option>
+        <option value="Delayed">Delayed</option>
       </select>
+      <input id="milestoneNote" placeholder="Notes (optional)" style="grid-column: 1 / -1;">
     </div>
 
     <div class="form-actions">
       <button class="btn" style="background:#ddd;color:#000"
               onclick="closeMilestoneModal()">Cancel</button>
-      <button class="btn">Add Milestone</button>
+      <button class="btn" onclick="submitMilestone()">Add Milestone</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MILESTONE MODAL -->
+<div class="modal" id="editMilestoneModal">
+  <div class="modal-box" style="width:520px">
+    <div class="modal-header">
+      <div>
+        <h3>Edit Milestone</h3>
+        <div class="subtitle">Update milestone details</div>
+      </div>
+      <span class="close" onclick="closeEditMilestoneModal()">×</span>
     </div>
 
+    <div class="form-grid">
+      <input id="editMilestoneDescription" placeholder="Milestone Description (e.g., Foundation)">
+      <input id="editMilestonePlannedDate" type="date" placeholder="Planned Date">
+      <input id="editMilestoneCompletionDate" type="date" placeholder="Completion Date (optional)">
+      <select id="editMilestoneStatus">
+        <option value="Planned">Planned</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Completed">Completed</option>
+        <option value="Delayed">Delayed</option>
+      </select>
+      <input id="editMilestoneNote" placeholder="Notes (optional)" style="grid-column: 1 / -1;">
+    </div>
+
+    <input type="hidden" id="editMilestoneIndex">
+    <input type="hidden" id="editMilestoneId">
+
+    <div class="form-actions">
+      <button class="btn" style="background:#ddd;color:#000"
+              onclick="closeEditMilestoneModal()">Cancel</button>
+      <button class="btn" onclick="updateMilestone()">Update Milestone</button>
+    </div>
   </div>
 </div>
 
@@ -770,6 +896,638 @@ async function submitPayment() {
   }
 }
 
+// Fetch and display costs/vouchers
+async function fetchCosts() {
+  try {
+    const res = await fetch('/api/costs/aurora');
+    const data = await res.json();
+    const tableBody = document.getElementById('costsTableBody');
+    
+    if (!tableBody) {
+      console.error('Costs table body not found!');
+      return;
+    }
+    
+    tableBody.innerHTML = '';
+    
+    // Check if data has the expected structure
+    if (!data || !data.cost || !Array.isArray(data.cost)) {
+      console.error('Invalid data structure:', data);
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 40px; color: #666">
+            No cost data found or invalid format
+          </td>
+        </tr>
+      `;
+      return;
+    }
+    
+    const costs = data.cost;
+    
+    // Debug log
+    console.log('Fetched costs:', costs);
+    
+    if (costs.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 40px; color: #666">
+            No cost records found. Click "Add Voucher" to add your first expense.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+    
+    costs.forEach((cost, index) => {
+      // Generate a unique ID if none exists
+      const voucherId = cost.voucher_id || `VCH-${new Date().getFullYear()}-${(index + 1).toString().padStart(3, '0')}`;
+      
+      const row = `
+        <tr>
+          <td>${voucherId}</td>
+          <td>${cost.date || 'N/A'}</td>
+          <td>${cost.description || 'No description'}</td>
+          <td>${cost.brand || 'N/A'}</td>
+          <td>
+            <span class="category-badge" style="
+              background: ${getCategoryColor(cost.material)};
+              color: white;
+              padding: 4px 8px;
+              border-radius: 12px;
+              font-size: 12px;
+            ">
+              ${cost.material || 'Other'}
+            </span>
+          </td>
+          <td><strong>৳${(cost.amount || 0).toLocaleString()}</strong></td>
+          <td>
+            ${cost.voucher_link ? 
+              `<a href="${cost.voucher_link}" target="_blank" style="color: #0066cc">View Voucher</a>` : 
+              'No invoice'
+            }
+          </td>
+        </tr>
+      `;
+      tableBody.insertAdjacentHTML('beforeend', row);
+    });
+    
+  } catch (err) {
+    console.error('Failed to load costs:', err);
+    const tableBody = document.getElementById('costsTableBody');
+    if (tableBody) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 40px; color: #666">
+            Error loading costs: ${err.message}
+          </td>
+        </tr>
+      `;
+    }
+  }
+}
+
+// Update category color mapping to match your data structure
+function getCategoryColor(material) {
+  const colors = {
+    'Steel': '#dc2626',  // Steel/Rebar
+    'Cement': '#059669', // Cement/Aggregate
+    'Labor': '#7c3aed',  // Labor & Manpower
+    'Bricks': '#2563eb', // Finishing Materials
+    'Sand': '#d97706',   // Construction Materials
+    'Other': '#4b5563'   // Other Expenses
+  };
+  return colors[material] || '#6b7280';
+}
+
+// Add function to handle Add Voucher form submission
+async function submitVoucher() {
+  try {
+    const payload = {
+      material: document.getElementById('voucherMaterial').value,
+      date: document.getElementById('voucherDate').value,
+      description: document.getElementById('voucherDescription').value,
+      brand: document.getElementById('voucherVendor').value,
+      amount: parseFloat(document.getElementById('voucherAmount').value),
+      voucher_link: document.getElementById('voucherLink').value
+    };
+
+    if (!payload.material || !payload.date || !payload.description || !payload.amount) {
+      alert('Material, Date, Description, and Amount are required');
+      return;
+    }
+
+    const res = await fetch('/api/costs/aurora', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to add voucher');
+
+    closeVoucherModal();
+    showSuccessPopup('Voucher added successfully');
+    
+    // Reload costs data
+    fetchCosts();
+
+  } catch (err) {
+    alert('Error adding voucher: ' + err.message);
+  }
+}
+
+// Helper function for category colors
+function getCategoryColor(category) {
+  const colors = {
+    'Steel/Rebar': '#dc2626',
+    'Cement/Aggregate': '#059669',
+    'Labor & Manpower': '#7c3aed',
+    'Finishing Materials': '#2563eb',
+    'Other Expenses': '#4b5563'
+  };
+  return colors[category] || '#6b7280';
+}
+
+// Fetch and display milestones from API
+async function fetchMilestones() {
+  try {
+    console.log('Fetching milestones...');
+    const res = await fetch('/api/milestones/aurora');
+    
+    // Check if response is ok
+    if (!res.ok) {
+      console.log('Milestones API returned:', res.status, res.statusText);
+      showEmptyMilestones();
+      return;
+    }
+    
+    const data = await res.json();
+    console.log('Milestones API response:', data);
+    
+    const tableBody = document.getElementById('milestonesTableBody');
+    
+    if (!tableBody) {
+      console.error('Milestones table body not found!');
+      return;
+    }
+    
+    // Clear existing rows
+    tableBody.innerHTML = '';
+    
+    // Check if data has the expected structure
+    if (!data || !data.milestone || !Array.isArray(data.milestone)) {
+      console.log('Invalid milestones data structure:', data);
+      showEmptyMilestones();
+      return;
+    }
+    
+    const milestones = data.milestone;
+    
+    if (milestones.length === 0) {
+      showEmptyMilestones();
+      return;
+    }
+    
+    // Render milestones
+    milestones.forEach((milestone, index) => {
+      const statusColors = {
+        'Planned': '#3b82f6',
+        'In Progress': '#f59e0b',
+        'Completed': '#10b981',
+        'Delayed': '#ef4444'
+      };
+      
+      const status = milestone.status || 'Planned';
+      const plannedDate = milestone.planned_date || '';
+      const completionDate = milestone.completion_date || '';
+      
+      // Calculate progress based on status
+      let progress = 0;
+      if (status === 'Completed') progress = 100;
+      else if (status === 'In Progress') progress = 50;
+      else if (status === 'Delayed') progress = 25;
+      else progress = 0;
+      
+      const row = `
+        <tr>
+          <td>
+            <div style="font-weight: 600;">${milestone.description || 'Untitled Milestone'}</div>
+            ${milestone.note ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">
+              📝 ${milestone.note}
+            </div>` : ''}
+          </td>
+          <td>
+            <div>${plannedDate ? 
+              `<div style="font-size: 12px; margin-top: 2px;">
+              Started: ${formatDate(plannedDate)}
+            </div>` : 'Not set'}</div>
+
+            ${completionDate ? `<div style="font-size: 12px; color: #059669; margin-top: 2px;">
+              Completed: ${formatDate(completionDate)}
+            </div>` : ''}
+          </td>
+          <td>
+            <span class="status-badge" style="
+              background: ${statusColors[status] || '#6b7280'};
+              color: white;
+              padding: 4px 12px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: 500;
+            ">
+              ${status}
+            </span>
+          </td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                <div style="width: ${progress}%; height: 100%; background: ${statusColors[status] || '#6b7280'};"></div>
+              </div>
+              <span style="font-size: 12px; color: #666; min-width: 30px;">${progress}%</span>
+            </div>
+          </td>
+          <td>
+            <button class="btn-small" onclick="openEditMilestoneModal(${index})">Edit</button>
+                 </td>
+        </tr>
+      `;
+      tableBody.insertAdjacentHTML('beforeend', row);
+    });
+  } catch (err) {
+    console.error('Failed to load milestones:', err);
+    showEmptyMilestones();
+  }
+}
+
+// Helper function to format date from DD-MM-YYYY to readable format
+function formatDate(dateString) {
+  if (!dateString) return 'N/A';
+  
+  try {
+    // Handle DD-MM-YYYY format
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+      const day = parts[0];
+      const month = parts[1];
+      const year = parts[2];
+      return `${day}/${month}/${year}`;
+    }
+    
+    // Try to parse as Date object
+    const date = new Date(dateString);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString();
+    }
+    
+    return dateString;
+  } catch (e) {
+    return dateString;
+  }
+}
+
+function showEmptyMilestones() {
+  const tableBody = document.getElementById('milestonesTableBody');
+  if (tableBody) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 40px; color: #666">
+          No milestones found. Click "Add Milestone" to add your first milestone.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+// Function to submit new milestone to API
+async function submitMilestone() {
+  try {
+    // Get form values
+    const description = document.getElementById('milestoneDescription').value;
+    const planned_date = document.getElementById('milestonePlannedDate').value;
+    const completion_date = document.getElementById('milestoneCompletionDate').value;
+    const status = document.getElementById('milestoneStatus').value;
+    const note = document.getElementById('milestoneNote').value;
+    
+    // Validate required fields
+    if (!description || !planned_date) {
+      alert('Description and Planned Date are required');
+      return;
+    }
+    
+    // Format dates to DD-MM-YYYY
+    const formatDateToDDMMYYYY = (dateString) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    };
+    
+    // Prepare payload matching your JSON structure
+    const payload = {
+      description: description.trim(),
+      planned_date: formatDateToDDMMYYYY(planned_date),
+      completion_date: completion_date ? formatDateToDDMMYYYY(completion_date) : '',
+      status: status,
+      note: note ? note.trim() : ''
+    };
+    
+    console.log('Submitting milestone:', payload);
+    
+    // Send POST request to API
+    const res = await fetch('/api/milestones/aurora', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    // Check response
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('API Error:', errorText);
+      throw new Error(`Failed to add milestone: ${res.status} ${res.statusText}`);
+    }
+    
+    const result = await res.json();
+    console.log('API Response:', result);
+    
+    // Close modal and show success
+    closeMilestoneModal();
+    showSuccessPopup('Milestone added successfully');
+    
+    // Refresh milestones list
+    fetchMilestones();
+    
+  } catch (err) {
+    console.error('Error adding milestone:', err);
+    alert('Error adding milestone: ' + err.message);
+  }
+}
+
+// Update openMilestoneModal to clear form and set default date
+function openMilestoneModal() {
+  // Clear form fields
+  document.getElementById('milestoneDescription').value = '';
+  
+  // Set planned date to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('milestonePlannedDate').value = today;
+  document.getElementById('milestonePlannedDate').min = today;
+  
+  // Clear completion date
+  document.getElementById('milestoneCompletionDate').value = '';
+  
+  // Set default status
+  document.getElementById('milestoneStatus').value = 'Planned';
+  document.getElementById('milestoneNote').value = '';
+  
+  // Show modal
+  document.getElementById('milestoneModal').classList.add('active');
+}
+
+//
+// Global variables to store milestones data
+let milestonesData = [];
+
+// Update fetchMilestones to store data globally
+async function fetchMilestones() {
+  try {
+    console.log('Fetching milestones...');
+    const res = await fetch('/api/milestones/aurora');
+    
+    // Check if response is ok
+    if (!res.ok) {
+      console.log('Milestones API returned:', res.status, res.statusText);
+      showEmptyMilestones();
+      return;
+    }
+    
+    const data = await res.json();
+    console.log('Milestones API response:', data);
+    
+    // Store milestones data globally
+    milestonesData = data.milestone || [];
+    
+    const tableBody = document.getElementById('milestonesTableBody');
+    
+    if (!tableBody) {
+      console.error('Milestones table body not found!');
+      return;
+    }
+    
+    // Clear existing rows
+    tableBody.innerHTML = '';
+    
+    // Check if data has the expected structure
+    if (!data || !data.milestone || !Array.isArray(data.milestone)) {
+      console.log('Invalid milestones data structure:', data);
+      showEmptyMilestones();
+      return;
+    }
+    
+    const milestones = data.milestone;
+    
+    if (milestones.length === 0) {
+      showEmptyMilestones();
+      return;
+    }
+    
+    // Render milestones
+    milestones.forEach((milestone, index) => {
+      const statusColors = {
+        'Planned': '#3b82f6',
+        'In Progress': '#f59e0b',
+        'Completed': '#10b981',
+        'Delayed': '#ef4444'
+      };
+      
+      const status = milestone.status || 'Planned';
+      const plannedDate = milestone.planned_date || '';
+      const completionDate = milestone.completion_date || '';
+      
+      // Calculate progress based on status
+      let progress = 0;
+      if (status === 'Completed') progress = 100;
+      else if (status === 'In Progress') progress = 50;
+      else if (status === 'Delayed') progress = 25;
+      else progress = 0;
+      
+      const row = `
+        <tr>
+          <td>
+            <div style="font-weight: 600;">${milestone.description || 'Untitled Milestone'}</div>
+            ${milestone.note ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">
+              📝 ${milestone.note}
+            </div>` : ''}
+          </td>
+          <td>
+            <div>${plannedDate ? formatDate(plannedDate) : 'Not set'}</div>
+            ${completionDate ? `<div style="font-size: 12px; color: #059669; margin-top: 2px;">
+              Completed: ${formatDate(completionDate)}
+            </div>` : ''}
+          </td>
+          <td>
+            <span class="status-badge" style="
+              background: ${statusColors[status] || '#6b7280'};
+              color: white;
+              padding: 4px 12px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: 500;
+            ">
+              ${status}
+            </span>
+          </td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                <div style="width: ${progress}%; height: 100%; background: ${statusColors[status] || '#6b7280'};"></div>
+              </div>
+              <span style="font-size: 12px; color: #666; min-width: 30px;">${progress}%</span>
+            </div>
+          </td>
+          <td>
+            <button class="btn-small" onclick="openEditMilestoneModal(${index})">Edit</button>
+          </td>
+        </tr>
+      `;
+      tableBody.insertAdjacentHTML('beforeend', row);
+    });
+    
+  } catch (err) {
+    console.error('Failed to load milestones:', err);
+    showEmptyMilestones();
+  }
+}
+
+// Function to open edit modal with milestone data
+function openEditMilestoneModal(index) {
+  // Check if milestone exists at this index
+  if (!milestonesData || !milestonesData[index]) {
+    alert('Milestone not found!');
+    return;
+  }
+  
+  const milestone = milestonesData[index];
+  
+  // Populate form fields
+  document.getElementById('editMilestoneDescription').value = milestone.description || '';
+  
+  // Convert DD-MM-YYYY to YYYY-MM-DD for date inputs
+  const convertToYYYYMMDD = (dateString) => {
+    if (!dateString) return '';
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+      const day = parts[0];
+      const month = parts[1];
+      const year = parts[2];
+      return `${year}-${month}-${day}`;
+    }
+    return dateString;
+  };
+  
+  document.getElementById('editMilestonePlannedDate').value = convertToYYYYMMDD(milestone.planned_date);
+  document.getElementById('editMilestoneCompletionDate').value = convertToYYYYMMDD(milestone.completion_date);
+  document.getElementById('editMilestoneStatus').value = milestone.status || 'Planned';
+  document.getElementById('editMilestoneNote').value = milestone.note || '';
+  
+  // Store index and ID for update
+  document.getElementById('editMilestoneIndex').value = index;
+  document.getElementById('editMilestoneId').value = milestone._id || '';
+  
+  // Show modal
+  document.getElementById('editMilestoneModal').classList.add('active');
+}
+
+// Function to close edit modal
+function closeEditMilestoneModal() {
+  document.getElementById('editMilestoneModal').classList.remove('active');
+  // Clear form fields
+  document.getElementById('editMilestoneDescription').value = '';
+  document.getElementById('editMilestonePlannedDate').value = '';
+  document.getElementById('editMilestoneCompletionDate').value = '';
+  document.getElementById('editMilestoneStatus').value = 'Planned';
+  document.getElementById('editMilestoneNote').value = '';
+  document.getElementById('editMilestoneIndex').value = '';
+  document.getElementById('editMilestoneId').value = '';
+}
+
+// Function to update milestone
+async function updateMilestone() {
+  try {
+    const index = document.getElementById('editMilestoneIndex').value;
+    const milestoneId = document.getElementById('editMilestoneId').value;
+    
+    // Get form values
+    const description = document.getElementById('editMilestoneDescription').value;
+    const planned_date = document.getElementById('editMilestonePlannedDate').value;
+    const completion_date = document.getElementById('editMilestoneCompletionDate').value;
+    const status = document.getElementById('editMilestoneStatus').value;
+    const note = document.getElementById('editMilestoneNote').value;
+    
+    // Validate required fields
+    if (!description || !planned_date) {
+      alert('Description and Planned Date are required');
+      return;
+    }
+    
+    // Format dates to DD-MM-YYYY
+    const formatDateToDDMMYYYY = (dateString) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    };
+    
+    // Prepare payload
+    const payload = {
+      index: parseInt(index),
+      description: description.trim(),
+      planned_date: formatDateToDDMMYYYY(planned_date),
+      completion_date: completion_date ? formatDateToDDMMYYYY(completion_date) : '',
+      status: status,
+      note: note ? note.trim() : ''
+    };
+    
+    console.log('Updating milestone:', payload);
+    
+    // Send PUT request to API
+    const res = await fetch(`/api/milestones/aurora/${index}`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    // Check response
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('API Error:', errorText);
+      throw new Error(`Failed to update milestone: ${res.status} ${res.statusText}`);
+    }
+    
+    const result = await res.json();
+    console.log('API Response:', result);
+    
+    // Close modal and show success
+    closeEditMilestoneModal();
+    showSuccessPopup('Milestone updated successfully');
+    
+    // Refresh milestones list
+    fetchMilestones();
+    
+  } catch (err) {
+    console.error('Error updating milestone:', err);
+    alert('Error updating milestone: ' + err.message);
+  }
+}
 // Function to upload the selected file
 async function uploadSelectedFile() {
   const fileInput = document.getElementById('mediaInput');
@@ -1044,15 +1802,14 @@ function closePaymentModal() {
 }
 
 function showTab(tab, el) {
-
   // Map tab names to view IDs
   const views = {
     shareholders: 'shareholdersView',
     payments: 'paymentsView',
     costs: 'costsView',
-    milestones: 'milestonesView',
-    gallery: 'galleryView',
-    customization: 'customizationView'
+    milestones: 'milestonesView',  
+    gallery: 'galleryView',     
+    customization: 'customizationView' 
   };
 
   // Hide all existing views
@@ -1073,8 +1830,10 @@ function showTab(tab, el) {
 
   // Lazy-load data
   if (tab === 'payments') fetchPayments();
+  if (tab === 'costs') fetchCosts(); 
+  if (tab === 'milestones') fetchMilestones();
+  if (tab === 'gallery') loadGallery();
 }
-
 function openModal() {
   document.getElementById('modal').classList.add('active');
 }
@@ -1099,6 +1858,15 @@ document.getElementById('phone').addEventListener('input', () => {
 });
 
 function openVoucherModal() {
+  // Clear form fields
+  document.getElementById('voucherMaterial').value = '';
+  document.getElementById('voucherDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('voucherDescription').value = '';
+  document.getElementById('voucherVendor').value = '';
+  document.getElementById('voucherAmount').value = '';
+  document.getElementById('voucherLink').value = '';
+  document.getElementById('voucherFile').value = '';
+  
   document.getElementById('voucherModal').classList.add('active');
 }
 
@@ -1219,7 +1987,6 @@ function showSuccessPopup() {
 <!-- ADD VOUCHER MODAL -->
 <div class="modal" id="voucherModal">
   <div class="modal-box" style="width:560px">
-
     <div class="modal-header">
       <div>
         <h3>Add Vendor Voucher</h3>
@@ -1229,23 +1996,34 @@ function showSuccessPopup() {
     </div>
 
     <div class="form-grid">
-      <input placeholder="VCH-2024-XXX">
-      <input type="date">
-
-      <input placeholder="e.g., Steel Rebar - 5th Floor Slab">
-      <input placeholder="e.g., Jindal Steel Suppliers">
-
-      <input placeholder="Amount">
-      <select>
-        <option>Select category</option>
-        <option>Steel/Rebar</option>
-        <option>Cement/Aggregate</option>
-        <option>Labor & Manpower</option>
-        <option>Finishing Materials</option>
-        <option>Other Expenses</option>
+      <!-- Material/Category Dropdown -->
+      <select id="voucherMaterial" required>
+        <option value="">Select Material/Category</option>
+        <option value="Steel">Steel/Rebar</option>
+        <option value="Cement">Cement/Aggregate</option>
+        <option value="Bricks">Bricks</option>
+        <option value="Sand">Sand</option>
+        <option value="Labor">Labor & Manpower</option>
+        <option value="Other">Other Expenses</option>
       </select>
+      
+      <!-- Date -->
+      <input id="voucherDate" type="date" required>
+      
+      <!-- Description -->
+      <input id="voucherDescription" placeholder="e.g., Steel Rebar - 5th Floor Slab" required>
+      
+      <!-- Brand/Vendor -->
+      <input id="voucherVendor" placeholder="e.g., Jindal Steel Suppliers" required>
+      
+      <!-- Amount -->
+      <input id="voucherAmount" type="number" placeholder="Amount" min="0" step="0.01" required>
+      
+      <!-- Voucher Link (Optional) -->
+      <input id="voucherLink" placeholder="Invoice/Voucher URL (optional)">
     </div>
 
+    <!-- File Upload Section (Optional - for future enhancement) -->
     <div style="
       margin-top:16px;
       border:2px dashed var(--border);
@@ -1253,20 +2031,21 @@ function showSuccessPopup() {
       padding:24px;
       text-align:center;
       color:var(--muted);
-    ">
-      ⬆ Click to upload or drag and drop<br>
+      cursor: pointer;
+    " onclick="document.getElementById('voucherFile').click()">
+      ⬆ Click to upload invoice PDF (optional)<br>
       <small>PDF files up to 10MB</small>
     </div>
+    <input type="file" id="voucherFile" accept=".pdf" hidden>
 
     <div class="form-actions">
       <button class="btn" style="background:#ddd;color:#000" onclick="closeVoucherModal()">
         Cancel
       </button>
-      <button class="btn">
+      <button class="btn" onclick="submitVoucher()">
         Add Voucher
       </button>
     </div>
-
   </div>
 </div>
 
@@ -1320,4 +2099,5 @@ function showSuccessPopup() {
 </div>
 
 </body>
+
 </html>
