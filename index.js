@@ -1,11 +1,10 @@
 const express = require('express');
 const path = require('path');
 const app = express();
-
-// Set EJS as the template engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 app.use(express.static(path.join(__dirname, 'assets')));
 const mongoose = require('mongoose');
 const multer = require('multer');
@@ -13,9 +12,354 @@ const { GridFsStorage } = require('multer-gridfs-storage');
 const { GridFSBucket } = require('mongodb');
 const cors = require('cors');
 require('dotenv').config();
-
 app.use(cors());
 app.use(express.json());
+
+// gallery
+// server.js - Add these imports at top
+const axios = require('axios');
+const FormData = require('form-data');
+const fs = require('fs');
+
+// Create uploads directory if it doesn't exist
+const uploadDir = 'uploads/temp';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|mp4|mov|avi|mkv|webm/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image and video files are allowed'));
+    }
+  }
+});
+
+// CPanel Upload Service
+class CPanelUploadService {
+  constructor() {
+    this.config = {
+      cpanelUrl: 'https://uninest.com.bd:2083',
+      username: process.env.CPANEL_USERNAME,
+      password: process.env.CPANEL_PASSWORD,
+      domain: 'uninest.com.bd'
+    };
+  }
+
+  async uploadFile(filePath, fileName, subfolder = '') {
+    try {
+      console.log(`Uploading ${fileName} to cPanel...`);
+      
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`File not found: ${filePath}`);
+      }
+      
+      // UPLOAD TO cPanel
+      const formData = new FormData();
+      formData.append('file', fs.createReadStream(filePath));
+      formData.append('dir', `/home/${this.config.username}/public_html/uploads/${subfolder}`);
+      formData.append('overwrite', '1');
+      
+      const authString = Buffer.from(`${this.config.username}:${this.config.password}`).toString('base64');
+      
+      const response = await axios.post(
+        `${this.config.cpanelUrl}/execute/Fileman/upload_files`,
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+            'Authorization': `Basic ${authString}`,
+          },
+          httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
+          timeout: 30000
+        }
+      );
+      
+      console.log('cPanel upload response:', response.data);
+      
+      if (response.data.status === 1 || response.data.data) {
+        // ✅ CORRECT: Generate PUBLIC URL (NOT admin URL)
+        // Format: https://domain.com/uploads/subfolder/filename
+        const publicUrl = `https://${this.config.domain}/uploads/${subfolder}${fileName}`;
+        
+        console.log('Generated public URL:', publicUrl);
+        
+        // Verify the URL is accessible (optional but recommended)
+        await this.verifyUrlAccessible(publicUrl);
+        
+        return publicUrl;
+      } else {
+        throw new Error(response.data.errors || JSON.stringify(response.data));
+      }
+    } catch (error) {
+      console.error('cPanel Upload Error:', error.message);
+      throw error;
+    }
+  }
+
+  async verifyUrlAccessible(url) {
+    try {
+      const response = await axios.head(url, { timeout: 5000 });
+      console.log(`✅ URL verified: ${url} (${response.status})`);
+      return true;
+    } catch (error) {
+      console.warn(`⚠️  URL verification failed (might still work): ${url} - ${error.message}`);
+      // Don't throw here - sometimes HEAD requests fail but GET works
+      return false;
+    }
+  }
+}
+
+const cpanelService = new CPanelUploadService();
+
+// GET media endpoint
+app.get('/api/media/:project', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase();
+    const db = conn.useDb(project);
+    const collection = db.collection('media');
+
+    // Find ALL media documents
+    const docs = await collection.find({}).toArray();
+    
+    if (!docs || docs.length === 0) {
+      return res.status(404).json({ message: 'No media found' });
+    }
+
+    // Return the first document
+    const doc = docs[0];
+    
+    if (!doc.resource || !Array.isArray(doc.resource) || doc.resource.length === 0) {
+      return res.status(404).json({ message: 'No media resources found' });
+    }
+
+    res.json(doc);
+    
+  } catch (error) {
+    console.error('Error fetching media:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch media',
+      details: error.message 
+    });
+  }
+});
+
+// Combined upload endpoint - UPDATED
+app.post('/api/upload-media', upload.single('file'), async (req, res) => {
+  try {
+    console.log('Upload media request received');
+    
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No file uploaded' 
+      });
+    }
+
+    // Get form data
+    const { name, description, date, mediaType, project } = req.body;
+    
+    console.log('Form data:', { name, description, date, mediaType, project });
+    
+    if (!name || !description || !date || !project) {
+      // Clean up temp file
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields' 
+      });
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const originalName = req.file.originalname;
+    const fileExt = path.extname(originalName);
+    const fileName = `${timestamp}_${originalName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '')}`;
+    
+    // Upload to cPanel
+    let publicUrl;
+    try {
+      publicUrl = await cpanelService.uploadFile(req.file.path, fileName, `${project}/`);
+      console.log('cPanel upload successful:', publicUrl);
+    } catch (cpanelError) {
+      console.error('cPanel upload failed, using fallback:', cpanelError.message);
+      
+      // Fallback 1: Try to serve from local uploads directory
+      const localUploadsDir = path.join(__dirname, 'public', 'uploads', project);
+      if (!fs.existsSync(localUploadsDir)) {
+        fs.mkdirSync(localUploadsDir, { recursive: true });
+      }
+      
+      const localFilePath = path.join(localUploadsDir, fileName);
+      fs.copyFileSync(req.file.path, localFilePath);
+      
+      // Serve from local public directory
+      publicUrl = `/uploads/${project}/${fileName}`;
+      console.log('Using local fallback:', publicUrl);
+    }
+
+    // Clean up temp file
+    fs.unlinkSync(req.file.path);
+    
+    // Format date to DD-MM-YYYY (match your API format)
+    const formatDateToDDMMYYYY = (dateString) => {
+      try {
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+      } catch (error) {
+        return dateString; // Return as-is if parsing fails
+      }
+    };
+    
+    // Save metadata to database - SIMPLIFIED to match your API format
+    const db = conn.useDb(project.toLowerCase());
+    const collection = db.collection('media');
+    
+    // Create resource object matching your API format
+    const newResource = {
+      name: name.trim(),
+      description: description.trim(),
+      date: formatDateToDDMMYYYY(date),
+      url: publicUrl,
+      // Only include mediaType if it exists (optional field in your format)
+      ...(mediaType && { mediaType: mediaType })
+      // Don't include other fields like filename, size, etc. to match your format
+    };
+
+    console.log('Saving to database (simplified format):', newResource);
+
+    // Check if any document exists
+    const existingDoc = await collection.findOne({});
+    
+    let result;
+    if (!existingDoc) {
+      // Create first document with clean format
+      result = await collection.insertOne({
+        resource: [newResource],
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+    } else {
+      // Add to existing document
+      result = await collection.updateOne(
+        { _id: existingDoc._id },
+        {
+          $push: { resource: newResource },
+          $set: { updated_at: new Date() }
+        }
+      );
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'File uploaded successfully',
+      data: newResource // Return the same format that's saved
+    });
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    
+    // Clean up temp file if it exists
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (cleanupError) {
+        console.error('Cleanup error:', cleanupError);
+      }
+    }
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Upload failed',
+      details: error.message 
+    });
+  }
+});
+
+// POST media metadata endpoint (for direct URL submissions)
+app.post('/api/media/:project', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase();
+    const db = conn.useDb(project);
+    const collection = db.collection('media');
+    
+    const { name, description, date, url, mediaType } = req.body;
+
+    if (!name || !description || !date || !url) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const newResource = {
+      name,
+      description,
+      date,
+      url,
+      mediaType: mediaType || 'photo',
+      created_at: new Date()
+    };
+
+    // Check if any document exists
+    const existingDoc = await collection.findOne({});
+    
+    if (!existingDoc) {
+      // Create first document
+      const result = await collection.insertOne({
+        resource: [newResource],
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Media added to new collection',
+        insertedId: result.insertedId
+      });
+    } else {
+      // Add to existing document
+      const result = await collection.updateOne(
+        { _id: existingDoc._id },
+        {
+          $push: { resource: newResource },
+          $set: { updated_at: new Date() }
+        }
+      );
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Media added to existing collection',
+        modifiedCount: result.modifiedCount
+      });
+    }
+
+  } catch (error) {
+    console.error('Error adding media:', error);
+    res.status(500).json({ error: 'Failed to add media' });
+  }
+});
 
 // MongoDB Connection
 const mongoURI = process.env.URI;
@@ -168,50 +512,6 @@ app.post('/api/payment/:project', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
-  }
-});
-
-
-// Create storage engine using the factory function pattern
-const storage = new GridFsStorage({
-  url: mongoURI,
-  options: { useNewUrlParser: true, useUnifiedTopology: true },
-  file: (req, file) => {
-    return new Promise((resolve, reject) => {
-      const filename = `${Date.now()}_${file.originalname}`;
-      const fileInfo = {
-        filename: filename,
-        bucketName: 'media',
-        metadata: {
-          uploadDate: new Date(),
-          contentType: file.mimetype,
-          originalName: file.originalname,
-          uploader: req.body.uploader || 'anonymous',
-          project: req.body.project || 'default',
-          description: req.body.description || '',
-          mediaType: file.mimetype.startsWith('image/') ? 'image' : 
-                    file.mimetype.startsWith('video/') ? 'video' : 'other'
-        }
-      };
-      resolve(fileInfo);
-    });
-  }
-});
-
-const upload = multer({ 
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
-  fileFilter: (req, file, cb) => {
-    // Accept images and videos
-    const allowedTypes = /jpeg|jpg|png|gif|mp4|mov|avi|mkv/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image and video files are allowed'));
-    }
   }
 });
 
@@ -539,7 +839,6 @@ app.post('/api/milestones/:project', async (req, res) => {
   }
 });
 
-//
 // PUT (update) a specific milestone
 app.put('/api/milestones/:project/:index', async (req, res) => {
   try {
@@ -605,6 +904,76 @@ app.put('/api/milestones/:project/:index', async (req, res) => {
     res.status(500).json({ error: 'Failed to update milestone' });
   }
 });
+
+// POST new media
+app.post('/api/media/:project', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase();
+    const db = conn.useDb(project);
+    const collection = db.collection('media');
+    
+    const {
+      name,
+      description,
+      date,
+      url,
+      mediaType
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !description || !date || !url) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const newResource = {
+      name,
+      description,
+      date,
+      url,
+      mediaType: mediaType || 'photo',
+      created_at: new Date()
+    };
+
+    // Check if project document exists
+    const projectExists = await collection.findOne({ project });
+    
+    if (!projectExists) {
+      // Create new project document with first resource
+      const result = await collection.insertOne({
+        project,
+        resource: [newResource],
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Media added to new project',
+        insertedId: result.insertedId
+      });
+    } else {
+      // Add to existing project's resource array
+      const result = await collection.updateOne(
+        { project },
+        {
+          $push: { resource: newResource },
+          $set: { updated_at: new Date() }
+        }
+      );
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Media added to existing project',
+        modifiedCount: result.modifiedCount
+      });
+    }
+
+  } catch (error) {
+    console.error('Error adding media:', error);
+    res.status(500).json({ error: 'Failed to add media' });
+  }
+});
+
 // Mock data for the financial transparency module
 const financialData = {
   title: "Transparent Financial Breakdown",
