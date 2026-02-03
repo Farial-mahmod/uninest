@@ -637,7 +637,35 @@ th {
   z-index: 1;
 }
 
-
+  #mediaModal {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  #mediaModal.active { display: flex; }
+  #mediaModal img, #mediaModal video {
+    max-width: 90vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 8px;
+  }
+  #mediaModal .close-btn {
+    position: absolute;
+    top: 20px; right: 20px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+  }
+  
 </style>
 </head>
 
@@ -908,10 +936,6 @@ th {
       <input id="mediaName" placeholder="Title (e.g., Groundwork)" required>
       <input id="mediaDescription" placeholder="Description (e.g., Initial Task Set)" required>
       <input id="mediaDate" type="date" required>
-      <select id="mediaType">
-        <option value="photo">Photo</option>
-        <option value="video">Video</option>
-      </select>
     </div>
     
     <!-- File Upload Section -->
@@ -919,8 +943,6 @@ th {
       ⬆ Click to upload or drag and drop<br>
       <small>Photos: JPG/PNG up to 50MB • Videos: MP4/MOV up to 50MB</small>
     </div>
-
-    <!-- hidden file input -->
     <input
       type="file"
       id="mediaInput"
@@ -928,15 +950,6 @@ th {
       hidden
       onchange="handleFileSelect(this)"
     />
-    
-    <!-- OR: Direct URL input (optional) -->
-    <!--
-    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
-      <h4 style="margin-bottom: 10px;">OR Add by URL</h4>
-      <input id="mediaUrl" placeholder="Direct URL to image/video" style="width: 100%;">
-    </div>
-    -->
-
     <div class="form-actions">
       <button class="btn light-btn" onclick="closeAddMediaModal()">Cancel</button>
       <button class="btn" onclick="uploadSelectedFile()">Upload Media</button>
@@ -1043,7 +1056,7 @@ th {
   <div class="modal-box" style="width:800px">
     <span class="close" onclick="closeMedia()">×</span>
 
-    <img id="mediaImage" style="width:100%;display:none;border-radius:12px">
+    <img id="mediaImage" style="width:90%;display:none;border-radius:12px">
     
     <video id="mediaVideo" controls style="width:100%;display:none;border-radius:12px"></video>
   </div>
@@ -1153,10 +1166,7 @@ async function addShareholder() {
 
     closeModal();
     showSuccessPopup('Shareholder added successfully');
-
-    // 🔁 reload from DB
     fetchShareholders();
-
   } catch (err) {
     alert(err.message);
   }
@@ -1165,14 +1175,13 @@ async function addShareholder() {
 async function populatePaymentShareholders() {
   const res = await fetch('/api/shareholder/aurora');
   const shareholders = await res.json();
-
   const select = document.getElementById('paymentShareholder');
   select.innerHTML = '<option value="">Select shareholder</option>';
 
   shareholders.forEach(sh => {
     const opt = document.createElement('option');
-    opt.value = sh.id;        // IMPORTANT → ID
-    opt.textContent = sh.name; // DISPLAY NAME
+    opt.value = sh.id;      
+    opt.textContent = sh.name;
     select.appendChild(opt);
   });
 }
@@ -1241,12 +1250,9 @@ async function fetchCosts() {
       `;
       return;
     }
-    
     const costs = data.cost;
-    
     // Debug log
     console.log('Fetched costs:', costs);
-    
     if (costs.length === 0) {
       tableBody.innerHTML = `
         <tr>
@@ -1608,8 +1614,6 @@ function openMilestoneModal() {
   document.getElementById('milestoneModal').classList.add('active');
 }
 
-//
-// Global variables to store milestones data
 let milestonesData = [];
 
 // Update fetchMilestones to store data globally
@@ -1907,7 +1911,7 @@ async function handleFileSelect(input) {
       mediaType,
       description,
       dateCaptured,
-      project: 'UniNest Aurora' // Or get from current project
+      project: 'UniNest Aurora'
     });
 
     // Update UI with success
@@ -1948,7 +1952,7 @@ async function handleFileSelect(input) {
 // Function to load gallery from API
 async function loadGallery() {
   try {
-    const response = await fetch('http://localhost:5000/api/files/project/UniNest%20Aurora');
+    const response = await fetch('http://localhost:5000/project/UniNest%20Aurora');
     const data = await response.json();
     
     if (data.success && data.files.length > 0) {
@@ -1967,11 +1971,10 @@ function updateGalleryGrid(files) {
     const mediaType = file.metadata.mediaType || 'image';
     const card = document.createElement('div');
     card.className = 'gallery-card';
-    card.onclick = () => openMedia(mediaType, `/api/files/${file.filename}`);
+    card.onclick = () => openMedia(mediaType, `${file.filename}`);
     
     card.innerHTML = `
-      <span class="media-badge">${mediaType === 'image' ? '📷 Photo' : '🎥 Video'}</span>
-      <img src="/api/files/${file.filename}" alt="${file.metadata.description}">
+      <img src="${file.filename}" alt="${file.metadata.description}">
       <div class="gallery-info">
         <strong>${file.metadata.description || file.originalName}</strong>
         <div class="subtitle">${file.metadata.project || 'Project'}</div>
@@ -2050,9 +2053,10 @@ function showTab(tab, el) {
   if (tab === 'payments') fetchPayments();
   if (tab === 'costs') fetchCosts(); 
   if (tab === 'milestones') fetchMilestones();
-  if (tab === 'gallery') loadGallery();
+  // if (tab === 'gallery') loadGallery();
   if (tab === 'gallery') fetchGallery();
 }
+
 function openModal() {
   document.getElementById('modal').classList.add('active');
 }
@@ -2172,145 +2176,83 @@ function showSuccessPopup() {
   }, 2001);
 }
 
-// media
-
 // Fetch and display gallery from API
 async function fetchGallery() {
   try {
-    console.log('Fetching gallery from /api/media/aurora...');
     const res = await fetch('/api/media/aurora');
-    
+
     if (!res.ok) {
-      console.error('Gallery API error:', res.status, res.statusText);
       showEmptyGallery();
       return;
     }
-    
+
     const data = await res.json();
-    console.log('Gallery API response:', data);
-    
-    const galleryGrid = document.getElementById('galleryGrid');
-    const emptyMessage = document.getElementById('emptyGalleryMessage');
-    
-    if (!galleryGrid) {
-      console.error('Gallery grid not found!');
-      return;
-    }
-    
-    // Clear existing cards
-    galleryGrid.innerHTML = '';
-    
-    // Check for resources array in correct location
-    let resources = [];
-    if (data && data.resource && Array.isArray(data.resource)) {
-      resources = data.resource;
-    } else if (Array.isArray(data)) {
-      resources = data;
-    }
-    
-    console.log('Resources found:', resources.length);
-    
-    if (resources.length === 0) {
+
+    if (!data.resource || !Array.isArray(data.resource)) {
       showEmptyGallery();
       return;
     }
-    
-    // Hide empty message
-    if (emptyMessage) emptyMessage.style.display = 'none';
-    
-    // Create gallery cards
-    resources.forEach((resource, index) => {
-      const card = document.createElement('div');
-      card.className = 'gallery-card';
-      
-      // Get URL and determine media type
-      const url = resource.url || '';
-      const isImage = url.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) || 
-                     resource.mediaType === 'photo' || 
-                     resource.mediaType === 'image';
-      const isVideo = url.match(/\.(mp4|webm|mov|avi|mkv)$/i) || 
-                     resource.mediaType === 'video';
-      
-      const mediaType = isVideo ? 'video' : 'image';
-      const displayDate = resource.date ? formatDate(resource.date) : resource.created_at ? new Date(resource.created_at).toLocaleDateString() : 'Unknown date';
-      
-      // Debug logging
-      console.log(`Resource ${index}:`, {
-        name: resource.name,
-        url: url,
-        mediaType: mediaType,
-        isImage: isImage,
-        isVideo: isVideo
-      });
-      
-      // Add media type badge
-      const badge = document.createElement('span');
-      badge.className = 'media-badge';
-      badge.textContent = mediaType === 'image' ? '📷 Photo' : '🎥 Video';
-      
-      // Create media element
-      let mediaElement;
-      if (mediaType === 'image') {
-        mediaElement = document.createElement('img');
-        mediaElement.src = url;
-        mediaElement.alt = resource.name || resource.description || 'Gallery image';
-        mediaElement.loading = 'lazy';
-        mediaElement.style.width = '100%';
-        mediaElement.style.height = '200px';
-        mediaElement.style.objectFit = 'cover';
-        
-        // Add error handling
-        mediaElement.onerror = function() {
-          console.error(`Failed to load image: ${url}`);
-          this.src = 'https://via.placeholder.com/300x200?text=Image+Not+Available';
-          this.style.objectFit = 'contain';
-          this.style.padding = '20px';
-          this.style.backgroundColor = '#f5f5f5';
-        };
-      } else {
-        mediaElement = document.createElement('video');
-        mediaElement.preload = 'metadata';
-        mediaElement.controls = true;
-        mediaElement.style.width = '100%';
-        mediaElement.style.height = '200px';
-        mediaElement.style.objectFit = 'cover';
-        mediaElement.style.backgroundColor = '#000';
-        
-        const source = document.createElement('source');
-        source.src = url;
-        source.type = 'video/mp4';
-        mediaElement.appendChild(source);
-        
-        mediaElement.innerHTML += 'Your browser does not support the video tag.';
-      }
-      
-      // Create info section
-      const infoDiv = document.createElement('div');
-      infoDiv.className = 'gallery-info';
-      infoDiv.innerHTML = `
-        <strong>${resource.name || 'Untitled Media'}</strong>
-        <div class="subtitle">${resource.description || 'No description available'}</div>
-        <small>${displayDate}</small>
-      `;
-      
-      // Assemble card
-      card.appendChild(badge);
-      card.appendChild(mediaElement);
-      card.appendChild(infoDiv);
-      
-      // Add click event
-      card.onclick = () => openMedia(mediaType, url);
-      
-      galleryGrid.appendChild(card);
-    });
-    
-    console.log('Gallery loaded successfully');
-    
+
+    renderGallery(data.resource);
+
   } catch (err) {
-    console.error('Failed to load gallery:', err);
+    console.error('Gallery fetch failed:', err);
     showEmptyGallery();
   }
 }
+
+function renderGallery(resources) {
+  const galleryGrid = document.getElementById('galleryGrid');
+  const emptyMessage = document.getElementById('emptyGalleryMessage');
+
+  galleryGrid.innerHTML = '';
+  emptyMessage.style.display = resources.length ? 'none' : 'block';
+
+  resources.forEach(resource => {
+    const card = document.createElement('div');
+    card.className = 'gallery-card';
+
+    const url = resource.url;
+    const isVideo = /\.(mp4|webm|mov|avi|mkv)$/i.test(url);
+
+    // Badge
+    const badge = document.createElement('span');
+    badge.textContent = '';
+
+    // Media
+    let media;
+    if (isVideo) {
+      media = document.createElement('video');
+      media.src = url;
+      media.muted = true;
+      media.playsInline = true;
+      media.preload = 'metadata';
+    } else {
+      media = document.createElement('img');
+      media.src = url;
+      media.loading = 'lazy';
+      media.onerror = () => {
+        media.src = 'https://via.placeholder.com/300x200?text=Not+Available';
+      };
+    }
+
+    // Info
+    const info = document.createElement('div');
+    info.className = 'gallery-info';
+    info.innerHTML = `
+      <strong>${resource.name}</strong>
+      <div class="subtitle">${resource.description}</div>
+      <small>${resource.date}</small>
+    `;
+
+    card.append(badge, media, info);
+    card.onclick = () => openMedia(isVideo ? 'video' : 'image', url);
+
+    galleryGrid.appendChild(card);
+  });
+}
+
+
 function showEmptyGallery() {
   const galleryGrid = document.getElementById('galleryGrid');
   const emptyMessage = document.getElementById('emptyGalleryMessage');
@@ -2326,7 +2268,6 @@ function showEmptyGallery() {
   }
 }
 
-// Updated upload function for your database structure
 // Updated upload function for frontend
 async function uploadSelectedFile() {
   const fileInput = document.getElementById('mediaInput');
@@ -2341,7 +2282,6 @@ async function uploadSelectedFile() {
   const mediaName = document.getElementById('mediaName').value;
   const mediaDescription = document.getElementById('mediaDescription').value;
   const mediaDate = document.getElementById('mediaDate').value;
-  const mediaType = document.getElementById('mediaType').value;
   const project = 'aurora'; // or get from current project
   
   // Validate required fields
@@ -2371,8 +2311,6 @@ async function uploadSelectedFile() {
     formData.append('name', mediaName.trim());
     formData.append('description', mediaDescription.trim());
     formData.append('date', mediaDate);
-    formData.append('mediaType', mediaType);
-    formData.append('project', project);
     
     // Upload to server (which will handle cPanel upload)
     const response = await fetch('/api/upload-media', {
@@ -2429,16 +2367,11 @@ async function uploadSelectedFile() {
   }
 }
 
-// Remove or comment out the old uploadToCpanel function
-// async function uploadToCpanel(file) { ... }
-
-// Alternative: Direct URL submission (if you already have files on cPanel)
 async function addMediaByUrl() {
   try {
     const mediaName = document.getElementById('mediaName').value;
     const mediaDescription = document.getElementById('mediaDescription').value;
     const mediaDate = document.getElementById('mediaDate').value;
-    const mediaType = document.getElementById('mediaType').value;
     const mediaUrl = document.getElementById('mediaUrl').value; // Add this field to your modal
     
     if (!mediaName || !mediaDescription || !mediaDate || !mediaUrl) {
@@ -2450,8 +2383,7 @@ async function addMediaByUrl() {
       name: mediaName.trim(),
       description: mediaDescription.trim(),
       date: formatDateToDDMMYYYY(mediaDate),
-      url: mediaUrl.trim(),
-      mediaType: mediaType
+      url: mediaUrl.trim()
     };
     
     console.log('Adding media by URL:', payload);
@@ -2509,47 +2441,12 @@ async function uploadToCpanel(file) {
   return `https://via.placeholder.com/300x200?text=${encodeURIComponent(file.name)}`;
 }
 
-// Alternative: If you want to use your existing GridFS setup, modify like this:
-async function uploadUsingGridFS(file) {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('project', 'aurora');
-    formData.append('description', 'Gallery upload');
-    formData.append('uploader', 'Admin');
-    formData.append('mediaType', file.type.startsWith('image/') ? 'photo' : 'video');
-    formData.append('dateCaptured', new Date().toISOString());
-
-    const response = await fetch('http://localhost:5000/api/upload', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      throw new Error('GridFS upload failed');
-    }
-
-    const result = await response.json();
-    
-    if (result.success) {
-      // Return the URL from GridFS
-      return result.data.url || `/api/files/${result.data.filename}`;
-    } else {
-      throw new Error(result.error || 'Upload failed');
-    }
-  } catch (error) {
-    console.error('GridFS upload error:', error);
-    throw error;
-  }
-}
-
 // Updated handleFileSelect function
 async function handleFileSelect(input) {
   if (!input.files || !input.files.length) return;
 
   const file = input.files[0];
   const uploadBox = document.getElementById('uploadBox');
-  
   // Show selected file info
   uploadBox.classList.add('selected');
   uploadBox.innerHTML = `
@@ -2572,19 +2469,15 @@ function formatDateToDDMMYYYY(dateString) {
 
 // Update openAddMediaModal to set default values
 function openAddMediaModal() {
-  // Clear form fields
   document.getElementById('mediaName').value = '';
   document.getElementById('mediaDescription').value = '';
   document.getElementById('mediaDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('mediaType').value = 'photo';
-  
   // Reset file input and upload box
   document.getElementById('mediaInput').value = '';
   const uploadBox = document.getElementById('uploadBox');
   uploadBox.className = 'upload-box';
   uploadBox.innerHTML = `⬆ Click to upload or drag and drop<br>
     <small>Photos: JPG/PNG up to 10MB • Videos: MP4 up to 50MB</small>`;
-  
   // Show modal
   document.getElementById('addMediaModal').classList.add('active');
 }
@@ -2597,5 +2490,4 @@ function openAddMediaModal() {
 </div>
 
 </body>
-
 </html>

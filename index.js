@@ -16,7 +16,6 @@ app.use(cors());
 app.use(express.json());
 
 // gallery
-// server.js - Add these imports at top
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
@@ -33,8 +32,11 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    // Use same pattern as in upload endpoint
+    const timestamp = Date.now();
+    const randomSuffix = Math.round(Math.random() * 1E9);
+    const fileExt = path.extname(file.originalname);
+    cb(null, `${timestamp}-${randomSuffix}${fileExt}`);
   }
 });
 
@@ -56,7 +58,6 @@ const upload = multer({
   }
 });
 
-// CPanel Upload Service
 class CPanelUploadService {
   constructor() {
     this.config = {
@@ -67,56 +68,58 @@ class CPanelUploadService {
     };
   }
 
-  async uploadFile(filePath, fileName, subfolder = '') {
-    try {
-      console.log(`Uploading ${fileName} to cPanel...`);
-      
-      if (!fs.existsSync(filePath)) {
-        throw new Error(`File not found: ${filePath}`);
-      }
-      
-      // UPLOAD TO cPanel
-      const formData = new FormData();
-      formData.append('file', fs.createReadStream(filePath));
-      formData.append('dir', `/home/${this.config.username}/public_html/uploads/${subfolder}`);
-      formData.append('overwrite', '1');
-      
-      const authString = Buffer.from(`${this.config.username}:${this.config.password}`).toString('base64');
-      
-      const response = await axios.post(
-        `${this.config.cpanelUrl}/execute/Fileman/upload_files`,
-        formData,
-        {
-          headers: {
-            ...formData.getHeaders(),
-            'Authorization': `Basic ${authString}`,
-          },
-          httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
-          timeout: 30000
-        }
-      );
-      
-      console.log('cPanel upload response:', response.data);
-      
-      if (response.data.status === 1 || response.data.data) {
-        // ✅ CORRECT: Generate PUBLIC URL (NOT admin URL)
-        // Format: https://domain.com/uploads/subfolder/filename
-        const publicUrl = `https://${this.config.domain}/uploads/${subfolder}${fileName}`;
-        
-        console.log('Generated public URL:', publicUrl);
-        
-        // Verify the URL is accessible (optional but recommended)
-        await this.verifyUrlAccessible(publicUrl);
-        
-        return publicUrl;
-      } else {
-        throw new Error(response.data.errors || JSON.stringify(response.data));
-      }
-    } catch (error) {
-      console.error('cPanel Upload Error:', error.message);
-      throw error;
+// In CPanelUploadService.uploadFile method
+async uploadFile(filePath, fileName, subfolder = '') {
+  try {
+    console.log(`Uploading ${fileName} to cPanel...`);
+    
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`File not found: ${filePath}`);
     }
+    
+    const formData = new FormData();
+    formData.append('file', fs.createReadStream(filePath), fileName); // Add filename here!
+    formData.append('dir', `/home/${this.config.username}/public_html/uploads/${subfolder}`);
+    formData.append('overwrite', '1');
+    
+    const authString = Buffer.from(`${this.config.username}:${this.config.password}`).toString('base64');
+    const response = await axios.post(
+      `${this.config.cpanelUrl}/execute/Fileman/upload_files`,
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+          'Authorization': `Basic ${authString}`,
+        },
+        httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
+        timeout: 30000
+      }
+    );
+    
+    console.log('cPanel upload response:', JSON.stringify(response.data, null, 2));
+    
+    // IMPORTANT: Get the actual uploaded filename from cPanel response
+    let actualFileName = fileName;
+    
+    if (response.data.status === 1 && response.data.data && response.data.data.uploads) {
+      const uploads = response.data.data.uploads;
+      if (uploads.length > 0 && uploads[0].dest) {
+        // Extract filename from dest path
+        actualFileName = path.basename(uploads[0].dest);
+        console.log('Actual uploaded filename from cPanel:', actualFileName);
+      }
+    }
+    
+    const publicUrl = `https://${this.config.domain}/uploads/${subfolder}${actualFileName}`;
+    console.log('Generated public URL:', publicUrl);
+    
+    return publicUrl;
+    
+  } catch (error) {
+    console.error('cPanel Upload Error:', error.message);
+    throw error;
   }
+}
 
   async verifyUrlAccessible(url) {
     try {
@@ -169,21 +172,18 @@ app.get('/api/media/:project', async (req, res) => {
 app.post('/api/upload-media', upload.single('file'), async (req, res) => {
   try {
     console.log('Upload media request received');
-    
     if (!req.file) {
       return res.status(400).json({ 
         success: false, 
         error: 'No file uploaded' 
       });
     }
-
+    
     // Get form data
-    const { name, description, date, mediaType, project } = req.body;
+    const { name, description, date } = req.body;
+    console.log('Form data:', { name, description, date });
     
-    console.log('Form data:', { name, description, date, mediaType, project });
-    
-    if (!name || !description || !date || !project) {
-      // Clean up temp file
+    if (!name || !description || !date) {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ 
         success: false, 
@@ -191,21 +191,29 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
       });
     }
 
-    // Generate unique filename
+    // FIX: Generate consistent filename BEFORE upload
     const timestamp = Date.now();
+    const randomSuffix = Math.round(Math.random() * 1E9);
     const originalName = req.file.originalname;
     const fileExt = path.extname(originalName);
-    const fileName = `${timestamp}_${originalName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '')}`;
     
-    // Upload to cPanel
+    // Use the SAME pattern as multer uses for temp file
+    const fileName = `${timestamp}-${randomSuffix}${fileExt}`;
+    
+    console.log('Generated filename:', fileName);
+    console.log('Temp file path:', req.file.path);
+    
+    const project = 'aurora';
+    
+    // Upload to cPanel with the pre-generated filename
     let publicUrl;
     try {
       publicUrl = await cpanelService.uploadFile(req.file.path, fileName, `${project}/`);
       console.log('cPanel upload successful:', publicUrl);
     } catch (cpanelError) {
-      console.error('cPanel upload failed, using fallback:', cpanelError.message);
+      console.error('cPanel upload failed:', cpanelError.message);
       
-      // Fallback 1: Try to serve from local uploads directory
+      // Local fallback with same filename
       const localUploadsDir = path.join(__dirname, 'public', 'uploads', project);
       if (!fs.existsSync(localUploadsDir)) {
         fs.mkdirSync(localUploadsDir, { recursive: true });
@@ -213,8 +221,6 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
       
       const localFilePath = path.join(localUploadsDir, fileName);
       fs.copyFileSync(req.file.path, localFilePath);
-      
-      // Serve from local public directory
       publicUrl = `/uploads/${project}/${fileName}`;
       console.log('Using local fallback:', publicUrl);
     }
@@ -222,7 +228,7 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
     // Clean up temp file
     fs.unlinkSync(req.file.path);
     
-    // Format date to DD-MM-YYYY (match your API format)
+    // Format date
     const formatDateToDDMMYYYY = (dateString) => {
       try {
         const date = new Date(dateString);
@@ -231,40 +237,33 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         const year = date.getFullYear();
         return `${day}-${month}-${year}`;
       } catch (error) {
-        return dateString; // Return as-is if parsing fails
+        return dateString;
       }
     };
     
-    // Save metadata to database - SIMPLIFIED to match your API format
     const db = conn.useDb(project.toLowerCase());
     const collection = db.collection('media');
     
-    // Create resource object matching your API format
     const newResource = {
       name: name.trim(),
       description: description.trim(),
       date: formatDateToDDMMYYYY(date),
-      url: publicUrl,
-      // Only include mediaType if it exists (optional field in your format)
-      ...(mediaType && { mediaType: mediaType })
-      // Don't include other fields like filename, size, etc. to match your format
+      url: publicUrl
     };
 
-    console.log('Saving to database (simplified format):', newResource);
+    console.log('Saving to database:', newResource);
 
-    // Check if any document exists
+    // Save to database
     const existingDoc = await collection.findOne({});
-    
     let result;
+    
     if (!existingDoc) {
-      // Create first document with clean format
       result = await collection.insertOne({
         resource: [newResource],
         created_at: new Date(),
         updated_at: new Date()
       });
     } else {
-      // Add to existing document
       result = await collection.updateOne(
         { _id: existingDoc._id },
         {
@@ -277,13 +276,12 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'File uploaded successfully',
-      data: newResource // Return the same format that's saved
+      data: newResource
     });
 
   } catch (error) {
     console.error('Upload error:', error);
     
-    // Clean up temp file if it exists
     if (req.file && req.file.path && fs.existsSync(req.file.path)) {
       try {
         fs.unlinkSync(req.file.path);
@@ -306,9 +304,7 @@ app.post('/api/media/:project', async (req, res) => {
     const project = req.params.project.toLowerCase();
     const db = conn.useDb(project);
     const collection = db.collection('media');
-    
-    const { name, description, date, url, mediaType } = req.body;
-
+    const { name, description, date, url } = req.body;
     if (!name || !description || !date || !url) {
       return res.status(400).json({ error: 'All fields are required' });
     }
@@ -318,13 +314,10 @@ app.post('/api/media/:project', async (req, res) => {
       description,
       date,
       url,
-      mediaType: mediaType || 'photo',
       created_at: new Date()
     };
-
     // Check if any document exists
     const existingDoc = await collection.findOne({});
-    
     if (!existingDoc) {
       // Create first document
       const result = await collection.insertOne({
