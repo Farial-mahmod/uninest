@@ -7,6 +7,23 @@
 <title>Admin Dashboard</title>
 
 <style>
+
+  /* Make shareholders view white */
+#shareholdersView {
+  background: white;
+  padding: 2px;
+  border-radius: 14px;
+  margin-top: 2px;
+}
+
+#shareholdersView table {
+  margin-top: 2px;
+}
+
+#shareholdersView th {
+  background: #f8f9fa;
+}
+
 :root {
   --primary: #0b0d1c;
   --bg: #f4f4f6;
@@ -805,7 +822,763 @@ th {
   cursor: pointer;
   z-index: -1;
 }
+
+/* Customization Grid */
+.customization-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.customization-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.customization-card h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.customization-card .date-range {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.option-item {
+  text-align: center;
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.option-item:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.option-item.selected {
+  border-color: var(--primary);
+  background: rgba(52, 152, 219, 0.05);
+}
+
+.option-item img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.option-item h4 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+}
+
+.option-item p {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+}
+
+.modal-header .close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.modal-header .close-btn:hover {
+  background: #f5f5f5;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Form Styles */
+.form-section {
+  margin-bottom: 25px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid #eee;
+}
+
+.form-section:last-child {
+  border-bottom: none;
+}
+
+.form-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #555;
+}
+
+.form-group input[type="text"],
+.form-group input[type="date"],
+.form-group input[type="url"],
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Image Upload */
+.image-upload-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.image-preview {
+  width: 150px;
+  height: 120px;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f9f9f9;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-preview span {
+  color: #999;
+  font-size: 13px;
+  text-align: center;
+  padding: 10px;
+}
+
+.upload-controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upload-controls input[type="text"] {
+  margin-top: 10px;
+}
+
+/* Success Popup */
+.success-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #10b981;
+  color: white;
+  padding: 15px 30px;
+  border-radius: 8px;
+  font-weight: 500;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  z-index: 10001;
+  animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  90% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+}
+
+/* Add to your CSS */
+.customization-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.customization-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.customization-card h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.customization-card .date-range {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.option-item {
+  text-align: center;
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.option-item:hover {
+  border-color: #0066cc;
+  transform: translateY(-2px);
+}
+
+.option-item.selected {
+  border-color: #0066cc;
+  background: rgba(0, 102, 204, 0.05);
+}
+
+.option-item img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.option-item h4 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+}
+
+.option-item p {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+}
+
+.modal-header .close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.modal-header .close-btn:hover {
+  background: #f5f5f5;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Form Styles */
+.form-section {
+  margin-bottom: 25px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid #eee;
+}
+
+.form-section:last-child {
+  border-bottom: none;
+}
+
+.form-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #555;
+}
+
+.form-group input[type="text"],
+.form-group input[type="date"],
+.form-group input[type="url"],
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Image Upload */
+.image-upload-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.image-preview {
+  width: 150px;
+  height: 120px;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f9f9f9;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-preview span {
+  color: #999;
+  font-size: 13px;
+  text-align: center;
+  padding: 10px;
+}
+
+.upload-controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upload-controls input[type="text"] {
+  margin-top: 10px;
+}
   
+/* Customization Grid Styles */
+.customization-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.customization-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.customization-card h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.customization-card .date-range {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.customization-card p {
+  color: #555;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.option-item {
+  text-align: center;
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.option-item:hover {
+  border-color: #0066cc;
+  transform: translateY(-2px);
+}
+
+.option-item.selected {
+  border-color: #0066cc;
+  background: rgba(0, 102, 204, 0.05);
+}
+
+.option-item img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.option-item h4 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.option-item p {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+}
+
+/* Add Option Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+}
+
+.modal-header .close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.modal-header .close-btn:hover {
+  background: #f5f5f5;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Form Styles */
+.form-section {
+  margin-bottom: 25px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid #eee;
+}
+
+.form-section:last-child {
+  border-bottom: none;
+}
+
+.form-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #555;
+}
+
+.form-group input[type="text"],
+.form-group input[type="date"],
+.form-group input[type="url"],
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Image Upload */
+.image-upload-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.image-preview {
+  width: 150px;
+  height: 120px;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f9f9f9;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-preview span {
+  color: #999;
+  font-size: 13px;
+  text-align: center;
+  padding: 10px;
+}
+
+.upload-controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upload-controls input[type="text"] {
+  margin-top: 10px;
+}
+
 </style>
 </head>
 
@@ -948,15 +1721,145 @@ th {
   <div class="card-header">
     <div>
       <h2>Customization Options</h2>
-      <div class="subtitle">Shareholder upgrade choices</div>
+      <div class="subtitle">Let shareholders choose preferences</div>
     </div>
-    <button class="btn" onclick="openCustomizationModal()">Add Option</button>
+    <button class="btn" onclick="openAddOptionModal()">Add Option</button>
   </div>
   <br><br>
   
-  <!-- Customization Options Grid -->
-  <div class="options-grid">
-    <!-- JS will inject options here -->
+  <!-- Customization Grid -->
+  <div class="customization-grid" id="customizationGrid">
+    <div id="emptyCustomizationMessage" style="text-align: center; padding: 40px; color: #666; grid-column: 1 / -1;">
+      No customization options found.
+    </div>
+  </div>
+</div>
+
+<!-- Add Option Modal -->
+<div id="addOptionModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Add Customization Option</h3>
+      <button class="close-btn" onclick="closeAddOptionModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <form id="optionForm">
+        <!-- Basic Information -->
+        <div class="form-section">
+          <h4>Basic Information</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Option Name *</label>
+              <input type="text" id="optionName" placeholder="e.g., Tiles Preference" required>
+            </div>
+            <div class="form-group">
+              <label>Description *</label>
+              <textarea id="optionDescription" placeholder="e.g., Tiles for floors" required rows="2"></textarea>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>From Date *</label>
+              <input type="date" id="optionFrom" required>
+            </div>
+            <div class="form-group">
+              <label>To Date *</label>
+              <input type="date" id="optionTo" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- Option 1 -->
+        <div class="form-section">
+          <h4>Option 1</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Name *</label>
+              <input type="text" id="option1Name" placeholder="e.g., Xian tiles" required>
+            </div>
+            <div class="form-group">
+              <label>Description *</label>
+              <textarea id="option1Description" placeholder="e.g., Xian tiles from China" required rows="2"></textarea>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Image</label>
+            <div class="image-upload-container">
+              <div class="image-preview" id="option1Preview">
+                <span>No image selected</span>
+              </div>
+              <div class="upload-controls">
+                <input type="file" id="option1Image" accept="image/*" onchange="previewImage(1, this)" style="display: none;">
+                <button type="button" class="btn light-btn" onclick="triggerImageUpload(1)">📁 Upload</button>
+                <input type="text" id="option1Url" placeholder="Or enter image URL" oninput="updateUrlPreview(1, this.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Option 2 -->
+        <div class="form-section">
+          <h4>Option 2</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Name *</label>
+              <input type="text" id="option2Name" placeholder="e.g., Thai brand tiles" required>
+            </div>
+            <div class="form-group">
+              <label>Description *</label>
+              <textarea id="option2Description" placeholder="e.g., Thai brand tiles" required rows="2"></textarea>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Image</label>
+            <div class="image-upload-container">
+              <div class="image-preview" id="option2Preview">
+                <span>No image selected</span>
+              </div>
+              <div class="upload-controls">
+                <input type="file" id="option2Image" accept="image/*" onchange="previewImage(2, this)" style="display: none;">
+                <button type="button" class="btn light-btn" onclick="triggerImageUpload(2)">📁 Upload</button>
+                <input type="text" id="option2Url" placeholder="Or enter image URL" oninput="updateUrlPreview(2, this.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Option 3 -->
+        <div class="form-section">
+          <h4>Option 3</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Name *</label>
+              <input type="text" id="option3Name" placeholder="e.g., Hua tiles" required>
+            </div>
+            <div class="form-group">
+              <label>Description *</label>
+              <textarea id="option3Description" placeholder="e.g., Hua tiles of Hong Kong" required rows="2"></textarea>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Image</label>
+            <div class="image-upload-container">
+              <div class="image-preview" id="option3Preview">
+                <span>No image selected</span>
+              </div>
+              <div class="upload-controls">
+                <input type="file" id="option3Image" accept="image/*" onchange="previewImage(3, this)" style="display: none;">
+                <button type="button" class="btn light-btn" onclick="triggerImageUpload(3)">📁 Upload</button>
+                <input type="text" id="option3Url" placeholder="Or enter image URL" oninput="updateUrlPreview(3, this.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    
+    <div class="modal-footer">
+      <button type="button" class="btn light-btn" onclick="closeAddOptionModal()">Cancel</button>
+      <button type="button" class="btn" onclick="uploadCustomizationOption()">Save Option</button>
+    </div>
   </div>
 </div>
 
@@ -1207,41 +2110,9 @@ th {
   <div class="media-overlay" onclick="closeMedia()"></div>
 </div>
 
-<div class="modal" id="customizationModal">
-  <div class="modal-box" style="width:560px">
-    <div class="modal-header">
-      <div>
-        <h3>Add Customization Option</h3>
-        <div class="subtitle">Create a new option for shareholders to choose</div>
-      </div>
-      <span class="close" onclick="closeCustomizationModal()">×</span>
-    </div>
-    <div class="form-grid">
-      <select>
-        <option>Select category</option>
-        <option>Floor Tiles</option>
-        <option>Bathroom Fixtures</option>
-        <option>Wall Paint Palette</option>
-      </select>
-      <input placeholder="e.g., Premium Vitrified Tiles">
-      <input placeholder="e.g., Kajaria">
-      <input placeholder="0 for standard, amount for up">
-      <select>
-        <option>Upgrade (Additional Cost)</option>
-        <option>Standard (No Cost)</option>
-      </select>
-      <input placeholder="Image URL or upload">
-      <input type="date" placeholder="Opening Date">
-      <input type="date" placeholder="Closing Date">
-    </div>
-    <div class="form-actions">
-      <button class="btn" style="background:#ddd;color:#000" onclick="closeCustomizationModal()">Cancel</button>
-      <button class="btn">Add Option</button>
-    </div>
-  </div>
-</div>
-
 <script>
+
+  let currentCustomizationData = null;
 
 document.addEventListener('DOMContentLoaded', fetchShareholders);
 
@@ -2200,6 +3071,7 @@ function showTab(tab, el) {
   if (tab === 'milestones') fetchMilestones();
   // if (tab === 'gallery') loadGallery();
   if (tab === 'gallery') fetchGallery();
+  if (tab === 'customization') fetchCustomization();
 }
 
 function openModal() {
@@ -2472,7 +3344,6 @@ function renderGallery(resources) {
   });
 }
 
-
 function showEmptyGallery() {
   const galleryGrid = document.getElementById('galleryGrid');
   const emptyMessage = document.getElementById('emptyGalleryMessage');
@@ -2702,12 +3573,432 @@ function openAddMediaModal() {
   document.getElementById('addMediaModal').classList.add('active');
 }
 
-</script>
+// Customization data
 
+// 1. Fetch customization data
+async function fetchCustomization() {
+  try {
+    console.log('=== FETCHING CUSTOMIZATION ===');
+    const project = 'aurora';
+    const url = `/api/customization/${project}`;
+    console.log('Fetching from:', url);
+    
+    const res = await fetch(url);
+    
+    console.log('Response status:', res.status, res.statusText);
+    
+    if (!res.ok) {
+      if (res.status === 404) {
+        const errorData = await res.json();
+        console.log('404 - No data:', errorData.message);
+      } else {
+        console.error('API error:', res.status, res.statusText);
+      }
+      showEmptyCustomization();
+      return;
+    }
+    
+    const data = await res.json();
+    console.log('=== API RESPONSE DATA ===');
+    console.log('Full response:', data);
+    console.log('Has selection?', !!data.selection);
+    console.log('Selection is array?', Array.isArray(data.selection));
+    console.log('Selection length:', data.selection ? data.selection.length : 0);
+    
+    if (data.selection && data.selection.length > 0) {
+      console.log('First item in selection:', data.selection[0]);
+    }
+    
+    currentCustomizationData = data; // Now this will work
+    
+    if (!data.selection || !Array.isArray(data.selection)) {
+      console.log('No valid selection array found');
+      showEmptyCustomization();
+      return;
+    }
+    
+    console.log('Rendering', data.selection.length, 'items');
+    renderCustomization(data.selection);
+    
+  } catch (err) {
+    console.error('Customization fetch failed:', err);
+    showEmptyCustomization();
+  }
+}
+
+// 2. Render customization options
+// 2. Render customization options
+function renderCustomization(selections) {
+  console.log('=== RENDER CUSTOMIZATION ===');
+  console.log('Selections to render:', selections);
+  
+  const grid = document.getElementById('customizationGrid');
+  const emptyMsg = document.getElementById('emptyCustomizationMessage');
+  
+  if (!grid) {
+    console.error('customizationGrid element not found!');
+    return;
+  }
+  
+  grid.innerHTML = '';
+  emptyMsg.style.display = selections.length ? 'none' : 'block';
+  
+  if (selections.length === 0) {
+    console.log('No selections to render');
+    return;
+  }
+  
+  selections.forEach((selection, index) => {
+    console.log(`Rendering selection ${index}:`, selection);
+    
+    const card = document.createElement('div');
+    card.className = 'customization-card';
+    
+    // Debug each property
+    console.log('Name:', selection.name);
+    console.log('Description:', selection.description);
+    console.log('From:', selection.from);
+    console.log('To:', selection.to);
+    console.log('Option 1:', selection.option_1);
+    console.log('Option 2:', selection.option_2);
+    console.log('Option 3:', selection.option_3);
+    
+    card.innerHTML = `
+      <h3>${selection.name || 'No Name'}</h3>
+      <div class="date-range">${selection.from || 'No date'} - ${selection.to || 'No date'}</div>
+      <p>${selection.description || 'No description'}</p>
+      <div class="options-grid">
+        ${renderOptionItem(selection.option_1, 1)}
+        ${renderOptionItem(selection.option_2, 2)}
+        ${renderOptionItem(selection.option_3, 3)}
+      </div>
+    `;
+    
+    grid.appendChild(card);
+  });
+  
+  console.log('Finished rendering', selections.length, 'cards');
+}
+
+function renderOptionItem(option, number) {
+  console.log(`Rendering option ${number}:`, option);
+  
+  if (!option || !option.url) {
+    return `<div class="option-item">
+      <div style="height:120px;background:#f5f5f5;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;">
+        <span style="color:#999;font-size:12px;">Option ${number}</span>
+      </div>
+      <h4>Option ${number}</h4>
+      <p>${option?.details || 'No details'}</p>
+    </div>`;
+  }
+  
+  return `<div class="option-item">
+    <img src="${option.url}" alt="Option ${number}" onerror="this.src='https://via.placeholder.com/200x120?text=Image+Error'">
+    <h4>Option ${number}</h4>
+    <p>${option.details}</p>
+  </div>`;
+}
+
+function renderOptionItem(option, number) {
+  if (!option || !option.url) {
+    return `<div class="option-item">
+      <div style="height:120px;background:#f5f5f5;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;">
+        <span style="color:#999;font-size:12px;">Option ${number}</span>
+      </div>
+      <h4>Option ${number}</h4>
+      <p>${option?.details || 'No details'}</p>
+    </div>`;
+  }
+  
+  return `<div class="option-item" onclick="selectOption(${number})">
+    <img src="${option.url}" alt="Option ${number}" onerror="this.src='https://via.placeholder.com/200x120?text=Image+Error'">
+    <h4>Option ${number}</h4>
+    <p>${option.details}</p>
+  </div>`;
+}
+
+function showEmptyCustomization() {
+  const grid = document.getElementById('customizationGrid');
+  const emptyMsg = document.getElementById('emptyCustomizationMessage');
+  
+  if (grid && emptyMsg) {
+    grid.innerHTML = '';
+    emptyMsg.style.display = 'block';
+  }
+}
+
+// 3. Modal Functions
+function openAddOptionModal() {
+  // Reset form
+  document.getElementById('optionForm').reset();
+  
+  // Clear previews
+  for (let i = 1; i <= 3; i++) {
+    const preview = document.getElementById(`option${i}Preview`);
+    preview.innerHTML = '<span>No image selected</span>';
+    document.getElementById(`option${i}Url`).value = '';
+  }
+  
+  // Set default dates
+  const today = new Date().toISOString().split('T')[0];
+  const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  document.getElementById('optionFrom').value = today;
+  document.getElementById('optionTo').value = nextWeek;
+  
+  // Show modal
+  document.getElementById('addOptionModal').classList.add('active');
+}
+
+function closeAddOptionModal() {
+  document.getElementById('addOptionModal').classList.remove('active');
+}
+
+// 4. Image Upload Functions
+function triggerImageUpload(optionNumber) {
+  document.getElementById(`option${optionNumber}Image`).click();
+}
+
+function previewImage(optionNumber, input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  const preview = document.getElementById(`option${optionNumber}Preview`);
+  const urlInput = document.getElementById(`option${optionNumber}Url`);
+  
+  // Clear URL input
+  urlInput.value = '';
+  
+  // Show preview
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateUrlPreview(optionNumber, url) {
+  const preview = document.getElementById(`option${optionNumber}Preview`);
+  
+  // Clear file input
+  document.getElementById(`option${optionNumber}Image`).value = '';
+  
+  if (url && isValidUrl(url)) {
+    preview.innerHTML = `<img src="${url}" alt="Preview" onerror="this.parentElement.innerHTML='<span>Invalid URL</span>'">`;
+  } else {
+    preview.innerHTML = '<span>No image selected</span>';
+  }
+}
+
+function isValidUrl(string) {
+  try {
+    new URL(string);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+// 5. Upload Customization Option
+async function uploadCustomizationOption() {
+  try {
+    // Collect form data
+    const optionName = document.getElementById('optionName').value.trim();
+    const optionDescription = document.getElementById('optionDescription').value.trim();
+    const optionFrom = document.getElementById('optionFrom').value;
+    const optionTo = document.getElementById('optionTo').value;
+    
+    // Validate required fields
+    if (!optionName || !optionDescription || !optionFrom || !optionTo) {
+      alert('Please fill all required fields');
+      return;
+    }
+    
+    // Collect option data
+    const option1Name = document.getElementById('option1Name').value.trim();
+    const option1Description = document.getElementById('option1Description').value.trim();
+    const option1Image = document.getElementById('option1Image').files[0];
+    const option1Url = document.getElementById('option1Url').value.trim();
+    
+    const option2Name = document.getElementById('option2Name').value.trim();
+    const option2Description = document.getElementById('option2Description').value.trim();
+    const option2Image = document.getElementById('option2Image').files[0];
+    const option2Url = document.getElementById('option2Url').value.trim();
+    
+    const option3Name = document.getElementById('option3Name').value.trim();
+    const option3Description = document.getElementById('option3Description').value.trim();
+    const option3Image = document.getElementById('option3Image').files[0];
+    const option3Url = document.getElementById('option3Url').value.trim();
+    
+    // Upload images and get URLs
+    const imageUrls = await Promise.all([
+      uploadImageAndGetUrl(option1Image, option1Url, 'option1'),
+      uploadImageAndGetUrl(option2Image, option2Url, 'option2'),
+      uploadImageAndGetUrl(option3Image, option3Url, 'option3')
+    ]);
+    
+    // Format dates
+    const formatDate = (dateString) => {
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    };
+    
+    // Create payload matching API format exactly
+    const payload = {
+      name: optionName,
+      description: optionDescription,
+      from: formatDate(optionFrom),
+      to: formatDate(optionTo),
+      option_1: {
+        details: option1Description,
+        url: imageUrls[0]
+      },
+      option_2: {
+        details: option2Description,
+        url: imageUrls[1]
+      },
+      option_3: {
+        details: option3Description,
+        url: imageUrls[2]
+      }
+    };
+    
+    console.log('Sending payload:', payload);
+    
+    // Send to server
+    const project = 'aurora';
+    const res = await fetch(`/api/customization/${project}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Server error: ${errorText}`);
+    }
+    
+    const result = await res.json();
+    console.log('Success:', result);
+    
+    // Show success message
+    showSuccessPopup('Customization option added successfully!');
+    
+    // Close modal and refresh
+    closeAddOptionModal();
+    setTimeout(() => {
+      fetchCustomization();
+    }, 500);
+    
+  } catch (error) {
+    console.error('Upload failed:', error);
+    alert(`Error: ${error.message}`);
+  }
+}
+
+async function uploadImageAndGetUrl(file, url, optionName) {
+  // If URL provided, use it
+  if (url && isValidUrl(url)) {
+    return url;
+  }
+  
+  // If file provided, upload it
+  if (file) {
+    return await uploadImageFile(file, optionName);
+  }
+  
+  // Return placeholder if neither
+  return 'https://via.placeholder.com/400x300?text=No+Image';
+}
+
+async function uploadImageFile(file, optionName) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('name', optionName);
+  formData.append('description', 'Customization option image');
+  formData.append('date', new Date().toISOString().split('T')[0]);
+  
+  try {
+    const res = await fetch('/api/upload-media', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!res.ok) {
+      throw new Error('Image upload failed');
+    }
+    
+    const data = await res.json();
+    return data.data.url;
+    
+  } catch (error) {
+    console.error('Image upload error:', error);
+    return 'https://via.placeholder.com/400x300?text=Upload+Failed';
+  }
+}
+
+// 6. Show success popup
+function showSuccessPopup(message) {
+  // Remove existing popup
+  const existingPopup = document.querySelector('.success-popup');
+  if (existingPopup) existingPopup.remove();
+  
+  // Create new popup
+  const popup = document.createElement('div');
+  popup.className = 'success-popup';
+  popup.textContent = message;
+  document.body.appendChild(popup);
+  
+  // Remove after animation
+  setTimeout(() => {
+    popup.remove();
+  }, 3000);
+}
+
+// 7. Update tab switching function
+function showTab(tab, el) {
+  const views = {
+    shareholders: 'shareholdersView',
+    payments: 'paymentsView',
+    costs: 'costsView',
+    milestones: 'milestonesView',  
+    gallery: 'galleryView',     
+    customization: 'customizationView' 
+  };
+
+  // Hide all views
+  Object.values(views).forEach(id => {
+    const view = document.getElementById(id);
+    if (view) view.style.display = 'none';
+  });
+
+  // Show selected view
+  const activeView = document.getElementById(views[tab]);
+  if (activeView) {
+    activeView.style.display = 'block';
+  }
+
+  // Activate tab UI
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  // Lazy-load data
+  if (tab === 'payments') fetchPayments();
+  if (tab === 'costs') fetchCosts(); 
+  if (tab === 'milestones') fetchMilestones();
+  if (tab === 'gallery') fetchGallery();
+  if (tab === 'customization') fetchCustomization(); // Add this line
+}
+
+</script>
 <div id="success-popup" class="success-popup hidden">
     <i class="fas fa-check-circle"></i>
     <span id="success-popup-text">Success</span>
 </div>
-
 </body>
 </html>

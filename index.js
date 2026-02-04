@@ -1320,6 +1320,95 @@ app.get('/customization/update', (req, res) => {
   });
 });
 
+// customization
+// Update your server endpoint to use req.params.project instead of hardcoding "aurora"
+app.get('/api/customization/:project', async (req, res) => {
+  try {
+    console.log('Customization API called for project:', req.params.project);
+    
+    const project = req.params.project.toLowerCase();
+    console.log('Using database:', project);
+    
+    const db = conn.useDb(project);
+    const collection = db.collection('customization');
+    
+    const docs = await collection.find({}).toArray();
+    console.log('Found documents:', docs.length);
+    
+    if (!docs || docs.length === 0) {
+      return res.status(404).json({ message: 'No customization found' });
+    }
+    
+    const doc = docs[0];
+    
+    if (!doc.selection || !Array.isArray(doc.selection)) {
+      return res.status(404).json({ message: 'No customization selections found' });
+    }
+    
+    res.json(doc);
+    
+  } catch (error) {
+    console.error('Error fetching customization:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch customization',
+      details: error.message 
+    });
+  }
+});
+
+// POST customization option
+app.post('/api/customization/:project', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase();
+    const db = conn.useDb(project);
+    const collection = db.collection('customization');
+    
+    const newSelection = req.body;
+    
+    // Validate required fields
+    if (!newSelection.name || !newSelection.description || !newSelection.from || !newSelection.to) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Check if any document exists
+    const existingDoc = await collection.findOne({});
+    
+    if (!existingDoc) {
+      // Create first document
+      const result = await collection.insertOne({
+        selection: [newSelection],
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Customization option added to new collection',
+        insertedId: result.insertedId
+      });
+    } else {
+      // Add to existing document
+      const result = await collection.updateOne(
+        { _id: existingDoc._id },
+        {
+          $push: { selection: newSelection },
+          $set: { updated_at: new Date() }
+        }
+      );
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Customization option added to existing collection',
+        modifiedCount: result.modifiedCount
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error adding customization:', error);
+    res.status(500).json({ error: 'Failed to add customization option' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
