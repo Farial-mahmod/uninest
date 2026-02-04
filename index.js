@@ -21,24 +21,33 @@ const FormData = require('form-data');
 const fs = require('fs');
 
 // Create uploads directory if it doesn't exist
-const uploadDir = 'uploads/temp';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Configure multer based on environment
+let storage;
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Use same pattern as in upload endpoint
-    const timestamp = Date.now();
-    const randomSuffix = Math.round(Math.random() * 1E9);
-    const fileExt = path.extname(file.originalname);
-    cb(null, `${timestamp}-${randomSuffix}${fileExt}`);
+if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+  // For Vercel: Use memory storage
+  console.log('Using memory storage for Vercel');
+  storage = multer.memoryStorage();
+} else {
+  // For local development: Use disk storage
+  console.log('Using disk storage for local development');
+  const uploadDir = 'uploads/temp';
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
   }
-});
+  
+  storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+      const timestamp = Date.now();
+      const randomSuffix = Math.round(Math.random() * 1E9);
+      const fileExt = path.extname(file.originalname);
+      cb(null, `${timestamp}-${randomSuffix}${fileExt}`);
+    }
+  });
+}
 
 const upload = multer({ 
   storage: storage,
@@ -66,70 +75,200 @@ class CPanelUploadService {
       password: process.env.CPANEL_PASSWORD,
       domain: 'uninest.com.bd'
     };
+    
+    // Create https agent with better timeout settings
+    this.httpsAgent = new (require('https').Agent)({ 
+      rejectUnauthorized: false,
+      timeout: 60000 // 60 second timeout
+    });
   }
 
-// In CPanelUploadService.uploadFile method
-async uploadFile(filePath, fileName, subfolder = '') {
-  try {
-    console.log(`Uploading ${fileName} to cPanel...`);
-    
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`File not found: ${filePath}`);
-    }
-    
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(filePath), fileName); // Add filename here!
-    formData.append('dir', `/home/${this.config.username}/public_html/uploads/${subfolder}`);
-    formData.append('overwrite', '1');
-    
-    const authString = Buffer.from(`${this.config.username}:${this.config.password}`).toString('base64');
-    const response = await axios.post(
-      `${this.config.cpanelUrl}/execute/Fileman/upload_files`,
-      formData,
-      {
-        headers: {
-          ...formData.getHeaders(),
-          'Authorization': `Basic ${authString}`,
-        },
-        httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
-        timeout: 30000
+  async uploadFile(filePathOrBuffer, fileName, subfolder = '') {
+    try {
+      console.log(`Uploading ${fileName} to cPanel...`);
+      console.log(`Subfolder: ${subfolder}`);
+      console.log(`Input type: ${Buffer.isBuffer(filePathOrBuffer) ? 'Buffer' : 'File path'}`);
+      
+      const formData = new FormData();
+      let fileSize = 0;
+      
+      // Handle different input types
+      if (Buffer.isBuffer(filePathOrBuffer)) {
+        // Input is a buffer
+        fileSize = filePathOrBuffer.length;
+        console.log(`Buffer size: ${fileSize} bytes`);
+        
+        formData.append('file', filePathOrBuffer, {
+          filename: fileName,
+          contentType: this.getContentType(fileName),
+          knownLength: fileSize
+        });
+        
+      } else if (typeof filePathOrBuffer === 'string') {
+        // Input is a file path
+        if (!fs.existsSync(filePathOrBuffer)) {
+          throw new Error(`File not found: ${filePathOrBuffer}`);
+        }
+        
+        const stats = fs.statSync(filePathOrBuffer);
+        fileSize = stats.size;
+        console.log(`File size: ${fileSize} bytes`);
+        console.log(`File path: ${filePathOrBuffer}`);
+        
+        formData.append('file', fs.createReadStream(filePathOrBuffer), {
+          filename: fileName,
+          contentType: this.getContentType(fileName),
+          knownLength: fileSize
+        });
+        
+      } else {
+        throw new Error('Invalid input: Expected Buffer or file path string');
       }
-    );
-    
-    console.log('cPanel upload response:', JSON.stringify(response.data, null, 2));
-    
-    // IMPORTANT: Get the actual uploaded filename from cPanel response
-    let actualFileName = fileName;
-    
-    if (response.data.status === 1 && response.data.data && response.data.data.uploads) {
-      const uploads = response.data.data.uploads;
-      if (uploads.length > 0 && uploads[0].dest) {
-        // Extract filename from dest path
-        actualFileName = path.basename(uploads[0].dest);
-        console.log('Actual uploaded filename from cPanel:', actualFileName);
+      
+      // Prepare directory path
+      const cleanSubfolder = subfolder.endsWith('/') ? subfolder : `${subfolder}/`;
+      const remoteDir = `/home/${this.config.username}/public_html/uploads/${cleanSubfolder}`;
+      
+      formData.append('dir', remoteDir);
+      formData.append('overwrite', '1');
+      
+      console.log(`Uploading to directory: ${remoteDir}`);
+      
+      // Prepare authentication
+      const authString = Buffer.from(`${this.config.username}:${this.config.password}`).toString('base64');
+      
+      // Get form data headers
+      const formHeaders = formData.getHeaders();
+      
+      // Make the request
+      const response = await axios.post(
+        `${this.config.cpanelUrl}/execute/Fileman/upload_files`,
+        formData,
+        {
+          headers: {
+            ...formHeaders,
+            'Authorization': `Basic ${authString}`,
+            'Content-Length': formData.getLengthSync().toString(),
+          },
+          httpsAgent: this.httpsAgent,
+          timeout: 60000, // 60 second timeout
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity
+        }
+      );
+      
+      console.log('cPanel upload response status:', response.status);
+      console.log('cPanel upload response data:', JSON.stringify(response.data, null, 2));
+      
+      // Parse response to get actual uploaded filename
+      let actualFileName = fileName;
+      
+      if (response.data && typeof response.data === 'object') {
+        if (response.data.status === 1 && response.data.data && response.data.data.uploads) {
+          const uploads = response.data.data.uploads;
+          if (uploads.length > 0 && uploads[0].dest) {
+            // Extract filename from dest path
+            actualFileName = path.basename(uploads[0].dest);
+            console.log('Actual uploaded filename from cPanel:', actualFileName);
+          }
+        }
+        
+        // Check for errors in response
+        if (response.data.errors && response.data.errors.length > 0) {
+          console.warn('cPanel reported errors:', response.data.errors);
+        }
       }
+      
+      // Construct public URL
+      const cleanActualFileName = encodeURIComponent(actualFileName);
+      const publicUrl = `https://${this.config.domain}/uploads/${cleanSubfolder}${cleanActualFileName}`;
+      
+      console.log('Generated public URL:', publicUrl);
+      
+      // Verify URL is accessible (optional, can be disabled in production)
+      if (process.env.NODE_ENV !== 'production') {
+        await this.verifyUrlAccessible(publicUrl);
+      }
+      
+      return publicUrl;
+      
+    } catch (error) {
+      console.error('cPanel Upload Error Details:');
+      console.error('Error message:', error.message);
+      
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+        
+        if (error.response.status === 401) {
+          throw new Error('cPanel authentication failed. Check username and password.');
+        } else if (error.response.status === 404) {
+          throw new Error('cPanel API endpoint not found. Check cPanel URL.');
+        } else if (error.response.status === 500) {
+          throw new Error('cPanel server error. The cPanel may be experiencing issues.');
+        }
+      } else if (error.request) {
+        console.error('No response received. Request details:', error.request);
+        throw new Error('No response from cPanel server. Check network connection and cPanel URL.');
+      } else if (error.code === 'ECONNABORTED') {
+        throw new Error('Connection to cPanel timed out. Try reducing file size or check server load.');
+      }
+      
+      throw new Error(`cPanel upload failed: ${error.message}`);
     }
-    
-    const publicUrl = `https://${this.config.domain}/uploads/${subfolder}${actualFileName}`;
-    console.log('Generated public URL:', publicUrl);
-    
-    return publicUrl;
-    
-  } catch (error) {
-    console.error('cPanel Upload Error:', error.message);
-    throw error;
   }
-}
+
+  getContentType(filename) {
+    const ext = path.extname(filename).toLowerCase();
+    const mimeTypes = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.mp4': 'video/mp4',
+      '.mov': 'video/quicktime',
+      '.avi': 'video/x-msvideo',
+      '.mkv': 'video/x-matroska',
+      '.webm': 'video/webm',
+      '.pdf': 'application/pdf',
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.xls': 'application/vnd.ms-excel',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    };
+    return mimeTypes[ext] || 'application/octet-stream';
+  }
 
   async verifyUrlAccessible(url) {
     try {
-      const response = await axios.head(url, { timeout: 5000 });
-      console.log(`✅ URL verified: ${url} (${response.status})`);
+      console.log(`Verifying URL accessibility: ${url}`);
+      
+      const response = await axios.head(url, { 
+        timeout: 10000,
+        maxRedirects: 5,
+        validateStatus: (status) => status < 500 // Accept 4xx errors for verification
+      });
+      
+      console.log(`✅ URL verified: ${url} (Status: ${response.status})`);
       return true;
+      
     } catch (error) {
-      console.warn(`⚠️  URL verification failed (might still work): ${url} - ${error.message}`);
-      // Don't throw here - sometimes HEAD requests fail but GET works
-      return false;
+      // Try GET request if HEAD fails
+      try {
+        const getResponse = await axios.get(url, { 
+          timeout: 10000,
+          maxRedirects: 5,
+          validateStatus: (status) => status < 500
+        });
+        
+        console.log(`⚠️  HEAD failed but GET succeeded for: ${url} (Status: ${getResponse.status})`);
+        return true;
+        
+      } catch (getError) {
+        console.warn(`❌ URL verification failed: ${url} - ${getError.message}`);
+        // Don't throw - the URL might still work for others
+        return false;
+      }
     }
   }
 }
@@ -169,9 +308,11 @@ app.get('/api/media/:project', async (req, res) => {
 });
 
 // Combined upload endpoint - UPDATED
+// Combined upload endpoint - VERCEL COMPATIBLE
 app.post('/api/upload-media', upload.single('file'), async (req, res) => {
   try {
     console.log('Upload media request received');
+    
     if (!req.file) {
       return res.status(400).json({ 
         success: false, 
@@ -180,53 +321,126 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
     }
     
     // Get form data
-    const { name, description, date } = req.body;
-    console.log('Form data:', { name, description, date });
+    const { name, description, date, project = 'aurora' } = req.body;
+    console.log('Form data:', { name, description, date, project });
     
     if (!name || !description || !date) {
-      fs.unlinkSync(req.file.path);
+      // Clean up if file was saved to disk (local dev only)
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error('Cleanup error:', cleanupError);
+        }
+      }
       return res.status(400).json({ 
         success: false, 
-        error: 'Missing required fields' 
+        error: 'Missing required fields (name, description, date)' 
       });
     }
 
-    // FIX: Generate consistent filename BEFORE upload
+    // Generate consistent filename
     const timestamp = Date.now();
     const randomSuffix = Math.round(Math.random() * 1E9);
     const originalName = req.file.originalname;
     const fileExt = path.extname(originalName);
-    
-    // Use the SAME pattern as multer uses for temp file
     const fileName = `${timestamp}-${randomSuffix}${fileExt}`;
     
     console.log('Generated filename:', fileName);
-    console.log('Temp file path:', req.file.path);
+    console.log('Is Vercel environment?', !!process.env.VERCEL);
     
-    const project = 'aurora';
-    
-    // Upload to cPanel with the pre-generated filename
     let publicUrl;
+    let tempFilePath;
+    
     try {
-      publicUrl = await cpanelService.uploadFile(req.file.path, fileName, `${project}/`);
+      // Handle upload based on environment
+      if (process.env.VERCEL) {
+        // VERCEL: Use memory buffer and temporary file
+        console.log('Processing file in Vercel environment');
+        
+        // Create temp file in /tmp directory (allowed on Vercel)
+        tempFilePath = `/tmp/${fileName}`;
+        
+        // Write buffer to temp file
+        await fs.promises.writeFile(tempFilePath, req.file.buffer);
+        console.log('File written to temp location:', tempFilePath);
+        
+        // Upload from temp file
+        publicUrl = await cpanelService.uploadFile(tempFilePath, fileName, `${project}/`);
+        
+      } else if (req.file.buffer) {
+        // LOCAL with memory storage: Save buffer to local file first
+        console.log('Processing file from buffer in local environment');
+        
+        const tempDir = 'uploads/temp';
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+        
+        tempFilePath = path.join(tempDir, fileName);
+        await fs.promises.writeFile(tempFilePath, req.file.buffer);
+        
+        // Upload from temp file
+        publicUrl = await cpanelService.uploadFile(tempFilePath, fileName, `${project}/`);
+        
+      } else {
+        // LOCAL with disk storage: Use existing file path
+        console.log('Processing file from disk in local environment');
+        console.log('File path:', req.file.path);
+        
+        publicUrl = await cpanelService.uploadFile(req.file.path, fileName, `${project}/`);
+      }
+      
       console.log('cPanel upload successful:', publicUrl);
+      
     } catch (cpanelError) {
       console.error('cPanel upload failed:', cpanelError.message);
       
-      // Local fallback with same filename
-      const localUploadsDir = path.join(__dirname, 'public', 'uploads', project);
-      if (!fs.existsSync(localUploadsDir)) {
-        fs.mkdirSync(localUploadsDir, { recursive: true });
+      // Fallback to local storage (only for local development)
+      if (!process.env.VERCEL) {
+        console.log('Attempting local fallback...');
+        
+        const localUploadsDir = path.join(__dirname, 'public', 'uploads', project);
+        if (!fs.existsSync(localUploadsDir)) {
+          fs.mkdirSync(localUploadsDir, { recursive: true });
+        }
+        
+        const localFilePath = path.join(localUploadsDir, fileName);
+        
+        if (req.file.buffer) {
+          // Copy from buffer
+          await fs.promises.writeFile(localFilePath, req.file.buffer);
+        } else if (req.file.path && fs.existsSync(req.file.path)) {
+          // Copy from temp file
+          await fs.promises.copyFile(req.file.path, localFilePath);
+        } else if (tempFilePath && fs.existsSync(tempFilePath)) {
+          // Copy from temp file created earlier
+          await fs.promises.copyFile(tempFilePath, localFilePath);
+        } else {
+          throw new Error('No file data available for fallback');
+        }
+        
+        publicUrl = `/uploads/${project}/${fileName}`;
+        console.log('Using local fallback URL:', publicUrl);
+      } else {
+        // On Vercel, we can't save locally - create a placeholder URL
+        publicUrl = `https://${cpanelService.config.domain}/uploads/${project}/${fileName}`;
+        console.log('Created placeholder URL for Vercel:', publicUrl);
       }
-      
-      const localFilePath = path.join(localUploadsDir, fileName);
-      fs.copyFileSync(req.file.path, localFilePath);
-      publicUrl = `/uploads/${project}/${fileName}`;
-      console.log('Using local fallback:', publicUrl);
     }
-
-    // Clean up temp file
-    fs.unlinkSync(req.file.path);
+    
+    // Clean up temporary files
+    const cleanupPromises = [];
+    
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      cleanupPromises.push(fs.promises.unlink(tempFilePath));
+    }
+    
+    if (req.file.path && fs.existsSync(req.file.path) && !process.env.VERCEL) {
+      cleanupPromises.push(fs.promises.unlink(req.file.path));
+    }
+    
+    await Promise.allSettled(cleanupPromises);
     
     // Format date
     const formatDateToDDMMYYYY = (dateString) => {
@@ -237,6 +451,7 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         const year = date.getFullYear();
         return `${day}-${month}-${year}`;
       } catch (error) {
+        console.error('Date formatting error:', error);
         return dateString;
       }
     };
@@ -248,7 +463,9 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
       name: name.trim(),
       description: description.trim(),
       date: formatDateToDDMMYYYY(date),
-      url: publicUrl
+      url: publicUrl,
+      filename: fileName,
+      uploaded_at: new Date()
     };
 
     console.log('Saving to database:', newResource);
@@ -276,24 +493,39 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'File uploaded successfully',
-      data: newResource
+      data: newResource,
+      fileInfo: {
+        originalName: originalName,
+        size: req.file.size || req.file.buffer?.length || 0,
+        type: req.file.mimetype
+      }
     });
 
   } catch (error) {
     console.error('Upload error:', error);
     
-    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (cleanupError) {
-        console.error('Cleanup error:', cleanupError);
+    // Cleanup any remaining temp files
+    const cleanupPromises = [];
+    
+    if (req.file?.path && fs.existsSync(req.file.path) && !process.env.VERCEL) {
+      cleanupPromises.push(fs.promises.unlink(req.file.path));
+    }
+    
+    if (req.file?.buffer && req.file.originalname) {
+      // Try to cleanup temp file if it was created
+      const tempFileName = `/tmp/${Date.now()}-${req.file.originalname}`;
+      if (fs.existsSync(tempFileName)) {
+        cleanupPromises.push(fs.promises.unlink(tempFileName));
       }
     }
+    
+    await Promise.allSettled(cleanupPromises);
     
     res.status(500).json({ 
       success: false, 
       error: 'Upload failed',
-      details: error.message 
+      details: error.message,
+      env: process.env.VERCEL ? 'Vercel' : 'Local'
     });
   }
 });
@@ -519,16 +751,32 @@ app.post('/api/upload', (req, res, next) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const fileData = {
-      id: req.file.id,
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      contentType: req.file.contentType,
-      uploadDate: req.file.uploadDate || new Date(),
-      size: req.file.size,
-      metadata: req.file.metadata || {},
-      url: `/api/files/${req.file.filename}`
-    };
+    // For Vercel: Handle buffer instead of disk file
+    let fileData;
+    if (req.file.buffer) {
+      // Process buffer for Vercel
+      fileData = {
+        filename: req.file.originalname,
+        originalName: req.file.originalname,
+        contentType: req.file.mimetype,
+        uploadDate: new Date(),
+        size: req.file.size,
+        buffer: req.file.buffer, // Store buffer if needed
+        metadata: req.file.metadata || {}
+      };
+    } else {
+      // For local development
+      fileData = {
+        id: req.file.id,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        contentType: req.file.contentType,
+        uploadDate: req.file.uploadDate || new Date(),
+        size: req.file.size,
+        metadata: req.file.metadata || {},
+        url: `/api/files/${req.file.filename}`
+      };
+    }
 
     res.status(201).json({
       success: true,
