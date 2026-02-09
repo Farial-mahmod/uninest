@@ -13,16 +13,1102 @@ const { GridFSBucket } = require('mongodb');
 const cors = require('cors');
 require('dotenv').config();
 app.use(cors());
+
+// Update CORS configuration
+// Update CORS configuration - make sure this is before other middleware
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+// Apply CORS to all routes
+app.use(cors(corsOptions));
+
 app.use(express.json());
 
 // gallery
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
-
-// Create uploads directory if it doesn't exist
-// Configure multer based on environment
 let storage;
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+
+// Middleware
+app.use(cookieParser());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-this',
+  resave: false,
+  saveUninitialized: false,
+  store: new (require('express-session').MemoryStore)(), // Add memory store
+  cookie: {
+    secure: false, // Set to FALSE for local development
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax', // Changed from strict
+    path: '/', // Explicitly set path
+  }
+}));
+
+const mongoURI = process.env.URI;
+
+const conn = mongoose.createConnection(mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});
+
+// Init gfs and GridFSBucket
+let gfs;
+let gridFSBucket;
+
+conn.once('open', () => {
+  // Initialize GridFSBucket
+  gridFSBucket = new GridFSBucket(conn.db, {
+    bucketName: 'media'
+  });
+  
+  gfs = conn.db.collection('media.files');
+  console.log('MongoDB Connected & GridFS Initialized');
+});
+
+// Mock data (keep as fallback)
+const financialData = {
+  title: "Transparent Financial Breakdown",
+  subtitle: "Clear, auditable records for your share",
+  outstandingBalance: "8,50,000",
+  nextDueDate: {
+    date: "10-01-2026",
+    installment: "6th Construction Installment"
+  },
+  paymentSchedule: {
+    title: "Payment Schedule",
+    subtitle: "Full agreed-upon payment timeline",
+    items: [
+      {
+        name: "Land Share Cost",
+        date: "2023-01-15",
+        amount: "৳5,00,000",
+        status: "pending"
+      },
+      {
+        name: "1st Construction Installment",
+        date: "2023-03-01",
+        amount: "৳5,00,000",
+        status: "pending"
+      },
+      {
+        name: "2nd Construction Installment",
+        date: "2023-06-01",
+        amount: "৳3,00,000",
+        status: "pending"
+      },
+      {
+        name: "3rd Construction Installment",
+        date: "2023-09-01",
+        amount: "৳4,00,000",
+        status: "pending"
+      },
+      {
+        name: "4th Construction Installment",
+        date: "2024-01-01",
+        amount: "৳4,00,000",
+        status: "pending"
+      }
+    ]
+  },
+  rdcLog: {
+    title: "Completed Payments",
+    subtitle: "All payments made by you",
+    items: [
+      {
+        name: "5th Construction Installment",
+        date: "2024-05-28",
+        scheduledAmount: "৳4,00,000",
+        paidAmount: "৳4,00,000",
+        status: "completed"
+      },
+      {
+        name: "4th Construction Installment",
+        date: "2024-01-05",
+        scheduledAmount: "৳4,00,000",
+        paidAmount: "৳4,00,000",
+        status: "completed"
+      },
+      {
+        name: "3rd Construction Installment",
+        date: "2023-09-02",
+        scheduledAmount: "৳4,00,000",
+        paidAmount: "৳4,00,000",
+        status: "completed"
+      },
+      {
+        name: "2nd Construction Installment",
+        date: "2023-06-01",
+        scheduledAmount: "৳3,00,000",
+        paidAmount: "৳3,00,000",
+        status: "completed"
+      }
+    ]
+  },
+  projectCostBreakdown: {
+    title: "Project Cost Breakdown",
+    subtitle: "Transparent view of construction expenditure",
+    activeTab: "cost-overview",
+    tabs: [
+      { id: "cost-overview", name: "Cost Overview", active: true },
+      { id: "voucher-verification", name: "Voucher Verification", active: false }
+    ],
+    costOverview: {
+      totalProjectedCost: "৳1,50,00,000",
+      actualExpenditure: "৳92,50,000",
+      categories: [
+        {
+          name: "Steel/Rebar",
+          spent: "৳28,50,000",
+          budget: "৳30,00,000",
+          percentage: "95.0",
+          color: "#4299e1"
+        },
+        {
+          name: "Cement/Aggregate",
+          spent: "৳21,00,000",
+          budget: "৳25,00,000",
+          percentage: "84.0",
+          color: "#48bb78"
+        },
+        {
+          name: "Labor & Manpower",
+          spent: "৳25,00,000",
+          budget: "৳40,00,000",
+          percentage: "62.5",
+          color: "#ed8936"
+        },
+        {
+          name: "Finishing Materials",
+          spent: "৳12,00,000",
+          budget: "৳35,00,000",
+          percentage: "34.3",
+          color: "#9f7aea"
+        }
+      ]
+    },
+    vouchers: {
+      title: "Voucher Verification",
+      subtitle: "View scanned copies of vendor invoices for major purchases",
+      items: [
+        {
+          title: "Steel Rebar - 5th Floor Slab",
+          vendor: "Jindal Steel Suppliers",
+          voucherNo: "VCH-2024-089",
+          date: "2024-05-15",
+          amount: "৳4,25,000",
+          invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
+        },
+        {
+          title: "Cement - 50 bags Premium Grade",
+          vendor: "Ultratech Cement Dealers",
+          voucherNo: "VCH-2024-078",
+          date: "2024-04-28",
+          amount: "৳1,85,000",
+          invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
+        },
+        {
+          title: "Labor Payment - April 2024",
+          vendor: "Construction Workforce",
+          voucherNo: "VCH-2024-065",
+          date: "2024-04-10",
+          amount: "৳3,20,000",
+          invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
+        }
+      ]
+    }
+  }
+};
+
+const constructionProgress = {
+  title: "Construction Progress",
+  subtitle: "Real-time updates on development milestones",
+  timeline: [
+    {
+      title: "Land Acquisition & Site Clearance",
+      status: "completed",
+      label: "Completed",
+      startDate: "Jan 15, 2023",
+      endDate: "Feb 28, 2023",
+      note: ""
+    },
+    {
+      title: "Excavation & Foundation",
+      status: "completed",
+      label: "Completed",
+      startDate: "Mar 1, 2023",
+      endDate: "May 15, 2023",
+      note: ""
+    },
+    {
+      title: "Ground Floor Construction",
+      status: "completed",
+      label: "Completed",
+      startDate: "May 16, 2023",
+      endDate: "Aug 30, 2023",
+      note: "Minor delay due to monsoon season"
+    },
+    {
+      title: "1st & 2nd Floor Construction",
+      status: "in-progress",
+      label: "In Progress",
+      startDate: "Sep 1, 2023",
+      endDate: "Jan 31, 2024",
+      note: "Currently at 65% completion"
+    },
+    {
+      title: "3rd & 4th Floor Construction",
+      status: "pending",
+      label: "Pending",
+      startDate: "Feb 1, 2024",
+      endDate: "Jun 30, 2024",
+      note: ""
+    },
+    {
+      title: "Exterior Finishing",
+      status: "pending",
+      label: "Pending",
+      startDate: "Jul 1, 2024",
+      endDate: "Sep 30, 2024",
+      note: ""
+    },
+    {
+      title: "Interior Finishing & Handover",
+      status: "pending",
+      label: "Pending",
+      startDate: "Oct 1, 2024",
+      endDate: "Dec 31, 2024",
+      note: "Estimated completion date"
+    }
+  ]
+};
+
+const customizationData = {
+  title: "Unit Customization",
+  subtitle: "Personalize your living space",
+  customizationOptions: {
+    title: "Available Customization Options",
+    subtitle: "Select your preferred finishes and materials",
+    notice: "The customization window is currently closed. Please contact your project manager if you need to make changes.",
+    categories: [
+      {
+        name: "Flooring",
+        window: "Jan 1, 2024 – Mar 31, 2024",
+        windowStatus: "closed",
+        options: [
+          {
+            name: "Premium Porcelain Tiles",
+            brand: "RAK Ceramics",
+            surface: "Matte Finish",
+            image: "/images/floor1.jpg",
+            upgradeCost: "৳15,000",
+            selected: false
+          },
+          {
+            name: "Italian Marble",
+            brand: "Carrara",
+            surface: "Polished",
+            image: "/images/floor2.jpg",
+            upgradeCost: "৳25,000",
+            selected: false
+          },
+          {
+            name: "Engineered Wood",
+            brand: "Mohawk",
+            surface: "Oak Texture",
+            image: "/images/floor3.jpg",
+            upgradeCost: "৳18,000",
+            selected: false
+          }
+        ]
+      },
+      {
+        name: "Kitchen Cabinets",
+        window: "Feb 1, 2024 – Apr 30, 2024",
+        windowStatus: "open",
+        options: [
+          {
+            name: "Modular Plywood",
+            brand: "Greenply",
+            surface: "Laminated",
+            image: "/images/kitchen1.jpg",
+            upgradeCost: "৳12,000",
+            selected: true
+          },
+          {
+            name: "Premium PVC",
+            brand: "Fenesta",
+            surface: "Glossy Finish",
+            image: "/images/kitchen2.jpg",
+            upgradeCost: "৳8,000",
+            selected: false
+          },
+          {
+            name: "Stainless Steel",
+            brand: "Blum",
+            surface: "Metallic",
+            image: "/images/kitchen3.jpg",
+            upgradeCost: "৳20,000",
+            selected: false
+          }
+        ]
+      },
+      {
+        name: "Wall Color",
+        window: "Mar 1, 2024 – May 31, 2024",
+        windowStatus: "open",
+        options: [
+          {
+            name: "Premium Emulsion",
+            brand: "Berger",
+            surface: "Matte",
+            image: "/images/wall1.jpg",
+            upgradeCost: "৳5,000",
+            selected: false
+          },
+          {
+            name: "Washable Paint",
+            brand: "Asian Paints",
+            surface: "Satin",
+            image: "/images/wall2.jpg",
+            upgradeCost: "৳7,000",
+            selected: true
+          },
+          {
+            name: "Eco-Friendly",
+            brand: "Dulux",
+            surface: "Zero VOC",
+            image: "/images/wall3.jpg",
+            upgradeCost: "৳9,000",
+            selected: false
+          }
+        ]
+      }
+    ]
+  },
+  yourSelection: {
+    title: "Your Current Selection",
+    subtitle: "You can modify these until the customization window closes.",
+    items: [
+      {
+        name: "Flooring",
+        value: "Premium Porcelain Tiles",
+        brand: "RAK Ceramics",
+        upgradeCost: "৳15,000",
+        image: "/images/floor1.jpg"
+      },
+      {
+        name: "Kitchen Cabinets",
+        value: "Modular Plywood",
+        brand: "Greenply",
+        upgradeCost: "৳12,000",
+        image: "/images/kitchen1.jpg"
+      },
+      {
+        name: "Wall Color",
+        value: "Washable Paint",
+        brand: "Asian Paints",
+        upgradeCost: "৳7,000",
+        image: "/images/wall2.jpg"
+      }
+    ]
+  }
+};
+
+// Helper function for ordinal suffixes
+function getOrdinalSuffix(n) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+}
+
+async function generateFinancialData(shareholder, costDoc) {
+  try {
+    if (!shareholder) {
+      console.log('No shareholder data found, using mock data');
+      // Return mock data but ensure structure is correct
+      return {
+        ...financialData,
+        paymentSchedule: { title: "", subtitle: "", items: [] }
+      };
+    }
+    
+    console.log('Processing shareholder data:', {
+      name: shareholder.name,
+      total_installments: shareholder.total_installments,
+      installment_amount: shareholder.installment_amount,
+      paymentsCount: shareholder.payments?.length
+    });
+    
+    const { total_installments = 36, installment_amount = 0, payments = [] } = shareholder;
+    
+    // 1. Calculate outstanding balance
+    const totalAmount = (total_installments || 36) * (installment_amount || 0);
+    const paidAmount = payments
+      .filter(p => p && p.status === 'Paid')
+      .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
+    const outstandingBalance = totalAmount - paidAmount;
+    
+    // 2. Format outstanding balance with commas (Bangladeshi format)
+    const formattedOutstandingBalance = outstandingBalance.toLocaleString('en-IN');
+    
+    // 3. Find next due date - find the first unpaid installment
+    let nextDue = null;
+    if (payments && payments.length > 0) {
+      for (let payment of payments) {
+        if (payment && payment.status === 'due' && (payment.amount_paid === 0 || payment.amount_paid === undefined)) {
+          nextDue = payment;
+          break;
+        }
+      }
+    }
+    
+    const nextDueDate = nextDue?.last_date || "10-01-2026";
+    const installmentNumber = nextDue?.installment_number || 6;
+    
+    // 4. Get completed payments
+    let completedPayments = [];
+    if (payments && payments.length > 0) {
+      completedPayments = payments
+        .filter(p => p && p.status === 'Paid')
+        .sort((a, b) => (b.installment_number || 0) - (a.installment_number || 0))
+        .map(p => {
+          // Format date properly
+          let paymentDate = p.payment_date || "N/A";
+          // Convert "2026-02-05" to "05-02-2026" if needed
+          if (paymentDate.includes('-') && paymentDate.length === 10) {
+            const parts = paymentDate.split('-');
+            paymentDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          }
+          
+          return {
+            name: `${p.installment_number || 1}${getOrdinalSuffix(p.installment_number || 1)} Construction Installment`,
+            date: paymentDate,
+            scheduledAmount: `৳${(installment_amount || 0).toLocaleString('en-IN')}`,
+            paidAmount: `৳${(p.amount_paid || 0).toLocaleString('en-IN')}`,
+            status: "completed"
+          };
+        });
+    }
+    
+    // 5. Process voucher data from cost collection - FIXED
+    let voucherItems = [];
+    if (costDoc && costDoc.cost && Array.isArray(costDoc.cost)) {
+      console.log('Processing REAL cost data:', costDoc.cost.length, 'items found');
+      console.log('Cost document:', JSON.stringify(costDoc, null, 2));
+      
+      voucherItems = costDoc.cost.map(item => {
+        // Generate a proper voucher number
+        const datePart = (item.date || '').replace(/-/g, '').replace(/\//g, '');
+        const randomPart = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        const voucherNo = datePart ? `VCH-${datePart}-${randomPart}` : `VCH-${randomPart}`;
+        
+        return {
+          title: `${item.material || ''} - ${item.description || ''}`,
+          vendor: item.brand || 'Unknown Vendor',
+          voucherNo: voucherNo,
+          date: item.date || 'N/A',
+          amount: `৳${(item.amount || 0).toLocaleString('en-IN')}`,
+          invoiceUrl: item.voucher_link || '#'
+        };
+      });
+      
+      console.log('Generated voucher items:', voucherItems);
+    } else {
+      console.log('No cost data found in database');
+      // Use mock vouchers as fallback
+      voucherItems = financialData.projectCostBreakdown.vouchers.items;
+    }
+    
+    const result = {
+      title: "Transparent Financial Breakdown",
+      subtitle: "Clear, auditable records for your share",
+      outstandingBalance: formattedOutstandingBalance || "0",
+      nextDueDate: {
+        date: nextDueDate,
+        installment: `${installmentNumber}${getOrdinalSuffix(installmentNumber)} Construction Installment`
+      },
+      // Add empty paymentSchedule to avoid EJS errors
+      paymentSchedule: {
+        title: "",
+        subtitle: "",
+        items: []
+      },
+      rdcLog: {
+        title: "Completed Payments",
+        subtitle: "All payments made by you",
+        items: completedPayments.length > 0 ? completedPayments : financialData.rdcLog.items
+      },
+      projectCostBreakdown: {
+        title: "Project Cost Breakdown",
+        subtitle: "Transparent view of construction expenditure",
+        activeTab: "cost-overview",
+        tabs: [
+          { id: "cost-overview", name: "Cost Overview", active: true },
+          { id: "voucher-verification", name: "Voucher Verification", active: false }
+        ],
+        costOverview: {
+          totalProjectedCost: "৳33,60,000",
+          actualExpenditure: "৳92,50,000",
+          categories: financialData.projectCostBreakdown.costOverview.categories
+        },
+        vouchers: {
+          title: "Voucher Verification",
+          subtitle: "View scanned copies of vendor invoices for major purchases",
+          items: voucherItems // Use the REAL voucher items
+        }
+      }
+    };
+    
+    console.log('Generated financial data:', {
+      outstandingBalance: result.outstandingBalance,
+      completedPayments: result.rdcLog.items.length,
+      voucherItems: result.projectCostBreakdown.vouchers.items.length
+    });
+    
+    return result;
+    
+  } catch (error) {
+    console.error('Error generating financial data:', error);
+    console.error('Error stack:', error.stack);
+    return {
+      ...financialData,
+      paymentSchedule: { title: "", subtitle: "", items: [] }
+    };
+  }
+}
+
+app.get('/dashboard', async (req, res) => {
+  console.log('=== DASHBOARD ACCESS ===');
+  console.log('Session ID:', req.sessionID);
+  
+  if (!req.session.user) {
+    console.log('NO USER SESSION FOUND - Redirecting to login');
+    return res.redirect('/login');
+  }
+
+  try {
+    const userMobile = req.session.user?.mobile;
+    
+    if (!userMobile) {
+      console.log('No mobile in session');
+      return res.redirect('/login');
+    }
+    
+    console.log('Fetching REAL data for mobile:', userMobile);
+    
+    // CORRECTED: Use aurora database instead of default connection
+    const auroraDB = conn.useDb('aurora');
+    
+    // 1. Fetch shareholder data from aurora database
+    const shareholderDoc = await auroraDB.collection('shareholder').findOne({
+      "shareholder.mobile": userMobile
+    });
+    
+    let shareholder = null;
+    if (shareholderDoc && shareholderDoc.shareholder) {
+      shareholder = shareholderDoc.shareholder.find(sh => sh.mobile === userMobile);
+      console.log('Found REAL shareholder:', shareholder?.name);
+    } else {
+      console.log('No shareholder found in database');
+    }
+    
+    // 2. Fetch cost data from aurora database
+    const costDoc = await auroraDB.collection('cost').findOne({ project: "aurora" });
+    
+    // 3. Fetch construction progress from aurora database
+    const milestoneDoc = await auroraDB.collection('milestone').findOne({ project: "aurora" });
+    
+    // 4. Fetch customization data from aurora database
+    const customizationDoc = await auroraDB.collection('customization').findOne({ project: "aurora" });
+    
+    // 5. Fetch media data from aurora database
+    const mediaDoc = await auroraDB.collection('media').findOne({ project: "aurora" });
+    
+    // Generate REAL financial data
+    const dynamicFinancialData = await generateFinancialData(shareholder, costDoc);
+    
+    // Generate REAL construction progress data
+    const dynamicConstructionProgress = generateConstructionProgressFromDB(milestoneDoc);
+    
+    // Generate REAL customization data
+    const dynamicCustomizationData = generateCustomizationFromDB(customizationDoc);
+    
+    // Add media to construction progress
+    if (mediaDoc && mediaDoc.resource) {
+      dynamicConstructionProgress.media = mediaDoc.resource;
+    }
+    
+    console.log('Using REAL data for dashboard:', {
+      financial: !!dynamicFinancialData,
+      construction: !!dynamicConstructionProgress,
+      customization: !!dynamicCustomizationData,
+      shareholderFound: !!shareholder
+    });
+    
+    res.render('index', {
+      activeTab: 'financial-transparency',
+      financialData: dynamicFinancialData,
+      constructionProgress: dynamicConstructionProgress,
+      customizationData: dynamicCustomizationData,
+      user: req.session.user
+    });
+    
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+    res.render('index', {
+      activeTab: 'financial-transparency',
+      financialData,
+      constructionProgress,
+      customizationData,
+      user: req.session.user
+    });
+  }
+});
+
+// Helper function to generate construction progress from database
+function generateConstructionProgressFromDB(milestoneDoc) {
+  if (!milestoneDoc || !milestoneDoc.milestone || !Array.isArray(milestoneDoc.milestone)) {
+    console.log('No milestone data found, using mock data');
+    return constructionProgress; // Fallback to mock
+  }
+  
+  const timeline = milestoneDoc.milestone.map(item => ({
+    title: item.description || 'Milestone',
+    status: (item.status || 'Planned').toLowerCase().replace(/\s+/g, '-'),
+    label: item.status || 'Planned',
+    startDate: item.planned_date || 'N/A',
+    endDate: item.completion_date || 'In Progress',
+    note: item.note || ''
+  }));
+  
+  return {
+    title: "Construction Progress",
+    subtitle: "Real-time updates on development milestones",
+    timeline: timeline
+  };
+}
+
+// Helper function to generate customization from database
+function generateCustomizationFromDB(customizationDoc, userName = '') {
+  if (!customizationDoc || !customizationDoc.selection || !Array.isArray(customizationDoc.selection)) {
+    console.log('No customization data found, using mock data');
+    return customizationData; // Fallback to mock
+  }
+  
+  console.log('Processing customization data for user:', userName);
+  console.log('Customization selection items:', customizationDoc.selection.length);
+  
+  // Transform database data to match frontend structure
+  const categories = customizationDoc.selection.map(item => {
+    console.log('Processing item:', item.name);
+    
+    // Check which option the current user has selected
+    let selectedOptionIndex = -1;
+    const options = [];
+    
+    // Create options array from option_1, option_2, option_3
+    for (let i = 1; i <= 3; i++) {
+      const optionKey = `option_${i}`;
+      if (item[optionKey]) {
+        const option = item[optionKey];
+        const isSelected = option.voters && option.voters.includes(userName);
+        if (isSelected) {
+          selectedOptionIndex = i - 1; // Zero-based index
+        }
+        
+        // Create option names based on details
+        let optionName = `Option ${i}`;
+        if (option.details) {
+          optionName = option.details.split(' ')[0] + ' Tiles'; // Extract brand name
+        }
+        
+        options.push({
+          name: optionName,
+          brand: option.details || '',
+          surface: 'Premium',
+          image: option.url || '',
+          upgradeCost: i === 1 ? '৳15,000' : i === 2 ? '৳25,000' : '৳18,000',
+          selected: isSelected
+        });
+        
+        console.log(`Option ${i}:`, { 
+          selected: isSelected, 
+          voters: option.voters 
+        });
+      }
+    }
+    
+    // Determine window status based on dates
+    const windowEnd = new Date(item.to.split('-').reverse().join('-'));
+    const now = new Date();
+    const windowStatus = windowEnd < now ? 'closed' : 'open';
+    
+    return {
+      name: item.name || 'Tiles Preference',
+      window: `${item.from} – ${item.to}`,
+      windowStatus: windowStatus,
+      options: options
+    };
+  });
+  
+  // Get user's current selections
+  const userSelections = [];
+  customizationDoc.selection.forEach(item => {
+    for (let i = 1; i <= 3; i++) {
+      const optionKey = `option_${i}`;
+      if (item[optionKey] && item[optionKey].voters && item[optionKey].voters.includes(userName)) {
+        const option = item[optionKey];
+        userSelections.push({
+          name: item.name || 'Tiles Preference',
+          value: `Option ${i}`,
+          brand: option.details || '',
+          upgradeCost: i === 1 ? '৳15,000' : i === 2 ? '৳25,000' : '৳18,000',
+          image: option.url || ''
+        });
+        console.log(`User selected option ${i} for ${item.name}`);
+        break; // User can only select one option per category
+      }
+    }
+  });
+  
+  const result = {
+    title: "Unit Customization",
+    subtitle: "Personalize your living space",
+    customizationOptions: {
+      title: "Available Customization Options",
+      subtitle: "Select your preferred finishes and materials",
+      notice: userSelections.length > 0 
+        ? "You can modify your selection until the customization window closes." 
+        : "The customization window is currently open. Make your selection before it closes.",
+      categories: categories
+    },
+    yourSelection: {
+      title: "Your Current Selection",
+      subtitle: "You can modify these until the customization window closes.",
+      items: userSelections.length > 0 ? userSelections : [{
+        name: "Tiles Preference",
+        value: "No selection made yet",
+        brand: "Please select an option below",
+        upgradeCost: "৳0",
+        image: ""
+      }]
+    }
+  };
+  
+  console.log('Generated customization data:', {
+    categories: result.customizationOptions.categories.length,
+    userSelections: result.yourSelection.items.length
+  });
+  
+  return result;
+}
+
+app.get('/api/debug/customization', async (req, res) => {
+  try {
+    const auroraDB = conn.useDb('aurora');
+    const collection = auroraDB.collection('customization');
+    
+    // Get all documents
+    const docs = await collection.find({}).toArray();
+    
+    console.log('Debug: Found customization documents:', docs.length);
+    docs.forEach((doc, index) => {
+      console.log(`Document ${index}:`, {
+        id: doc._id,
+        hasProjectField: 'project' in doc,
+        projectValue: doc.project,
+        selectionCount: doc.selection?.length || 0
+      });
+    });
+    
+    res.json({
+      count: docs.length,
+      documents: docs
+    });
+    
+  } catch (error) {
+    console.error('Debug error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API to update customization selection (add user to voters array)
+// API to update customization selection (add user to voters array)
+app.post('/api/customization/vote', async (req, res) => {
+  try {
+    console.log('=== CUSTOMIZATION VOTE REQUEST ===');
+    console.log('Request body:', req.body);
+    console.log('Session user:', req.session.user);
+    
+    if (!req.session.user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Not authenticated' 
+      });
+    }
+    
+    const { categoryIndex, optionNumber } = req.body;
+    const userName = req.session.user.name;
+    const userMobile = req.session.user.mobile;
+    
+    console.log('User:', userName, 'selecting option:', optionNumber, 'in category:', categoryIndex);
+    
+    if (categoryIndex === undefined || optionNumber === undefined) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields' 
+      });
+    }
+    
+    // Use the correct database
+    const auroraDB = conn.useDb('aurora');
+    const collection = auroraDB.collection('customization');
+    
+    // Find the customization document - FIXED: Remove project filter
+    const doc = await collection.findOne({});
+    console.log('Found document:', !!doc);
+    
+    if (!doc || !doc.selection || !Array.isArray(doc.selection)) {
+      console.log('Document structure issue:', {
+        hasDoc: !!doc,
+        hasSelection: doc?.selection ? 'Yes' : 'No',
+        selectionIsArray: Array.isArray(doc?.selection)
+      });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Customization data not found' 
+      });
+    }
+    
+    console.log('Selection array length:', doc.selection.length);
+    console.log('Category index requested:', categoryIndex);
+    
+    if (categoryIndex >= doc.selection.length) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid category index' 
+      });
+    }
+    
+    const category = doc.selection[categoryIndex];
+    const optionKey = `option_${optionNumber}`;
+    
+    console.log('Category:', category.name);
+    console.log('Option key:', optionKey);
+    console.log('Has option:', !!category[optionKey]);
+    
+    if (!category[optionKey]) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid option number' 
+      });
+    }
+    
+    console.log('Current voters for option', optionNumber, ':', category[optionKey].voters);
+    console.log('User name to add:', userName);
+    
+    // Remove user from all voters arrays in this category first
+    const updateOperations = {};
+    for (let i = 1; i <= 3; i++) {
+      const optKey = `option_${i}`;
+      if (category[optKey]) {
+        const currentVoters = category[optKey].voters || [];
+        const filteredVoters = currentVoters.filter(voter => voter !== userName && voter !== '');
+        updateOperations[`selection.${categoryIndex}.${optKey}.voters`] = filteredVoters;
+        console.log(`Option ${i} voters after filtering:`, filteredVoters);
+      }
+    }
+    
+    // Add user to the selected option's voters array
+    const selectedOptionVoters = updateOperations[`selection.${categoryIndex}.${optionKey}.voters`] || [];
+    if (!selectedOptionVoters.includes(userName)) {
+      selectedOptionVoters.push(userName);
+      updateOperations[`selection.${categoryIndex}.${optionKey}.voters`] = selectedOptionVoters;
+      console.log(`Added ${userName} to option ${optionNumber} voters`);
+    }
+    
+    console.log('Update operations:', updateOperations);
+    
+    // Update the document
+    const result = await collection.updateOne(
+      { _id: doc._id },
+      { 
+        $set: updateOperations,
+        $currentDate: { updated_at: true }
+      }
+    );
+    
+    console.log('Update result:', {
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount,
+      upsertedCount: result.upsertedCount
+    });
+    
+    if (result.modifiedCount === 0) {
+      console.log('No documents were modified');
+    }
+    
+    // Get updated document to verify
+    const updatedDoc = await collection.findOne({ _id: doc._id });
+    console.log('Updated document option voters:', {
+      option1: updatedDoc.selection[categoryIndex].option_1?.voters,
+      option2: updatedDoc.selection[categoryIndex].option_2?.voters,
+      option3: updatedDoc.selection[categoryIndex].option_3?.voters
+    });
+    
+    const updatedCustomizationData = generateCustomizationFromDB(updatedDoc, userName);
+    
+    res.json({
+      success: true,
+      message: 'Selection updated successfully',
+      customizationData: updatedCustomizationData
+    });
+    
+  } catch (error) {
+    console.error('Error updating customization vote:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+
+// Test route to check current customization data
+app.get('/api/test/customization', async (req, res) => {
+  try {
+    const auroraDB = conn.useDb('aurora');
+    const collection = auroraDB.collection('customization');
+    
+    const doc = await collection.findOne({});
+    
+    if (!doc) {
+      return res.json({ message: 'No customization document found' });
+    }
+    
+    res.json({
+      message: 'Current customization data',
+      data: doc
+    });
+    
+  } catch (error) {
+    console.error('Test error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/cost-tabs/:tabId', async (req, res) => {
+  try {
+    console.log('=== COST TAB REQUEST ===');
+    console.log('Tab ID requested:', req.params.tabId);
+    console.log('User mobile from session:', req.session.user?.mobile);
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    const userMobile = req.session.user.mobile; 
+    const tabId = req.params.tabId;
+    
+    // Use the correct database
+    const auroraDB = conn.useDb('aurora');
+    
+    const shareholderDoc = await auroraDB.collection('shareholder').findOne({
+      "shareholder.mobile": userMobile 
+    });
+    
+    let shareholder = null;
+    if (shareholderDoc && shareholderDoc.shareholder) {
+      shareholder = shareholderDoc.shareholder.find(sh => sh.mobile === userMobile);
+    }
+    
+    // Fetch REAL cost data
+    const costDoc = await auroraDB.collection('cost').findOne({ project: "aurora" });
+    
+    console.log('Cost document found:', !!costDoc);
+    if (costDoc) {
+      console.log('Cost items count:', costDoc.cost?.length || 0);
+    }
+    
+    const dynamicFinancialData = await generateFinancialData(shareholder, costDoc);
+    
+    console.log('Sending response with tab:', tabId);
+    console.log('Voucher items count:', dynamicFinancialData.projectCostBreakdown.vouchers.items.length);
+    
+    res.json({
+      success: true,
+      costBreakdown: {
+        activeTab: tabId,
+        costOverview: dynamicFinancialData.projectCostBreakdown.costOverview,
+        vouchers: dynamicFinancialData.projectCostBreakdown.vouchers
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error in cost tab:', error);
+    res.json({
+      success: false,
+      costBreakdown: {
+        activeTab: req.params.tabId,
+        costOverview: financialData.projectCostBreakdown.costOverview,
+        vouchers: financialData.projectCostBreakdown.vouchers
+      }
+    });
+  }
+});
+
+// Login route (simplified example)
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Find user in shareholder collection
+    const shareholderDoc = await conn.db.collection('shareholder').findOne({
+      "shareholder.email": email,
+      "shareholder.password": password
+    });
+    
+    if (shareholderDoc) {
+      const shareholder = shareholderDoc.shareholder.find(sh => sh.email === email);
+      
+      // Set session
+      req.session.user = {
+        email: shareholder.email,
+        name: shareholder.name,
+        flat_number: shareholder.flat_number,
+        role: shareholder.role
+      };
+      
+      res.json({ 
+        success: true, 
+        message: "Login successful",
+        user: req.session.user
+      });
+    } else {
+      res.status(401).json({ 
+        success: false, 
+        message: "Invalid credentials" 
+      });
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error" 
+    });
+  }
+});
 
 if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
   // For Vercel: Use memory storage
@@ -275,6 +1361,24 @@ class CPanelUploadService {
 
 const cpanelService = new CPanelUploadService();
 
+// Authentication middleware
+const requireAuth = (req, res, next) => {
+  if (!req.session.user) {
+    return res.redirect('/login');
+  }
+  next();
+};
+
+const requireAdmin = (req, res, next) => {
+  if (!req.session.user) {
+    return res.redirect('/login');
+  }
+  if (req.session.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Access denied. Admin only.' });
+  }
+  next();
+};
+
 // GET media endpoint
 app.get('/api/media/:project', async (req, res) => {
   try {
@@ -307,7 +1411,6 @@ app.get('/api/media/:project', async (req, res) => {
   }
 });
 
-// Combined upload endpoint - UPDATED
 // Combined upload endpoint - VERCEL COMPATIBLE
 app.post('/api/upload-media', upload.single('file'), async (req, res) => {
   try {
@@ -584,28 +1687,6 @@ app.post('/api/media/:project', async (req, res) => {
     console.error('Error adding media:', error);
     res.status(500).json({ error: 'Failed to add media' });
   }
-});
-
-// MongoDB Connection
-const mongoURI = process.env.URI;
-
-const conn = mongoose.createConnection(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
-
-// Init gfs and GridFSBucket
-let gfs;
-let gridFSBucket;
-
-conn.once('open', () => {
-  // Initialize GridFSBucket
-  gridFSBucket = new GridFSBucket(conn.db, {
-    bucketName: 'media'
-  });
-  
-  gfs = conn.db.collection('media.files');
-  console.log('MongoDB Connected & GridFS Initialized');
 });
 
 //
@@ -987,7 +2068,6 @@ app.post('/api/costs/:project', async (req, res) => {
 });
 
 // milestone
-// GET milestones for a project (matching your JSON structure)
 app.get('/api/milestones/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
@@ -1215,322 +2295,293 @@ app.post('/api/media/:project', async (req, res) => {
   }
 });
 
-// Mock data for the financial transparency module
-const financialData = {
-  title: "Transparent Financial Breakdown",
-  subtitle: "Clear, auditable records for your share",
-  outstandingBalance: "8,50,000",
-  nextDueDate: {
-    date: "10-01-2026",
-    installment: "6th Construction Installment"
-  },
-  paymentSchedule: {
-    title: "Payment Schedule",
-    subtitle: "Full agreed-upon payment timeline",
-    items: [
-      {
-        name: "Land Share Cost",
-        date: "2023-01-15",
-        amount: "৳5,00,000",
-        status: "pending"
-      },
-      {
-        name: "1st Construction Installment",
-        date: "2023-03-01",
-        amount: "৳5,00,000",
-        status: "pending"
-      },
-      {
-        name: "2nd Construction Installment",
-        date: "2023-06-01",
-        amount: "৳3,00,000",
-        status: "pending"
-      },
-      {
-        name: "3rd Construction Installment",
-        date: "2023-09-01",
-        amount: "৳4,00,000",
-        status: "pending"
-      },
-      {
-        name: "4th Construction Installment",
-        date: "2024-01-01",
-        amount: "৳4,00,000",
-        status: "pending"
-      }
-    ]
-  },
-  rdcLog: {
-    title: "Completed Payments",
-    subtitle: "All payments made by you",
-    items: [
-      {
-        name: "5th Construction Installment",
-        date: "2024-05-28",
-        scheduledAmount: "৳4,00,000",
-        paidAmount: "৳4,00,000",
-        status: "completed"
-      },
-      {
-        name: "4th Construction Installment",
-        date: "2024-01-05",
-        scheduledAmount: "৳4,00,000",
-        paidAmount: "৳4,00,000",
-        status: "completed"
-      },
-      {
-        name: "3rd Construction Installment",
-        date: "2023-09-02",
-        scheduledAmount: "৳4,00,000",
-        paidAmount: "৳4,00,000",
-        status: "completed"
-      },
-      {
-        name: "2nd Construction Installment",
-        date: "2023-06-01",
-        scheduledAmount: "৳3,00,000",
-        paidAmount: "৳3,00,000",
-        status: "completed"
-      }
-    ]
-  },
-  // NEW: Project Cost Breakdown Data
-  projectCostBreakdown: {
-    title: "Project Cost Breakdown",
-    subtitle: "Transparent view of construction expenditure",
-    activeTab: "cost-overview",
-    tabs: [
-      { id: "cost-overview", name: "Cost Overview", active: true },
-      { id: "voucher-verification", name: "Voucher Verification", active: false }
-    ],
-    costOverview: {
-      totalProjectedCost: "৳1,50,00,000",
-      actualExpenditure: "৳92,50,000",
-      categories: [
-        {
-          name: "Steel/Rebar",
-          spent: "৳28,50,000",
-          budget: "৳30,00,000",
-          percentage: "95.0",
-          color: "#4299e1"
-        },
-        {
-          name: "Cement/Aggregate",
-          spent: "৳21,00,000",
-          budget: "৳25,00,000",
-          percentage: "84.0",
-          color: "#48bb78"
-        },
-        {
-          name: "Labor & Manpower",
-          spent: "৳25,00,000",
-          budget: "৳40,00,000",
-          percentage: "62.5",
-          color: "#ed8936"
-        },
-        {
-          name: "Finishing Materials",
-          spent: "৳12,00,000",
-          budget: "৳35,00,000",
-          percentage: "34.3",
-          color: "#9f7aea"
-        }
-      ]
-    },
-    vouchers: {
-      title: "Voucher Verification",
-      subtitle: "View scanned copies of vendor invoices for major purchases",
-      items: [
-        {
-          title: "Steel Rebar - 5th Floor Slab",
-          vendor: "Jindal Steel Suppliers",
-          voucherNo: "VCH-2024-089",
-          date: "2024-05-15",
-          amount: "৳4,25,000",
-          invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
-        },
-        {
-          title: "Cement - 50 bags Premium Grade",
-          vendor: "Ultratech Cement Dealers",
-          voucherNo: "VCH-2024-078",
-          date: "2024-04-28",
-          amount: "৳1,85,000",
-          invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
-        },
-        {
-          title: "Labor Payment - April 2024",
-          vendor: "Construction Workforce",
-          voucherNo: "VCH-2024-065",
-          date: "2024-04-10",
-          amount: "৳3,20,000",
-          invoiceUrl: "https://bulletin.miamioh.edu/engineering-computing/quantum-computing-bsqc/quantum-computing-bsqc.pdf"
-        }
-      ]
-    }
-  }
-};
-
-const constructionProgress = {
-  title: "Construction Progress",
-  subtitle: "Visual, transparent project milestones",
-  timeline: [
-    {
-      title: "Land Clearance & Preparation",
-      startDate: "March 2023",
-      endDate: "April 2023",
-      status: "completed",
-      label: "Completed"
-    },
-    {
-      title: "Foundation & Piling Completion",
-      startDate: "May 2023",
-      endDate: "July 2023",
-      status: "completed",
-      label: "Completed"
-    },
-    {
-      title: "Brick Work & Plaster",
-      startDate: "Nov 2023",
-      endDate: "Jan 2024",
-      status: "in-progress",
-      label: "Ongoing",
-      note: "Material delivery delayed due to weather"
-    },
-    {
-      title: "Electrical & Plumbing",
-      startDate: "Feb 2024",
-      endDate: "Mar 2024",
-      status: "upcoming",
-      label: "Upcoming"
-    }
-  ],
-  media: [
-    {
-      title: "Foundation work",
-      category: "Foundation",
-      thumbnail: "/images/1.png"
-    },
-    {
-      title: "Column casting",
-      category: "Structure",
-      thumbnail: "/images/2.png"
-    },
-    {
-      title: "Electrical wiring",
-      category: "Walls",
-      thumbnail: "/images/3.png"
-    }
-  ]
-};
-
-// Routes
+// login
 app.get('/login', (req, res) => {
+  if (req.session.user) {
+    // Redirect to appropriate dashboard if already logged in
+    return res.redirect(req.session.user.role === 'admin' ? '/admin' : '/dashboard');
+  }
   res.render('login');
 });
+
+app.get('/', (req, res) => {
+  if (req.session.user) {
+    return res.redirect(req.session.user.role === 'admin' ? '/admin' : '/dashboard');
+  }
+  res.redirect('/login');
+});
+
+app.post('/api/login', async (req, res) => {
+  try {
+    const { mobile, password } = req.body;
+
+    if (!mobile || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Mobile and password are required' 
+      });
+    }
+    
+    console.log('Login attempt for mobile:', mobile);
+    
+    const db = conn.useDb('aurora');
+    const collection = db.collection('shareholder');
+    
+    const doc = await collection.findOne({ "shareholder.mobile": mobile });
+    
+    if (!doc || !doc.shareholder || doc.shareholder.length === 0) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid mobile number' 
+      });
+    }
+    
+    const user = doc.shareholder.find(sh => sh.mobile === mobile);
+    
+    if (!user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid mobile number' 
+      });
+    }
+    
+    if (user.password !== password) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid password' 
+      });
+    }
+    
+    console.log('Login successful for:', user.name);
+    
+    // Create user session
+    const userSession = {
+      id: user.id,
+      name: user.name,
+      mobile: user.mobile,
+      email: user.email,
+      flat_number: user.flat_number,
+      project: user.project,
+      role: user.role,
+      total_installments: user.total_installments,
+      installment_amount: user.installment_amount,
+      payments: user.payments
+    };
+
+    // Set session
+    req.session.user = userSession;
+    
+    // Save session and set cookie headers
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Session error' 
+        });
+      }
+      
+      console.log('Session saved, ID:', req.sessionID);
+      console.log('Setting cookie for session:', req.session.cookie);
+      
+      // Send success response with explicit cookie header
+      res.json({
+        success: true,
+        message: 'Login successful',
+        user: userSession,
+        sessionID: req.sessionID,
+        redirect: user.role === 'admin' ? '/admin' : '/dashboard'
+      });
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
+  }
+});
+
+// Session check endpoint (optional)
+app.get('/api/check-session', (req, res) => {
+  if (req.session.user) {
+    res.json({ 
+      loggedIn: true, 
+      user: req.session.user 
+    });
+  } else {
+    res.json({ loggedIn: false });
+  }
+});
+
+// Logout endpoint
+app.post('/api/logout', (req, res) => {
+  req.session.destroy();
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
+// Routes
 
 app.get('/', (req, res) => {
   res.redirect('/login');
 });
 
 app.get('/admin', (req, res) => {
-  res.render('admin');
+  res.render('admin', { user: req.session.user });
 });
 
 // Dashboard page
-app.get('/dashboard', (req, res) => {
-  res.render('index', {
-    activeTab: 'financial-transparency',
-    financialData,
-    constructionProgress,
-    customizationData
-  });
-});
-
-// AJAX tab loading
-app.get('/tabs/:tabName', (req, res) => {
-  const { tabName } = req.params;
-
-  const responseData = {
-    activeTab: tabName,
-    financialData: tabName === 'financial-transparency' ? financialData : null,
-    constructionProgress: tabName === 'construction-progress' ? constructionProgress : null,
-    customizationData: tabName === 'customization' ? customizationData : null
-  };
-
-  res.json(responseData);
-});
-
-// Route to handle cost breakdown tab switching
-app.get('/cost-tabs/:tabId', (req, res) => {
-  const { tabId } = req.params;
-  
-  financialData.projectCostBreakdown.tabs.forEach(tab => {
-    tab.active = (tab.id === tabId);
-  });
-  financialData.projectCostBreakdown.activeTab = tabId;
-  
-  res.json({
-    success: true,
-    activeTab: tabId,
-    costBreakdown: financialData.projectCostBreakdown
-  });
-});
-
-const customizationData = {
-  title: "Customization & Choice",
-  subtitle: "Personalize your finishing materials",
-  yourSelection: {
-    title: "Your Selection",
-    subtitle: "Customized customization choice",
-    items: [
-      {
-        name: "Room Tile",
-        value: "Premium Korean Tile",
-        brand: "Kujata",
-        upgradeCost: "৳15,000",
-        image: "/images/tile2.PNG"
+app.get('/tabs/:tabName', async (req, res) => {
+  try {
+    console.log(`=== TAB REQUEST: ${req.params.tabName} ===`);
+    console.log('Session user:', req.session.user?.name);
+    
+    const { tabName } = req.params;
+    
+    if (!req.session.user) {
+      console.log('No session user found');
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    const userMobile = req.session.user.mobile;
+    
+    // Use the correct database
+    const auroraDB = conn.useDb('aurora');
+    
+    let responseData = {
+      activeTab: tabName,
+      financialData: null,
+      constructionProgress: null,
+      customizationData: null
+    };
+    
+    if (tabName === 'financial-transparency') {
+      console.log('Fetching financial data for:', userMobile);
+      
+      // Fetch REAL financial data
+      const shareholderDoc = await auroraDB.collection('shareholder').findOne({
+        "shareholder.mobile": userMobile
+      });
+      
+      let shareholder = null;
+      if (shareholderDoc && shareholderDoc.shareholder) {
+        shareholder = shareholderDoc.shareholder.find(sh => sh.mobile === userMobile);
+        console.log('Found shareholder:', shareholder?.name);
       }
-    ]
-  },
-  customizationOptions: {
-    title: "Customization Options",
-    subtitle: "Select finishing materials for your floor",
-    categories: [
-      {
-        name: "Room Tile",
-        window: "01-01-2026 to 31-01-2026",
-        windowStatus: "open",
-        options: [
-          {
-            name: "Standard Korean Tile",
-            brand: "Ceres",
-            surface: "Carpet",
-            upgradeCost: null,
-            selected: false,
-            image: "/images/tile1.PNG"
-          },
-          {
-            name: "Premium Korean Tile",
-            brand: "Kujata",
-            surface: "Acrylic",
-            upgradeCost: "৳15,000",
-            selected: true,
-            image: "/images/tile2.PNG"
-          },
-          {
-            name: "Wooden Finish Tile",
-            brand: "Ceres",
-            surface: "Wood",
-            upgradeCost: "৳50,000",
-            selected: false,
-            image: "/images/tile3.PNG"
-          }
-        ]
+      
+      const costDoc = await auroraDB.collection('cost').findOne({ project: "aurora" });
+      console.log('Cost document found:', !!costDoc);
+      
+      responseData.financialData = await generateFinancialData(shareholder, costDoc);
+      console.log('Financial data generated:', !!responseData.financialData);
+      
+    } else if (tabName === 'construction-progress') {
+      console.log('Fetching construction progress data');
+      
+      // Fetch REAL construction progress
+      const milestoneDoc = await auroraDB.collection('milestone').findOne({ project: "aurora" });
+      console.log('Milestone document found:', !!milestoneDoc);
+      
+      responseData.constructionProgress = generateConstructionProgressFromDB(milestoneDoc);
+      console.log('Construction progress data generated:', !!responseData.constructionProgress);
+      
+      // Add media if needed
+      const mediaDoc = await auroraDB.collection('media').findOne({ project: "aurora" });
+      if (mediaDoc && mediaDoc.resource) {
+        responseData.constructionProgress.media = mediaDoc.resource;
       }
-    ],
-    notice: "The selection window for this category is open. Make your choice before the deadline."
+      } else if (tabName === 'customization') {
+  console.log('Fetching customization data');
+  
+  const userName = req.session.user.name;
+  
+  // Fetch REAL customization data - FIXED QUERY
+  const customizationDoc = await auroraDB.collection('customization').findOne({});
+  console.log('Customization document found:', !!customizationDoc);
+  
+  if (customizationDoc) {
+    console.log('Customization data:', {
+      selectionCount: customizationDoc.selection?.length || 0,
+      firstItem: customizationDoc.selection?.[0]?.name || 'N/A'
+    });
   }
-};
+  
+  responseData.customizationData = generateCustomizationFromDB(customizationDoc, userName);
+  console.log('Customization data generated:', !!responseData.customizationData);
+} else {
+      console.log('Unknown tab requested:', tabName);
+    }
+    
+    console.log(`Sending response for ${tabName} tab`);
+    console.log('Response data structure:', {
+      hasFinancialData: !!responseData.financialData,
+      hasConstructionProgress: !!responseData.constructionProgress,
+      hasCustomizationData: !!responseData.customizationData
+    });
+    
+    res.json(responseData);
+    
+  } catch (error) {
+    console.error('Error loading tab data:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Return mock data on error
+    const { tabName } = req.params;
+    res.json({
+      activeTab: tabName,
+      financialData: tabName === 'financial-transparency' ? financialData : null,
+      constructionProgress: tabName === 'construction-progress' ? constructionProgress : null,
+      customizationData: tabName === 'customization' ? customizationData : null
+    });
+  }
+});
+
+app.get('/tabs/customization', async (req, res) => {
+  try {
+    console.log('=== CUSTOMIZATION TAB REQUEST ===');
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    const userName = req.session.user.name;
+    console.log('Fetching customization for user:', userName);
+    
+    // Use the correct database
+    const auroraDB = conn.useDb('aurora');
+    
+    // Fetch REAL customization data - FIXED QUERY
+    // Don't filter by project since your data doesn't have project field
+    const customizationDoc = await auroraDB.collection('customization').findOne({});
+    console.log('Customization document found:', !!customizationDoc);
+    
+    if (customizationDoc) {
+      console.log('Customization document structure:', {
+        hasSelection: !!customizationDoc.selection,
+        selectionLength: customizationDoc.selection?.length || 0
+      });
+    }
+    
+    const dynamicCustomizationData = generateCustomizationFromDB(customizationDoc, userName);
+    
+    res.json({
+      activeTab: 'customization',
+      financialData: null,
+      constructionProgress: null,
+      customizationData: dynamicCustomizationData
+    });
+    
+  } catch (error) {
+    console.error('Error loading customization tab:', error);
+    res.json({
+      activeTab: 'customization',
+      financialData: null,
+      constructionProgress: null,
+      customizationData: customizationData // Fallback to mock
+    });
+  }
+});
 
 // Update the /customization/update route
 app.get('/customization/update', (req, res) => {
@@ -1568,7 +2619,6 @@ app.get('/customization/update', (req, res) => {
   });
 });
 
-// customization
 // Update your server endpoint to use req.params.project instead of hardcoding "aurora"
 app.get('/api/customization/:project', async (req, res) => {
   try {

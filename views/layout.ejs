@@ -13,7 +13,8 @@
         <%- include('partials/header') %>
         
         <main>
-            <%- include('partials/tabs') %>
+            <!-- Pass activeTab variable to tabs partial -->
+            <%- include('partials/tabs', { activeTab }) %>
             
             <div id="tab-content">
                 <% if (activeTab === 'financial-transparency') { %>
@@ -23,9 +24,9 @@
                         <h2>Construction Progress</h2>
                         <p>This tab would show construction progress data.</p>
                     </div>
-<% } else if (activeTab === 'customization') { %>
-    <%- include('partials/customization') %>
-<% } %>
+                <% } else if (activeTab === 'customization') { %>
+                    <%- include('partials/customization') %>
+                <% } %>
             </div>
         </main>
     </div>
@@ -33,25 +34,9 @@
     <script src="/js/main.js"></script>
 
     <!-- Image Preview Modal -->
-<div id="image-modal" class="image-modal hidden">
-    <div class="image-modal-overlay"></div>
-    <img id="image-modal-img" src="" alt="Preview">
-</div>
-
-<!-- IMAGE PREVIEW MODAL -->
-<div id="image-modal" class="image-modal hidden">
-    <span class="image-modal-close">
-        <i class="fas fa-times"></i>
-    </span>
-    <img id="image-modal-img" src="" alt="Preview">
-</div>
-
-<div id="image-modal" class="image-modal hidden">
-    <div class="image-modal-content">
-        <span class="image-modal-close">&times;</span>
+    <div id="image-modal" class="image-modal hidden">
+        <div class="image-modal-overlay"></div>
         <img id="image-modal-img" src="" alt="Preview">
     </div>
-</div>
-
 </body>
 </html>

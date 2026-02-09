@@ -233,6 +233,27 @@
         font-size: 22px;
       }
     }
+
+    .custom-alert {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ff4c4c;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 500;
+  z-index: 501;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.custom-alert.success {
+  background-color: #4CAF50;
+}
+
   </style>
 </head>
 <body>
@@ -290,80 +311,111 @@
   const passwordError = document.getElementById('passwordError');
   const loginBtn = form.querySelector('button[type="submit"]');
 
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
+form.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  let valid = true;
+  mobileError.style.display = 'none';
+  passwordError.style.display = 'none';
+  const mobilePattern = /^(01\d{9}|\+\d{1,13})$/;
 
-    let valid = true;
-    mobileError.style.display = 'none';
-    passwordError.style.display = 'none';
+  if (!mobilePattern.test(mobileInput.value.trim())) {
+    mobileError.style.display = 'block';
+    valid = false;
+  }
 
-    const mobilePattern = /^(01\d{9}|\+\d{1,13})$/;
+  if (passwordInput.value.trim().length < 6) {
+    passwordError.style.display = 'block';
+    valid = false;
+  }
+  
+  if (!valid) return;
 
-    if (!mobilePattern.test(mobileInput.value.trim())) {
-      mobileError.style.display = 'block';
-      valid = false;
-    }
+  // Change button to loading
+  loginBtn.disabled = true;
+  loginBtn.textContent = "Loading...";
 
-    if (passwordInput.value.trim().length < 6) {
-      passwordError.style.display = 'block';
-      valid = false;
-    }
-
-    if (!valid) return;
-
-    // -------------------------
-    // CHANGE BUTTON TO LOADING
-    // -------------------------
-    loginBtn.disabled = true;
-    loginBtn.textContent = "Loading...";
-
+  try {
     const userData = {
       mobile: mobileInput.value.trim(),
       password: passwordInput.value.trim()
     };
 
-    window.location.href = mobileInput.value == '01676625520' ? '/admin' : '/dashboard';
+    // Send login request
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData)
+    });
 
-    // fetch('/login', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(userData),
-    //   credentials: 'include'
-    // })
-    // .then(res => res.json())
-    // .then(data => {
-    //   if (data.success) {
-    //     const userId = data.user.id;
-    //     if (userId === 1) {
-    //       window.location.href = '/dashboard';
-    //     } else {
-    //       window.location.href = '/profile';
-    //     }
-    //   } 
-      
-    //   else {
-    //     showCustomAlert('Login failed: ' + data.message);
-
-    //     // Restore button
-    //     loginBtn.disabled = false;
-    //     loginBtn.textContent = "Login";
-    //   }
-    // })
-    // .catch(err => {
-    //   console.error(err);
-    //   showCustomAlert("Please try again.");
-
-    //   // Restore button
-    //   loginBtn.disabled = false;
-    //   loginBtn.textContent = "Login";
-    // });
+    const result = await response.json();
     
-  });
+    console.log('Login response:', result); // Debug log
 
-  function showCustomAlert(message) {
+    if (result.success) {
+      // Show success message
+      showCustomAlert('Login successful! Redirecting...', 'success');
+      
+      console.log('Redirecting to:', result.redirect); // Debug log
+      
+      // Small delay to show success message
+      setTimeout(() => {
+        window.location.href = result.redirect;
+      }, 800);
+    } else {
+      // Show error message
+      showCustomAlert(result.message || 'Login failed');
+      loginBtn.disabled = false;
+      loginBtn.textContent = "Login";
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    showCustomAlert('Network error. Please try again.');
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Login";
+  }
+});
+
+function showCustomAlert(message, type = 'error') {
+  // Remove any existing alerts first
+  const existingAlerts = document.querySelectorAll('.custom-alert');
+  existingAlerts.forEach(alert => alert.remove());
+  
   const alert = document.createElement('div');
   alert.className = 'custom-alert';
   alert.textContent = message;
+  
+  // Set background color based on type
+  if (type === 'success') {
+    alert.style.backgroundColor = '#4CAF50';
+  } else {
+    alert.style.backgroundColor = '#ff4c4c';
+  }
+  
+  document.body.appendChild(alert);
+  
+  // Fade in
+  setTimeout(() => alert.style.opacity = '1', 10);
+  // Remove after 3 seconds
+  setTimeout(() => {
+    alert.style.opacity = '0';
+    setTimeout(() => alert.remove(), 300);
+  }, 3000);
+}
+
+function showCustomAlert(message, type = 'error') {
+  const alert = document.createElement('div');
+  alert.className = 'custom-alert';
+  alert.textContent = message;
+  
+  // Set background color based on type
+  if (type === 'success') {
+    alert.style.backgroundColor = '#4CAF50';
+  } else {
+    alert.style.backgroundColor = '#ff4c4c';
+  }
+  
   document.body.appendChild(alert);
   
   // Fade in
@@ -373,7 +425,7 @@
   setTimeout(() => {
     alert.style.opacity = '0';
     setTimeout(() => alert.remove(), 300);
-  }, 5001);
+  }, 3000);
 }
 
 </script>
