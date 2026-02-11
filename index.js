@@ -27,10 +27,7 @@ const corsOptions = {
 
 // Apply CORS to all routes
 app.use(cors(corsOptions));
-
 app.use(express.json());
-
-// gallery
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
@@ -587,6 +584,65 @@ async function generateFinancialData(shareholder, costDoc) {
   }
 }
 
+//
+// Gallery route - fetch media data
+app.get('/tabs/gallery', async (req, res) => {
+  try {
+    console.log('=== GALLERY TAB REQUEST ===');
+    
+    if (!req.session.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    const project = req.session.user.project || 'aurora';
+    console.log('Fetching gallery for project:', project);
+    
+    // Use the correct database
+    const projectDB = conn.useDb(project.toLowerCase());
+    const collection = projectDB.collection('media');
+    
+    // Find the media document
+    const mediaDoc = await collection.findOne({});
+    
+    let galleryItems = [];
+    
+    if (mediaDoc && mediaDoc.resource && Array.isArray(mediaDoc.resource)) {
+      console.log(`Found ${mediaDoc.resource.length} gallery items`);
+      
+      galleryItems = mediaDoc.resource.map(item => ({
+        name: item.name || 'Untitled',
+        description: item.description || '',
+        date: item.date || '',
+        url: item.url || '',
+        type: item.mediaType || (item.url.match(/\.(mp4|mov|avi|mkv|webm)$/i) ? 'video' : 'photo'),
+        filename: item.filename || ''
+      }));
+    } else {
+      console.log('No media found in database');
+    }
+    
+    res.json({
+      activeTab: 'gallery',
+      gallery: {
+        title: "Project Gallery",
+        subtitle: "Browse through construction progress photos and videos",
+        items: galleryItems
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error loading gallery tab:', error);
+    res.json({
+      activeTab: 'gallery',
+      gallery: {
+        title: "Project Gallery",
+        subtitle: "Browse through construction progress photos and videos",
+        items: []
+      }
+    });
+  }
+});
+
 app.get('/dashboard', async (req, res) => {
   console.log('=== DASHBOARD ACCESS ===');
   console.log('Session ID:', req.sessionID);
@@ -842,7 +898,6 @@ app.get('/api/debug/customization', async (req, res) => {
   }
 });
 
-// API to update customization selection (add user to voters array)
 // API to update customization selection (add user to voters array)
 app.post('/api/customization/vote', async (req, res) => {
   try {
@@ -2432,6 +2487,7 @@ app.get('/admin', (req, res) => {
 });
 
 // Dashboard page
+// FIXED: Tab endpoint - return COMPLETE data structure
 app.get('/tabs/:tabName', async (req, res) => {
   try {
     console.log(`=== TAB REQUEST: ${req.params.tabName} ===`);
@@ -2445,79 +2501,85 @@ app.get('/tabs/:tabName', async (req, res) => {
     }
     
     const userMobile = req.session.user.mobile;
+    const userName = req.session.user.name;
     
-    // Use the correct database
+    // ALWAYS use aurora database
     const auroraDB = conn.useDb('aurora');
     
+    // Initialize response with null values
     let responseData = {
       activeTab: tabName,
       financialData: null,
       constructionProgress: null,
-      customizationData: null
+      customizationData: null,
+      gallery: null
     };
     
+    // Fetch data based on requested tab
     if (tabName === 'financial-transparency') {
-      console.log('Fetching financial data for:', userMobile);
+      console.log('Fetching financial transparency data');
       
-      // Fetch REAL financial data
-      const shareholderDoc = await auroraDB.collection('shareholder').findOne({
-        "shareholder.mobile": userMobile
-      });
-      
+      // Fetch shareholder
+      const shareholderDoc = await auroraDB.collection('shareholder').findOne({});
       let shareholder = null;
       if (shareholderDoc && shareholderDoc.shareholder) {
         shareholder = shareholderDoc.shareholder.find(sh => sh.mobile === userMobile);
-        console.log('Found shareholder:', shareholder?.name);
       }
       
-      const costDoc = await auroraDB.collection('cost').findOne({ project: "aurora" });
-      console.log('Cost document found:', !!costDoc);
+      // Fetch cost data
+      const costDoc = await auroraDB.collection('cost').findOne({});
       
+      // Generate financial data
       responseData.financialData = await generateFinancialData(shareholder, costDoc);
-      console.log('Financial data generated:', !!responseData.financialData);
       
     } else if (tabName === 'construction-progress') {
       console.log('Fetching construction progress data');
       
-      // Fetch REAL construction progress
-      const milestoneDoc = await auroraDB.collection('milestone').findOne({ project: "aurora" });
-      console.log('Milestone document found:', !!milestoneDoc);
+      // Fetch milestone data
+      const milestoneDoc = await auroraDB.collection('milestone').findOne({});
       
+      // Generate construction progress
       responseData.constructionProgress = generateConstructionProgressFromDB(milestoneDoc);
-      console.log('Construction progress data generated:', !!responseData.constructionProgress);
       
-      // Add media if needed
-      const mediaDoc = await auroraDB.collection('media').findOne({ project: "aurora" });
-      if (mediaDoc && mediaDoc.resource) {
-        responseData.constructionProgress.media = mediaDoc.resource;
+    } else if (tabName === 'customization') {
+      console.log('Fetching customization data for user:', userName);
+      
+      // Fetch customization data
+      const customizationDoc = await auroraDB.collection('customization').findOne({});
+      
+      // Generate customization data
+      responseData.customizationData = generateCustomizationFromDB(customizationDoc, userName);
+      
+    } else if (tabName === 'gallery') {
+      console.log('Fetching gallery data');
+      
+      // Fetch media data
+      const mediaDoc = await auroraDB.collection('media').findOne({});
+      
+      let galleryItems = [];
+      if (mediaDoc && mediaDoc.resource && Array.isArray(mediaDoc.resource)) {
+        galleryItems = mediaDoc.resource.map(item => ({
+          name: item.name || 'Untitled',
+          description: item.description || '',
+          date: item.date || '',
+          url: item.url || '',
+          type: item.mediaType || (item.url && item.url.match(/\.(mp4|mov|avi|mkv|webm)$/i) ? 'video' : 'photo'),
+          filename: item.filename || ''
+        }));
       }
-      } else if (tabName === 'customization') {
-  console.log('Fetching customization data');
-  
-  const userName = req.session.user.name;
-  
-  // Fetch REAL customization data - FIXED QUERY
-  const customizationDoc = await auroraDB.collection('customization').findOne({});
-  console.log('Customization document found:', !!customizationDoc);
-  
-  if (customizationDoc) {
-    console.log('Customization data:', {
-      selectionCount: customizationDoc.selection?.length || 0,
-      firstItem: customizationDoc.selection?.[0]?.name || 'N/A'
-    });
-  }
-  
-  responseData.customizationData = generateCustomizationFromDB(customizationDoc, userName);
-  console.log('Customization data generated:', !!responseData.customizationData);
-} else {
-      console.log('Unknown tab requested:', tabName);
+      
+      responseData.gallery = {
+        title: "Project Gallery",
+        subtitle: "Browse through construction progress photos and videos",
+        items: galleryItems
+      };
     }
     
-    console.log(`Sending response for ${tabName} tab`);
-    console.log('Response data structure:', {
+    console.log(`Sending response for ${tabName} tab with data:`, {
       hasFinancialData: !!responseData.financialData,
       hasConstructionProgress: !!responseData.constructionProgress,
-      hasCustomizationData: !!responseData.customizationData
+      hasCustomizationData: !!responseData.customizationData,
+      hasGallery: !!responseData.gallery
     });
     
     res.json(responseData);
@@ -2526,14 +2588,30 @@ app.get('/tabs/:tabName', async (req, res) => {
     console.error('Error loading tab data:', error);
     console.error('Error stack:', error.stack);
     
-    // Return mock data on error
     const { tabName } = req.params;
-    res.json({
+    
+    // Return mock data with COMPLETE structure
+    const errorResponse = {
       activeTab: tabName,
-      financialData: tabName === 'financial-transparency' ? financialData : null,
+      financialData: tabName === 'financial-transparency' ? {
+        ...financialData,
+        projectCostBreakdown: {
+          ...financialData.projectCostBreakdown,
+          vouchers: {
+            ...financialData.projectCostBreakdown.vouchers,
+            items: []
+          }
+        }
+      } : null,
       constructionProgress: tabName === 'construction-progress' ? constructionProgress : null,
-      customizationData: tabName === 'customization' ? customizationData : null
-    });
+      customizationData: tabName === 'customization' ? customizationData : null,
+      gallery: tabName === 'gallery' ? {
+        title: "Project Gallery",
+        subtitle: "Browse gallery",
+        items: []
+      } : null
+    };
+    res.json(errorResponse);
   }
 });
 

@@ -1,0 +1,194 @@
+<div class="tab-pane">
+    <div class="page-header">
+        <h1>Gallery</h1>
+        <p class="subtitle">Photos & Videos</p>
+    </div>
+    <div class="balance-card">
+        <div class="balance-left">
+            <h3>Outstanding Balance (in BDT)</h3>
+            <div class="balance-amount"><%= financialData.outstandingBalance %></div>
+        </div>
+        <div class="balance-right">
+            <div class="due-date-label">Due Date</div>
+            <div class="due-date"><%= financialData.nextDueDate.date %></div>
+            <div class="due-installment"><%= financialData.nextDueDate.installment %></div>
+        </div>
+    </div>
+    <div class="section-divider">
+        <hr>
+    </div>
+    <div class="payment-sections">
+        <div class="payment-section">
+            <div class="section-header">
+                <h2><%= financialData.rdcLog.title %></h2>
+                <p class="section-subtitle"><%= financialData.rdcLog.subtitle %></p>
+            </div>
+            <div class="payment-items">
+                <% financialData.rdcLog.items.forEach((item, index) => { %>
+                <div class="payment-item <%= item.status %>">
+                    <div class="payment-item-header">
+                        <div class="payment-status">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="payment-info">
+                            <h4><%= item.name %></h4>
+                            <p class="payment-date"><%= item.date %></p>
+                        </div>
+                    </div>
+                    <div class="payment-amounts">
+                        <span class="amount-badge paid"><%= item.paidAmount %></span>
+                    </div>
+                </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+    <div class="section-divider">
+        <hr>
+    </div>
+    <div class="project-cost-breakdown">
+        <div class="section-header">
+            <h2><%= financialData.projectCostBreakdown.title %></h2>
+            <p class="section-subtitle"><%= financialData.projectCostBreakdown.subtitle %></p>
+        </div>
+        <div class="cost-tabs">
+            <% financialData.projectCostBreakdown.tabs.forEach((tab) => { %>
+            <button class="cost-tab-button <%= tab.active ? 'active' : '' %>" 
+                    data-tab-id="<%= tab.id %>">
+                <%= tab.name %>
+            </button>
+            <% }) %>
+        </div>
+        <div id="cost-tab-content" class="cost-tab-content">
+            <!-- Content will be loaded here via JavaScript -->
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// Load initial cost tab content
+document.addEventListener('DOMContentLoaded', function() {
+    const activeTabId = '<%= financialData.projectCostBreakdown.activeTab %>';
+    loadCostTabContent(activeTabId);
+    // Attach click handlers to cost tab buttons
+    document.querySelectorAll('.cost-tab-button').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const tabId = this.getAttribute('data-tab-id');
+            // Update active tab button
+            document.querySelectorAll('.cost-tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // Load content for the selected tab
+            loadCostTabContent(tabId);
+        });
+    });
+});
+
+function loadCostTabContent(tabId) {
+    const costTabContent = document.getElementById('cost-tab-content');
+    if (!costTabContent) return;
+    
+    // Show loading state
+    costTabContent.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+        </div>
+    `;
+    
+    // Fetch tab content
+    fetch(`/cost-tabs/${tabId}`)
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                updateCostTabContent(data.costBreakdown);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading cost tab:', error);
+            costTabContent.innerHTML = `
+                <div class="error">
+                    <p>Error loading content. Please try again.</p>
+                </div>
+            `;
+        });
+}
+
+function updateCostTabContent(costBreakdown) {
+    const costTabContent = document.getElementById('cost-tab-content');
+    if (!costTabContent) return;
+    
+    if (costBreakdown.activeTab === 'cost-overview') {
+        costTabContent.innerHTML = generateCostOverviewHTML(costBreakdown.costOverview);
+    } else {
+        costTabContent.innerHTML = generateVoucherVerificationHTML(costBreakdown.vouchers);
+    }
+}
+
+function generateCostOverviewHTML(costOverview) {
+    return `
+        <div class="cost-overview">
+            <div class="cost-summary-cards">
+                <div class="cost-card">
+                    <h3>Total Projected Cost</h3>
+                    <div class="cost-amount projected">
+                        ${costOverview.totalProjectedCost}
+                    </div>
+                </div>
+                
+                <div class="cost-card">
+                    <h3>Expenditure So Far</h3>
+                    <div class="cost-amount actual">
+                        ${costOverview.actualExpenditure}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function generateVoucherVerificationHTML(vouchers) {
+    return `
+        <div class="voucher-verification">
+            <div class="section-header">
+                <h2>${vouchers.title}</h2>
+                <p class="section-subtitle">${vouchers.subtitle}</p>
+            </div>
+            <div class="voucher-list">
+                ${vouchers.items.map(voucher => `
+                    <div class="voucher-item">
+                        <div class="voucher-left">
+                            <div class="voucher-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="voucher-info">
+                                <h4>${voucher.title}</h4>
+                                <p class="vendor-name">${voucher.vendor}</p>
+                                <p class="voucher-meta">
+                                    ${voucher.voucherNo} • ${voucher.date}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="voucher-right">
+                            <div class="voucher-amount">${voucher.amount}</div>
+                            <a href="${voucher.invoiceUrl}" 
+                               target="_blank" 
+                               class="view-invoice-btn">
+                                <i class="fas fa-external-link-alt"></i>
+                                View Invoice
+                            </a>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+</script>

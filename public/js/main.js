@@ -380,6 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// In your main.js - MODIFY ONLY THIS FUNCTION
 function initializeTabSwitching() {
     console.log('Initializing tab switching...');
     
@@ -393,16 +394,7 @@ function initializeTabSwitching() {
     
     console.log(`Found ${tabButtons.length} tab buttons`);
     
-    // Remove any existing event listeners
     tabButtons.forEach(button => {
-        const newButton = button.cloneNode(true);
-        button.parentNode.replaceChild(newButton, button);
-    });
-    
-    // Get fresh references
-    const freshButtons = document.querySelectorAll('.tab-button');
-    
-    freshButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -410,29 +402,31 @@ function initializeTabSwitching() {
             const tabName = this.getAttribute('data-tab');
             console.log(`Tab clicked: ${tabName}`);
             
-            // Update active tab button
-            freshButtons.forEach(btn => {
+            tabButtons.forEach(btn => {
                 btn.classList.remove('active');
                 btn.setAttribute('aria-selected', 'false');
             });
             this.classList.add('active');
             this.setAttribute('aria-selected', 'true');
             
-            // Update URL without reloading page
             const url = new URL(window.location);
             url.searchParams.set('tab', tabName);
             window.history.pushState({}, '', url);
             
-            // Show loading state
             tabContent.innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
                     <p>Loading ${tabName.replace('-', ' ')}...</p>
                 </div>
             `;
+            // MODIFIED: Direct endpoint for gallery
+            let fetchUrl = `/tabs/${tabName}`;
+
+            if (tabName === 'gallery') {
+                fetchUrl = '/tabs/gallery';
+            }
             
-            // Fetch and display tab content via AJAX
-            fetch(`/tabs/${tabName}`, {
+            fetch(fetchUrl, {
                 credentials: 'include'
             })
                 .then(response => {
@@ -443,21 +437,21 @@ function initializeTabSwitching() {
                     return response.json();
                 })
                 .then(data => {
-                    console.log(`Data received for ${tabName}:`, {
-                        hasFinancialData: !!data.financialData,
-                        hasConstructionProgress: !!data.constructionProgress,
-                        hasCustomizationData: !!data.customizationData
-                    });
+                    console.log(`Data received for ${tabName}:`, data);
                     
-                    // Update tab content based on active tab
                     let contentHtml = '';
                     
                     if (tabName === 'financial-transparency' && data.financialData) {
                         contentHtml = generateFinancialTransparencyHTML(data.financialData);
+                        setTimeout(() => {
+                            initializeCostTabSwitching();
+                        }, 100);
                     } else if (tabName === 'construction-progress' && data.constructionProgress) {
                         contentHtml = generateConstructionProgressHTML(data.constructionProgress);
                     } else if (tabName === 'customization' && data.customizationData) {
                         contentHtml = generateCustomizationHTML(data.customizationData);
+                    } else if (tabName === 'gallery' && data.gallery) {
+                            contentHtml = generateGalleryHTML(data.gallery);
                     } else {
                         contentHtml = `
                             <div class="tab-pane">
@@ -465,28 +459,13 @@ function initializeTabSwitching() {
                                     <h1>Content Not Available</h1>
                                     <p class="subtitle">Unable to load ${tabName.replace('-', ' ')} data</p>
                                 </div>
-                                <div class="coming-soon">
-                                    <i class="fas fa-exclamation-triangle fa-3x"></i>
-                                    <p>This content is not available at the moment.</p>
-                                </div>
                             </div>
                         `;
                     }
                     
                     tabContent.innerHTML = contentHtml;
-                    
-                    // Initialize any dynamic elements in the loaded content
-                    if (tabName === 'financial-transparency') {
-                        // Initialize cost tab switching
-                        setTimeout(() => {
-                            initializeCostTabSwitching();
-                        }, 100);
-                    }
-                    
                     attachImagePreviewListeners();
-                    
                     console.log(`Tab ${tabName} loaded successfully`);
-                    
                 })
                 .catch(error => {
                     console.error(`Error loading tab ${tabName}:`, error);
@@ -496,18 +475,63 @@ function initializeTabSwitching() {
                                 <h1>Error</h1>
                                 <p class="subtitle">Unable to load content</p>
                             </div>
-                            <div class="coming-soon">
-                                <i class="fas fa-exclamation-triangle fa-3x"></i>
-                                <p>Error loading content. Please try again later.</p>
-                                <button onclick="location.reload()" class="btn-primary">Reload Page</button>
-                            </div>
                         </div>
                     `;
                 });
         });
     });
-    
     console.log('Tab switching initialized');
+}
+
+// Load initial cost tab content
+function loadInitialCostTabContent() {
+    const activeTabButton = document.querySelector('.cost-tab-button.active');
+    if (activeTabButton) {
+        const tabId = activeTabButton.getAttribute('data-tab-id');
+        loadCostTabContent(tabId);
+    }
+}
+
+// FIXED: loadCostTabContent function
+function loadCostTabContent(tabId) {
+    const costTabContent = document.getElementById('cost-tab-content');
+    if (!costTabContent) return;
+    
+    // Show loading state
+    costTabContent.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading cost breakdown...</p>
+        </div>
+    `;
+    
+    fetch(`/cost-tabs/${tabId}`, {
+        credentials: 'include',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    })
+    .then(data => {
+        console.log('Cost tab data received:', data);
+        if (data.success && data.costBreakdown) {
+            updateCostTabContent(data.costBreakdown);
+        } else {
+            throw new Error('Invalid response format');
+        }
+    })
+    .catch(error => {
+        console.error('Error loading cost tab:', error);
+        costTabContent.innerHTML = `
+            <div class="error">
+                <i class="fas fa-exclamation-circle fa-2x"></i>
+                <p>Error loading content. Please try again.</p>
+            </div>
+        `;
+    });
 }
 
 function initializeCostTabSwitching() {
@@ -835,7 +859,6 @@ function generateConstructionProgressHTML(data) {
     `;
 }
 
-
 function generateCustomizationHTML(data) {
     console.log('Generating customization HTML with data:', {
         title: data.title,
@@ -1008,3 +1031,177 @@ function attachImagePreviewListeners() {
         modalImg.src = '';
     };
 }
+
+// Add this to your main.js
+function initializeGalleryModal() {
+    const modal = document.createElement('div');
+    modal.className = 'gallery-modal';
+    modal.innerHTML = `
+        <div class="gallery-modal-content">
+            <span class="gallery-modal-close">&times;</span>
+            <button class="gallery-modal-prev">&#10094;</button>
+            <button class="gallery-modal-next">&#10095;</button>
+            <div class="gallery-modal-loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Loading...</p>
+            </div>
+            <img class="gallery-modal-media" src="" alt="" style="display: none;">
+            <video class="gallery-modal-media" controls style="display: none;"></video>
+            <div class="gallery-modal-caption"></div>
+            <div class="gallery-modal-counter"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    let currentIndex = 0;
+    let galleryItems = [];
+    
+    // Open modal function
+    window.openGalleryModal = function(items, index) {
+        galleryItems = items;
+        currentIndex = index;
+        
+        const modal = document.querySelector('.gallery-modal');
+        const imgEl = modal.querySelector('img');
+        const videoEl = modal.querySelector('video');
+        const captionEl = modal.querySelector('.gallery-modal-caption');
+        const counterEl = modal.querySelector('.gallery-modal-counter');
+        const loadingEl = modal.querySelector('.gallery-modal-loading');
+        
+        // Show loading
+        loadingEl.style.display = 'flex';
+        imgEl.style.display = 'none';
+        videoEl.style.display = 'none';
+        
+        // Load media
+        const item = galleryItems[currentIndex];
+        
+        if (item.type === 'video') {
+            videoEl.src = item.url;
+            videoEl.style.display = 'block';
+            imgEl.style.display = 'none';
+        } else {
+            imgEl.src = item.url;
+            imgEl.alt = item.name || 'Gallery image';
+            imgEl.style.display = 'block';
+            videoEl.style.display = 'none';
+        }
+        
+        // Hide loading
+        setTimeout(() => {
+            loadingEl.style.display = 'none';
+        }, 300);
+        
+        // Update caption and counter
+        captionEl.innerHTML = `
+            <h3>${item.name || 'Untitled'}</h3>
+            <p>${item.description || ''}</p>
+            <span class="gallery-date">${item.date || ''}</span>
+        `;
+        
+        counterEl.textContent = `${currentIndex + 1} of ${galleryItems.length}`;
+        
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    };
+    
+    // Close modal
+    modal.querySelector('.gallery-modal-close').addEventListener('click', function() {
+        closeGalleryModal();
+    });
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeGalleryModal();
+        }
+    });
+    
+    // Previous button
+    modal.querySelector('.gallery-modal-prev').addEventListener('click', function() {
+        if (galleryItems.length > 0) {
+            currentIndex = (currentIndex - 1 + galleryItems.length) % galleryItems.length;
+            openGalleryModal(galleryItems, currentIndex);
+        }
+    });
+    
+    // Next button
+    modal.querySelector('.gallery-modal-next').addEventListener('click', function() {
+        if (galleryItems.length > 0) {
+            currentIndex = (currentIndex + 1) % galleryItems.length;
+            openGalleryModal(galleryItems, currentIndex);
+        }
+    });
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        const modal = document.querySelector('.gallery-modal');
+        if (!modal.classList.contains('active')) return;
+        
+        if (e.key === 'Escape') {
+            closeGalleryModal();
+        } else if (e.key === 'ArrowLeft') {
+            modal.querySelector('.gallery-modal-prev').click();
+        } else if (e.key === 'ArrowRight') {
+            modal.querySelector('.gallery-modal-next').click();
+        }
+    });
+}
+
+function closeGalleryModal() {
+    const modal = document.querySelector('.gallery-modal');
+    const videoEl = modal.querySelector('video');
+    
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    
+    // Stop video when closing
+    if (videoEl) {
+        videoEl.pause();
+        videoEl.src = '';
+    }
+}
+
+// Update your gallery HTML generation
+function generateGalleryHTML(gallery) {
+    const items = gallery.items || [];
+    
+    // Store gallery items for modal
+    window.currentGalleryItems = items;
+    
+    return `
+        <div class="tab-pane">
+            <div class="page-header">
+                <h1>${gallery.title || 'Project Gallery'}</h1>
+                <p class="subtitle">${gallery.subtitle || 'Browse through construction progress photos and videos'}</p>
+            </div>
+            
+            ${items.length === 0 ? `
+                <div class="empty-gallery">
+                    <i class="fas fa-images"></i>
+                    <p>No gallery items available</p>
+                </div>
+            ` : `
+                <div class="gallery-grid">
+                    ${items.map((item, index) => `
+                        <div class="gallery-item" onclick="openGalleryModal(window.currentGalleryItems, ${index})">
+                            ${item.type === 'video' ? `
+                                <video src="${item.url}" preload="metadata" muted></video>
+                            ` : `
+                                <img src="${item.url}" alt="${item.name || 'Gallery image'}" loading="lazy">
+                            `}
+                            <div class="gallery-item-info">
+                                <h4>${item.name || 'Untitled'}</h4>
+                                <p>${item.description || ''}</p>
+                                <span class="gallery-date">${item.date || ''}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `}
+        </div>
+    `;
+}
+// Initialize modal when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializeGalleryModal();
+});
