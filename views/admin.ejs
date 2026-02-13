@@ -1579,7 +1579,35 @@ th {
   margin-top: 10px;
 }
 
+.profile-dropdown {
+  position: relative;
+  display: inline-block;
+}
 
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  background-color: #f9f9f9;
+  min-width: 120px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-content a:hover {
+  background-color: #f1f1f1;
+}
+
+.show {
+  display: block;
+}
 </style>
 </head>
 
@@ -1591,7 +1619,12 @@ th {
   <div class="tab" onclick="showTab('milestones', this)">Milestones</div>
   <div class="tab" onclick="showTab('gallery', this)">Gallery</div>
   <div class="tab" onclick="showTab('customization', this)">Customization</div>
-  <div class="tab" onclick="openSwitchProjectMenu(event)">Profile &#9660;
+  <div class="profile-dropdown">
+  <div class="tab" onclick="toggleProfileMenu(event)">Profile &#9660;</div>
+  <div id="profileMenu" class="dropdown-content">
+    <a href="/api/logout">Logout</a>
+  </div>
+</div>
 </div>
 </div>
 
@@ -3981,19 +4014,34 @@ function showTab(tab, el) {
   if (activeView) {
     activeView.style.display = 'block';
   }
-
   // Activate tab UI
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-
   // Lazy-load data
   if (tab === 'payments') fetchPayments();
   if (tab === 'costs') fetchCosts(); 
   if (tab === 'milestones') fetchMilestones();
   if (tab === 'gallery') fetchGallery();
-  if (tab === 'customization') fetchCustomization(); // Add this line
+  if (tab === 'customization') fetchCustomization();
 }
 
+function toggleProfileMenu(event) {
+  event.stopPropagation();
+  document.getElementById("profileMenu").classList.toggle("show");
+}
+
+// Close the dropdown if the user clicks outside of it
+window.onclick = function(event) {
+  if (!event.target.matches('.tab')) {
+    var dropdowns = document.getElementsByClassName("dropdown-content");
+    for (var i = 0; i < dropdowns.length; i++) {
+      var openDropdown = dropdowns[i];
+      if (openDropdown.classList.contains('show')) {
+        openDropdown.classList.remove('show');
+      }
+    }
+  }
+}
 </script>
 <div id="success-popup" class="success-popup hidden">
     <i class="fas fa-check-circle"></i>

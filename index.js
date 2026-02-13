@@ -2371,9 +2371,10 @@ app.get('/api/check-session', (req, res) => {
 });
 
 // Logout endpoint
-app.post('/api/logout', (req, res) => {
+app.get('/api/logout', (req, res) => {
   req.session.destroy();
-  res.json({ success: true, message: 'Logged out successfully' });
+  // res.json({ success: true, message: 'Logged out successfully' });
+  return res.redirect('/login');
 });
 
 // Routes

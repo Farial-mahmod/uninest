@@ -1,3 +1,134 @@
+<html>
+    <style>
+        /* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+    animation: fadeIn 0.3s;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 0;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 600px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    animation: slideIn 0.3s;
+}
+
+.modal-header {
+    padding: 20px;
+    background-color: #4CAF50;
+    color: white;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.close {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.close:hover {
+    color: #f1f1f1;
+}
+
+.modal-body {
+    padding: 30px;
+    line-height: 1.6;
+    color: #333;
+}
+
+.modal-body p {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.project-info {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.project-info h3 {
+    margin: 0 0 10px 0;
+    color: #4CAF50;
+    font-size: 18px;
+}
+
+.project-info ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.project-info li {
+    margin: 8px 0;
+    color: #555;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    background-color: #f1f1f1;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    text-align: right;
+}
+
+.btn-close {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.btn-close:hover {
+    background-color: #45a049;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+    </style>
+
 <header class="header">
     <div class="logo">
         <i class="fas fa-chart-line"></i>
@@ -15,15 +146,89 @@
 
         <!-- DROPDOWN -->
         <div class="user-dropdown hidden" id="userDropdown">
-            <a href="#" class="dropdown-item">
+            <a href="#" class="dropdown-item" onclick="openProjectDetails(event)">
                 <i class="fas fa-user-circle"></i>
                 Project Details
             </a>
 
-            <a href="/" class="dropdown-item logout">
+            <a href="/api/logout" class="dropdown-item logout">
                 <i class="fas fa-sign-out-alt"></i>
-                Log Out
+                Logout
             </a>
         </div>
     </div>
 </header>
+
+<!-- Project Details Modal -->
+<div id="projectModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Project Details</h2>
+            <span class="close" onclick="closeProjectDetails()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p><strong>UniNest project</strong> is situated at the heart of Dhaka city in a vibrant location near Hatirjheel. It has a modern vibe with all the modern facilities.</p>
+            
+            <!-- You can add more project details here -->
+            <div class="project-info">
+                <h3>Key Features:</h3>
+                <ul>
+                    <li>Prime location near Hatirjheel</li>
+                    <li>Modern amenities</li>
+                    <li>Vibrant community atmosphere</li>
+                    <li>Heart of Dhaka city</li>
+                </ul>
+            </div>
+        </div>
+        <!-- <div class="modal-footer">
+            <button class="btn-close" onclick="closeProjectDetails()">Close</button>
+        </div> -->
+    </div>
+</div>
+
+<script>
+
+function openProjectDetails(event) {
+    event.preventDefault(); // Prevent the default link behavior
+    document.getElementById('projectModal').style.display = 'block';
+    // Optional: Close the user dropdown when opening modal
+    document.getElementById('userDropdown').classList.add('hidden');
+}
+
+function closeProjectDetails() {
+    document.getElementById('projectModal').style.display = 'none';
+}
+
+// Close modal if user clicks outside of it
+window.onclick = function(event) {
+    const modal = document.getElementById('projectModal');
+    if (event.target == modal) {
+        closeProjectDetails();
+    }
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeProjectDetails();
+    }
+});
+
+// Your existing toggle menu function
+function toggleMenu() {
+    document.getElementById('userDropdown').classList.toggle('hidden');
+}
+
+// Close dropdown when clicking outside (if you don't have this already)
+document.addEventListener('click', function(event) {
+    const userMenu = document.getElementById('userMenu');
+    const dropdown = document.getElementById('userDropdown');
+    
+    if (!userMenu.contains(event.target) && !dropdown.classList.contains('hidden')) {
+        dropdown.classList.add('hidden');
+    }
+});
+
+</script>
+
+</html>
