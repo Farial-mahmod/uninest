@@ -1,22 +1,19 @@
 // Global function for customization selection
 window.selectOption = function(category, optionIndex) {
     console.log('selectOption called:', category, optionIndex);
-    
-    // Show loading state
     const tileElement = document.querySelector(`.tile-gallery-item[data-option-index="${optionIndex}"]`);
     if (tileElement) {
         tileElement.classList.add('loading');
     }
     
-    // Send selection to server using the new API
     fetch('/api/customization/vote', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            categoryIndex: 0, // Since you only have one category "Tiles Preference"
-            optionNumber: optionIndex + 1 // Convert to 1-based index
+            categoryIndex: 0, 
+            optionNumber: optionIndex + 1
         }),
         credentials: 'include'
     })
@@ -32,13 +29,10 @@ window.selectOption = function(category, optionIndex) {
         if (data.success) {
             // Update the Your Selection section
             updateYourSelection(data.customizationData.yourSelection);
-            
             // Update selected states in the UI
             updateSelectedStates(category, optionIndex);
-            
             // Show success message
             showSuccessMessage('Selection updated successfully!');
-            
             // Update the entire customization section with new data
             setTimeout(() => {
                 updateCustomizationView(data.customizationData);
@@ -61,16 +55,10 @@ window.selectOption = function(category, optionIndex) {
 // Function to update the entire customization view
 function updateCustomizationView(customizationData) {
     console.log('Updating customization view with new data');
-    
-    // Regenerate the HTML for customization tab
     const newHTML = generateCustomizationHTML(customizationData);
-    
-    // Update the tab content
     const tabContent = document.getElementById('tab-content');
     if (tabContent) {
         tabContent.innerHTML = newHTML;
-        
-        // Re-attach event listeners to the new elements
         setTimeout(() => {
             attachCustomizationEventListeners();
         }, 100);
@@ -80,12 +68,9 @@ function updateCustomizationView(customizationData) {
 // Function to attach event listeners to customization elements
 function attachCustomizationEventListeners() {
     console.log('Attaching customization event listeners');
-    
-    // Attach click handlers to tile gallery items
     document.querySelectorAll('.tile-gallery-item:not(.disabled)').forEach(item => {
         const category = item.getAttribute('data-category');
         const optionIndex = parseInt(item.getAttribute('data-option-index'));
-        
         item.onclick = function(e) {
             e.stopPropagation();
             selectOption(category, optionIndex);
@@ -96,7 +81,6 @@ function attachCustomizationEventListeners() {
 // Function to update Your Selection section
 function updateYourSelection(yourSelection) {
     console.log('Updating your selection:', yourSelection);
-    
     const selectionItems = document.querySelector('.selection-items');
     if (!selectionItems) return;
     
@@ -127,11 +111,9 @@ function updateYourSelection(yourSelection) {
     `).join('');
 }
 
-// Function to update selected states in the UI
 function updateSelectedStates(category, selectedIndex) {
     console.log('Updating selected states for category:', category, 'index:', selectedIndex);
     
-    // Update tile gallery items
     const allTileItems = document.querySelectorAll('.tile-gallery-item');
     allTileItems.forEach((item, index) => {
         const itemIndex = parseInt(item.getAttribute('data-option-index'));
@@ -139,16 +121,12 @@ function updateSelectedStates(category, selectedIndex) {
         if (itemIndex === selectedIndex) {
             item.classList.add('selected');
         }
-        // Remove loading class
         item.classList.remove('loading');
     });
 }
 
-// Show temporary success message
 function showSuccessMessage(message) {
     console.log('Showing success message:', message);
-    
-    // Remove any existing messages
     const existingMsg = document.querySelector('.success-message, .error-message');
     if (existingMsg) existingMsg.remove();
     
@@ -158,16 +136,12 @@ function showSuccessMessage(message) {
         <i class="fas fa-check-circle"></i>
         <span>${message}</span>
     `;
-    
     const customizationSection = document.querySelector('.customization-section');
     if (customizationSection) {
         customizationSection.prepend(successMsg);
     } else {
-        // Fallback to body
         document.body.appendChild(successMsg);
     }
-    
-    // Auto-remove after 3 seconds
     setTimeout(() => {
         successMsg.remove();
     }, 3000);
@@ -176,8 +150,6 @@ function showSuccessMessage(message) {
 // Show temporary error message
 function showErrorMessage(message) {
     console.log('Showing error message:', message);
-    
-    // Remove any existing messages
     const existingMsg = document.querySelector('.success-message, .error-message');
     if (existingMsg) existingMsg.remove();
     
@@ -192,21 +164,16 @@ function showErrorMessage(message) {
     if (customizationSection) {
         customizationSection.prepend(errorMsg);
     } else {
-        // Fallback to body
         document.body.appendChild(errorMsg);
     }
-    
-    // Auto-remove after 5 seconds
     setTimeout(() => {
         errorMsg.remove();
     }, 5000);
 }
 
-// Function to update Your Selection section without page reload
 function updateYourSelection(yourSelection) {
     const selectionItems = document.querySelector('.selection-items');
     if (!selectionItems) return;
-    
     selectionItems.innerHTML = yourSelection.items.map(item => `
         <div class="selection-item compact">
             <div class="selection-header-compact">
@@ -269,19 +236,15 @@ function showSuccessMessage(message) {
         <i class="fas fa-check-circle"></i>
         <span>${message}</span>
     `;
-    
     const customizationSection = document.querySelector('.customization-section');
     if (customizationSection) {
         customizationSection.prepend(successMsg);
     }
-    
-    // Auto-remove after 3 seconds
     setTimeout(() => {
         successMsg.remove();
     }, 3000);
 }
 
-// Show temporary error message
 function showErrorMessage(message) {
     // Remove any existing messages
     const existingMsg = document.querySelector('.success-message, .error-message');
@@ -293,13 +256,10 @@ function showErrorMessage(message) {
         <i class="fas fa-exclamation-circle"></i>
         <span>${message}</span>
     `;
-    
     const customizationSection = document.querySelector('.customization-section');
     if (customizationSection) {
         customizationSection.prepend(errorMsg);
     }
-    
-    // Auto-remove after 5 seconds
     setTimeout(() => {
         errorMsg.remove();
     }, 5000);
@@ -322,8 +282,6 @@ window.switchProject = function (projectName) {
 // Tab switching functionality
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing tabs...');
-    
-    // Initialize user dropdown
     const userMenu = document.getElementById('userMenu');
     const userDropdown = document.getElementById('userDropdown');
     const switchBtn = document.getElementById('switchProjectBtn');
@@ -380,10 +338,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// In your main.js - MODIFY ONLY THIS FUNCTION
 function initializeTabSwitching() {
     console.log('Initializing tab switching...');
-    
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContent = document.getElementById('tab-content');
     
@@ -393,26 +349,21 @@ function initializeTabSwitching() {
     }
     
     console.log(`Found ${tabButtons.length} tab buttons`);
-    
     tabButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
             const tabName = this.getAttribute('data-tab');
             console.log(`Tab clicked: ${tabName}`);
-            
             tabButtons.forEach(btn => {
                 btn.classList.remove('active');
                 btn.setAttribute('aria-selected', 'false');
             });
             this.classList.add('active');
             this.setAttribute('aria-selected', 'true');
-            
             const url = new URL(window.location);
             url.searchParams.set('tab', tabName);
             window.history.pushState({}, '', url);
-            
             tabContent.innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
@@ -438,9 +389,7 @@ function initializeTabSwitching() {
                 })
                 .then(data => {
                     console.log(`Data received for ${tabName}:`, data);
-                    
                     let contentHtml = '';
-                    
                     if (tabName === 'financial-transparency' && data.financialData) {
                         contentHtml = generateFinancialTransparencyHTML(data.financialData);
                         setTimeout(() => {
@@ -462,7 +411,6 @@ function initializeTabSwitching() {
                             </div>
                         `;
                     }
-                    
                     tabContent.innerHTML = contentHtml;
                     attachImagePreviewListeners();
                     console.log(`Tab ${tabName} loaded successfully`);
@@ -1032,7 +980,6 @@ function attachImagePreviewListeners() {
     };
 }
 
-// Add this to your main.js
 function initializeGalleryModal() {
     const modal = document.createElement('div');
     modal.className = 'gallery-modal';
@@ -1150,31 +1097,24 @@ function initializeGalleryModal() {
 function closeGalleryModal() {
     const modal = document.querySelector('.gallery-modal');
     const videoEl = modal.querySelector('video');
-    
     modal.classList.remove('active');
     document.body.style.overflow = '';
-    
-    // Stop video when closing
     if (videoEl) {
         videoEl.pause();
         videoEl.src = '';
     }
 }
 
-// Update your gallery HTML generation
 function generateGalleryHTML(gallery) {
     const items = gallery.items || [];
-    
     // Store gallery items for modal
     window.currentGalleryItems = items;
-    
     return `
         <div class="tab-pane">
             <div class="page-header">
                 <h1>${gallery.title || 'Project Gallery'}</h1>
                 <p class="subtitle">${gallery.subtitle || 'Browse through construction progress photos and videos'}</p>
             </div>
-            
             ${items.length === 0 ? `
                 <div class="empty-gallery">
                     <i class="fas fa-images"></i>

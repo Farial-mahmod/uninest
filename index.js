@@ -13,9 +13,7 @@ const { GridFSBucket } = require('mongodb');
 const cors = require('cors');
 require('dotenv').config();
 app.use(cors());
-
 // Update CORS configuration
-// Update CORS configuration - make sure this is before other middleware
 const corsOptions = {
   origin: 'http://localhost:3000',
   credentials: true,
@@ -41,27 +39,23 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this',
   resave: false,
   saveUninitialized: false,
-  store: new (require('express-session').MemoryStore)(), // Add memory store
+  store: new (require('express-session').MemoryStore)(),
   cookie: {
-    secure: false, // Set to FALSE for local development
+    secure: false, 
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax', // Changed from strict
-    path: '/', // Explicitly set path
+    maxAge: 24 * 60 * 60 * 1000, 
+    sameSite: 'lax', 
+    path: '/', 
   }
 }));
-
 const mongoURI = process.env.URI;
-
 const conn = mongoose.createConnection(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
-
 // Init gfs and GridFSBucket
 let gfs;
 let gridFSBucket;
-
 conn.once('open', () => {
   // Initialize GridFSBucket
   gridFSBucket = new GridFSBucket(conn.db, {
@@ -584,31 +578,21 @@ async function generateFinancialData(shareholder, costDoc) {
   }
 }
 
-//
 // Gallery route - fetch media data
 app.get('/tabs/gallery', async (req, res) => {
   try {
     console.log('=== GALLERY TAB REQUEST ===');
-    
     if (!req.session.user) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
-    
     const project = req.session.user.project || 'aurora';
     console.log('Fetching gallery for project:', project);
-    
-    // Use the correct database
     const projectDB = conn.useDb(project.toLowerCase());
     const collection = projectDB.collection('media');
-    
-    // Find the media document
     const mediaDoc = await collection.findOne({});
-    
     let galleryItems = [];
-    
     if (mediaDoc && mediaDoc.resource && Array.isArray(mediaDoc.resource)) {
       console.log(`Found ${mediaDoc.resource.length} gallery items`);
-      
       galleryItems = mediaDoc.resource.map(item => ({
         name: item.name || 'Untitled',
         description: item.description || '',
@@ -651,22 +635,25 @@ app.get('/dashboard', async (req, res) => {
     console.log('NO USER SESSION FOUND - Redirecting to login');
     return res.redirect('/login');
   }
-
+  
   try {
     const userMobile = req.session.user?.mobile;
+    const userName = req.session.user?.name;
+    // Get project from session, default to 'aurora' if not set
+    const projectName = req.session.user?.project || 'aurora';
     
     if (!userMobile) {
       console.log('No mobile in session');
       return res.redirect('/login');
     }
     
-    console.log('Fetching REAL data for mobile:', userMobile);
+    console.log(`Fetching REAL data for mobile: ${userMobile} from project: ${projectName}`);
     
-    // CORRECTED: Use aurora database instead of default connection
-    const auroraDB = conn.useDb('aurora');
+    // Use project from session for database
+    const projectDB = conn.useDb(projectName);
     
-    // 1. Fetch shareholder data from aurora database
-    const shareholderDoc = await auroraDB.collection('shareholder').findOne({
+    // ============== FETCH SHAREHOLDER DATA ==============
+    const shareholderDoc = await projectDB.collection('shareholder').findOne({
       "shareholder.mobile": userMobile
     });
     
@@ -678,55 +665,100 @@ app.get('/dashboard', async (req, res) => {
       console.log('No shareholder found in database');
     }
     
-    // 2. Fetch cost data from aurora database
-    const costDoc = await auroraDB.collection('cost').findOne({ project: "aurora" });
+    // ============== FETCH COST DATA ==============
+    // Don't filter by project field - just get the document
+    const costDoc = await projectDB.collection('cost').findOne({});
+    console.log('Cost document found:', !!costDoc);
     
-    // 3. Fetch construction progress from aurora database
-    const milestoneDoc = await auroraDB.collection('milestone').findOne({ project: "aurora" });
+    // ============== FETCH MILESTONE DATA ==============
+    // Don't filter by project field - just get the document
+    const milestoneDoc = await projectDB.collection('milestone').findOne({});
+    console.log('Milestone document found:', !!milestoneDoc);
     
-    // 4. Fetch customization data from aurora database
-    const customizationDoc = await auroraDB.collection('customization').findOne({ project: "aurora" });
+    // ============== FETCH CUSTOMIZATION DATA ==============
+    // Don't filter by project field - just get the document
+    const customizationDoc = await projectDB.collection('customization').findOne({});
+    console.log('Customization document found:', !!customizationDoc);
+    if (customizationDoc) {
+      console.log('Customization selection count:', customizationDoc.selection?.length || 0);
+    }
     
-    // 5. Fetch media data from aurora database
-    const mediaDoc = await auroraDB.collection('media').findOne({ project: "aurora" });
+    // ============== FETCH MEDIA DATA ==============
+    // Don't filter by project field - just get the document
+    const mediaDoc = await projectDB.collection('media').findOne({});
+    console.log('Media document found:', !!mediaDoc);
     
-    // Generate REAL financial data
+    // ============== GENERATE FINANCIAL DATA ==============
     const dynamicFinancialData = await generateFinancialData(shareholder, costDoc);
     
-    // Generate REAL construction progress data
+    // ============== GENERATE CONSTRUCTION PROGRESS DATA ==============
     const dynamicConstructionProgress = generateConstructionProgressFromDB(milestoneDoc);
     
-    // Generate REAL customization data
-    const dynamicCustomizationData = generateCustomizationFromDB(customizationDoc);
+    // ============== GENERATE CUSTOMIZATION DATA ==============
+    const dynamicCustomizationData = generateCustomizationFromDB(customizationDoc, userName);
     
-    // Add media to construction progress
+    // ============== ADD MEDIA TO CONSTRUCTION PROGRESS ==============
     if (mediaDoc && mediaDoc.resource) {
       dynamicConstructionProgress.media = mediaDoc.resource;
     }
     
+    // ============== PROJECT CONFIGURATION FOR DISPLAY ==============
+    let projectDisplayName = "UniNest Aurora";
+    let totalShares = 36; // Default for Aurora
+    
+    if (projectName === 'greenescape') {
+      projectDisplayName = "UniNest Green Escape";
+      totalShares = 24; // Adjust based on your project
+    } else if (projectName === 'godhuli') {
+      projectDisplayName = "UniNest Godhuli";
+      totalShares = 18; // Adjust based on your project
+    }
+    
     console.log('Using REAL data for dashboard:', {
+      project: projectName,
+      projectDisplayName: projectDisplayName,
       financial: !!dynamicFinancialData,
       construction: !!dynamicConstructionProgress,
       customization: !!dynamicCustomizationData,
+      media: !!mediaDoc,
       shareholderFound: !!shareholder
     });
     
+    // ============== RENDER DASHBOARD ==============
     res.render('index', {
       activeTab: 'financial-transparency',
       financialData: dynamicFinancialData,
       constructionProgress: dynamicConstructionProgress,
       customizationData: dynamicCustomizationData,
-      user: req.session.user
+      user: req.session.user,
+      project: projectName,
+      projectDisplayName: projectDisplayName,
+      totalShares: totalShares
     });
     
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Fallback to mock data
+    const projectName = req.session.user?.project || 'aurora';
+    let projectDisplayName = "UniNest Aurora";
+    
+    if (projectName === 'greenescape') {
+      projectDisplayName = "UniNest Green Escape";
+    } else if (projectName === 'godhuli') {
+      projectDisplayName = "UniNest Godhuli";
+    }
+    
     res.render('index', {
       activeTab: 'financial-transparency',
-      financialData,
-      constructionProgress,
-      customizationData,
-      user: req.session.user
+      financialData: financialData,
+      constructionProgress: constructionProgress,
+      customizationData: customizationData,
+      user: req.session.user,
+      project: projectName,
+      projectDisplayName: projectDisplayName,
+      totalShares: 36
     });
   }
 });
@@ -753,150 +785,164 @@ function generateConstructionProgressFromDB(milestoneDoc) {
     timeline: timeline
   };
 }
-
+// Helper function to generate customization from database
 // Helper function to generate customization from database
 function generateCustomizationFromDB(customizationDoc, userName = '') {
-  if (!customizationDoc || !customizationDoc.selection || !Array.isArray(customizationDoc.selection)) {
-    console.log('No customization data found, using mock data');
-    return customizationData; // Fallback to mock
-  }
-  
-  console.log('Processing customization data for user:', userName);
-  console.log('Customization selection items:', customizationDoc.selection.length);
-  
-  // Transform database data to match frontend structure
-  const categories = customizationDoc.selection.map(item => {
-    console.log('Processing item:', item.name);
-    
-    // Check which option the current user has selected
-    let selectedOptionIndex = -1;
-    const options = [];
-    
-    // Create options array from option_1, option_2, option_3
-    for (let i = 1; i <= 3; i++) {
-      const optionKey = `option_${i}`;
-      if (item[optionKey]) {
-        const option = item[optionKey];
-        const isSelected = option.voters && option.voters.includes(userName);
-        if (isSelected) {
-          selectedOptionIndex = i - 1; // Zero-based index
-        }
-        
-        // Create option names based on details
-        let optionName = `Option ${i}`;
-        if (option.details) {
-          optionName = option.details.split(' ')[0] + ' Tiles'; // Extract brand name
-        }
-        
-        options.push({
-          name: optionName,
-          brand: option.details || '',
-          surface: 'Premium',
-          image: option.url || '',
-          upgradeCost: i === 1 ? '৳15,000' : i === 2 ? '৳25,000' : '৳18,000',
-          selected: isSelected
-        });
-        
-        console.log(`Option ${i}:`, { 
-          selected: isSelected, 
-          voters: option.voters 
-        });
-      }
-    }
-    
-    // Determine window status based on dates
-    const windowEnd = new Date(item.to.split('-').reverse().join('-'));
-    const now = new Date();
-    const windowStatus = windowEnd < now ? 'closed' : 'open';
-    
-    return {
-      name: item.name || 'Tiles Preference',
-      window: `${item.from} – ${item.to}`,
-      windowStatus: windowStatus,
-      options: options
-    };
-  });
-  
-  // Get user's current selections
-  const userSelections = [];
-  customizationDoc.selection.forEach(item => {
-    for (let i = 1; i <= 3; i++) {
-      const optionKey = `option_${i}`;
-      if (item[optionKey] && item[optionKey].voters && item[optionKey].voters.includes(userName)) {
-        const option = item[optionKey];
-        userSelections.push({
-          name: item.name || 'Tiles Preference',
-          value: `Option ${i}`,
-          brand: option.details || '',
-          upgradeCost: i === 1 ? '৳15,000' : i === 2 ? '৳25,000' : '৳18,000',
-          image: option.url || ''
-        });
-        console.log(`User selected option ${i} for ${item.name}`);
-        break; // User can only select one option per category
-      }
-    }
-  });
-  
-  const result = {
-    title: "Unit Customization",
-    subtitle: "Personalize your living space",
-    customizationOptions: {
-      title: "Available Customization Options",
-      subtitle: "Select your preferred finishes and materials",
-      notice: userSelections.length > 0 
-        ? "You can modify your selection until the customization window closes." 
-        : "The customization window is currently open. Make your selection before it closes.",
-      categories: categories
-    },
-    yourSelection: {
-      title: "Your Current Selection",
-      subtitle: "You can modify these until the customization window closes.",
-      items: userSelections.length > 0 ? userSelections : [{
-        name: "Tiles Preference",
-        value: "No selection made yet",
-        brand: "Please select an option below",
-        upgradeCost: "৳0",
-        image: ""
-      }]
-    }
-  };
-  
-  console.log('Generated customization data:', {
-    categories: result.customizationOptions.categories.length,
-    userSelections: result.yourSelection.items.length
-  });
-  
-  return result;
-}
-
-app.get('/api/debug/customization', async (req, res) => {
   try {
-    const auroraDB = conn.useDb('aurora');
-    const collection = auroraDB.collection('customization');
+    // IMPROVED NULL CHECK WITH DETAILED LOGGING
+    if (!customizationDoc) {
+      console.log('❌ No customization document found in database - using mock data');
+      return JSON.parse(JSON.stringify(customizationData)); // Deep copy mock data
+    }
     
-    // Get all documents
-    const docs = await collection.find({}).toArray();
+    console.log('✅ Customization document found in database');
+    console.log('Document keys:', Object.keys(customizationDoc));
     
-    console.log('Debug: Found customization documents:', docs.length);
-    docs.forEach((doc, index) => {
-      console.log(`Document ${index}:`, {
-        id: doc._id,
-        hasProjectField: 'project' in doc,
-        projectValue: doc.project,
-        selectionCount: doc.selection?.length || 0
-      });
+    if (!customizationDoc.selection) {
+      console.log('❌ Customization document has no "selection" field');
+      console.log('Available fields:', Object.keys(customizationDoc));
+      return JSON.parse(JSON.stringify(customizationData));
+    }
+    
+    if (!Array.isArray(customizationDoc.selection)) {
+      console.log('❌ customizationDoc.selection is not an array, it is:', typeof customizationDoc.selection);
+      return JSON.parse(JSON.stringify(customizationData));
+    }
+    
+    if (customizationDoc.selection.length === 0) {
+      console.log('❌ Customization selection array is empty');
+      return JSON.parse(JSON.stringify(customizationData));
+    }
+    
+    console.log(`✅ Processing customization data for user: ${userName}`);
+    console.log(`✅ Customization selection items: ${customizationDoc.selection.length}`);
+    
+    // Transform database data to match frontend structure
+    const categories = customizationDoc.selection.map((item, index) => {
+      console.log(`Processing category ${index + 1}:`, item.name);
+      
+      // Check which option the current user has selected
+      let selectedOptionIndex = -1;
+      const options = [];
+      
+      // Create options array from option_1, option_2, option_3
+      for (let i = 1; i <= 3; i++) {
+        const optionKey = `option_${i}`;
+        if (item[optionKey]) {
+          const option = item[optionKey];
+          const isSelected = option.voters && Array.isArray(option.voters) && option.voters.includes(userName);
+          
+          if (isSelected) {
+            selectedOptionIndex = i - 1; // Zero-based index
+          }
+          
+          // Create option names based on details
+          let optionName = `Option ${i}`;
+          if (option.details) {
+            const details = option.details.split(' ');
+            optionName = details[0] + ' ' + (details[1] || 'Tiles');
+          }
+          
+          options.push({
+            name: optionName,
+            brand: option.details || '',
+            surface: 'Premium',
+            image: option.url || '',
+            upgradeCost: i === 1 ? '৳15,000' : i === 2 ? '৳25,000' : '৳18,000',
+            selected: isSelected
+          });
+          
+          console.log(`  Option ${i}:`, { 
+            selected: isSelected, 
+            votersCount: option.voters?.length || 0 
+          });
+        }
+      }
+      
+      // Determine window status based on dates
+      let windowStatus = 'open';
+      try {
+        if (item.to) {
+          const dateParts = item.to.split('-');
+          if (dateParts.length === 3) {
+            const windowEnd = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
+            const now = new Date();
+            windowStatus = windowEnd < now ? 'closed' : 'open';
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing date:', e);
+        windowStatus = 'open';
+      }
+      
+      return {
+        name: item.name || 'Tiles Preference',
+        window: `${item.from || 'N/A'} – ${item.to || 'N/A'}`,
+        windowStatus: windowStatus,
+        options: options
+      };
     });
     
-    res.json({
-      count: docs.length,
-      documents: docs
+    // Get user's current selections
+    const userSelections = [];
+    customizationDoc.selection.forEach(item => {
+      for (let i = 1; i <= 3; i++) {
+        const optionKey = `option_${i}`;
+        if (item[optionKey] && 
+            item[optionKey].voters && 
+            Array.isArray(item[optionKey].voters) && 
+            item[optionKey].voters.includes(userName)) {
+          const option = item[optionKey];
+          userSelections.push({
+            name: item.name || 'Tiles Preference',
+            value: `Option ${i}`,
+            brand: option.details || '',
+            upgradeCost: i === 1 ? '৳15,000' : i === 2 ? '৳25,000' : '৳18,000',
+            image: option.url || ''
+          });
+          console.log(`✅ User selected option ${i} for ${item.name}`);
+          break; // User can only select one option per category
+        }
+      }
     });
+    
+    const result = {
+      title: "Unit Customization",
+      subtitle: "Personalize your living space",
+      customizationOptions: {
+        title: "Available Customization Options",
+        subtitle: "Select your preferred finishes and materials",
+        notice: userSelections.length > 0 
+          ? "You can modify your selection until the customization window closes." 
+          : "The customization window is currently open. Make your selection before it closes.",
+        categories: categories
+      },
+      yourSelection: {
+        title: "Your Current Selection",
+        subtitle: "You can modify these until the customization window closes.",
+        items: userSelections.length > 0 ? userSelections : [{
+          name: "Tiles Preference",
+          value: "No selection made yet",
+          brand: "Please select an option below",
+          upgradeCost: "৳0",
+          image: ""
+        }]
+      }
+    };
+    
+    console.log(`✅ Generated customization data:`, {
+      categories: result.customizationOptions.categories.length,
+      userSelections: result.yourSelection.items.length
+    });
+    
+    return result;
     
   } catch (error) {
-    console.error('Debug error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ Error in generateCustomizationFromDB:', error);
+    console.error('Error stack:', error.stack);
+    return JSON.parse(JSON.stringify(customizationData)); // Return mock data on error
   }
-});
+}
 
 // API to update customization selection (add user to voters array)
 app.post('/api/customization/vote', async (req, res) => {
@@ -911,28 +957,23 @@ app.post('/api/customization/vote', async (req, res) => {
         message: 'Not authenticated' 
       });
     }
-    
     const { categoryIndex, optionNumber } = req.body;
     const userName = req.session.user.name;
-    const userMobile = req.session.user.mobile;
-    
+    // CHANGE: Get project from session
+    const projectName = req.session.user.project || 'aurora';
     console.log('User:', userName, 'selecting option:', optionNumber, 'in category:', categoryIndex);
-    
+    console.log('Using project:', projectName);
     if (categoryIndex === undefined || optionNumber === undefined) {
       return res.status(400).json({ 
         success: false, 
         message: 'Missing required fields' 
       });
     }
-    
-    // Use the correct database
-    const auroraDB = conn.useDb('aurora');
-    const collection = auroraDB.collection('customization');
-    
-    // Find the customization document - FIXED: Remove project filter
-    const doc = await collection.findOne({});
+    // CHANGE: Use project from session for database
+    const projectDB = conn.useDb(projectName);
+    const collection = projectDB.collection('customization');
+    const doc = await collection.findOne({ project: projectName });
     console.log('Found document:', !!doc);
-    
     if (!doc || !doc.selection || !Array.isArray(doc.selection)) {
       console.log('Document structure issue:', {
         hasDoc: !!doc,
@@ -944,24 +985,19 @@ app.post('/api/customization/vote', async (req, res) => {
         message: 'Customization data not found' 
       });
     }
-    
     console.log('Selection array length:', doc.selection.length);
     console.log('Category index requested:', categoryIndex);
-    
     if (categoryIndex >= doc.selection.length) {
       return res.status(400).json({ 
         success: false, 
         message: 'Invalid category index' 
       });
     }
-    
     const category = doc.selection[categoryIndex];
     const optionKey = `option_${optionNumber}`;
-    
     console.log('Category:', category.name);
     console.log('Option key:', optionKey);
     console.log('Has option:', !!category[optionKey]);
-    
     if (!category[optionKey]) {
       return res.status(400).json({ 
         success: false, 
@@ -971,7 +1007,6 @@ app.post('/api/customization/vote', async (req, res) => {
     
     console.log('Current voters for option', optionNumber, ':', category[optionKey].voters);
     console.log('User name to add:', userName);
-    
     // Remove user from all voters arrays in this category first
     const updateOperations = {};
     for (let i = 1; i <= 3; i++) {
@@ -991,9 +1026,7 @@ app.post('/api/customization/vote', async (req, res) => {
       updateOperations[`selection.${categoryIndex}.${optionKey}.voters`] = selectedOptionVoters;
       console.log(`Added ${userName} to option ${optionNumber} voters`);
     }
-    
     console.log('Update operations:', updateOperations);
-    
     // Update the document
     const result = await collection.updateOne(
       { _id: doc._id },
@@ -1013,16 +1046,13 @@ app.post('/api/customization/vote', async (req, res) => {
       console.log('No documents were modified');
     }
     
-    // Get updated document to verify
     const updatedDoc = await collection.findOne({ _id: doc._id });
     console.log('Updated document option voters:', {
       option1: updatedDoc.selection[categoryIndex].option_1?.voters,
       option2: updatedDoc.selection[categoryIndex].option_2?.voters,
       option3: updatedDoc.selection[categoryIndex].option_3?.voters
     });
-    
     const updatedCustomizationData = generateCustomizationFromDB(updatedDoc, userName);
-    
     res.json({
       success: true,
       message: 'Selection updated successfully',
@@ -1040,57 +1070,27 @@ app.post('/api/customization/vote', async (req, res) => {
   }
 });
 
-// Test route to check current customization data
-app.get('/api/test/customization', async (req, res) => {
-  try {
-    const auroraDB = conn.useDb('aurora');
-    const collection = auroraDB.collection('customization');
-    
-    const doc = await collection.findOne({});
-    
-    if (!doc) {
-      return res.json({ message: 'No customization document found' });
-    }
-    
-    res.json({
-      message: 'Current customization data',
-      data: doc
-    });
-    
-  } catch (error) {
-    console.error('Test error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 app.get('/cost-tabs/:tabId', async (req, res) => {
   try {
     console.log('=== COST TAB REQUEST ===');
     console.log('Tab ID requested:', req.params.tabId);
     console.log('User mobile from session:', req.session.user?.mobile);
-    
     if (!req.session.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    
     const userMobile = req.session.user.mobile; 
     const tabId = req.params.tabId;
-    
     // Use the correct database
     const auroraDB = conn.useDb('aurora');
-    
     const shareholderDoc = await auroraDB.collection('shareholder').findOne({
       "shareholder.mobile": userMobile 
     });
-    
     let shareholder = null;
     if (shareholderDoc && shareholderDoc.shareholder) {
       shareholder = shareholderDoc.shareholder.find(sh => sh.mobile === userMobile);
     }
-    
     // Fetch REAL cost data
     const costDoc = await auroraDB.collection('cost').findOne({ project: "aurora" });
-    
     console.log('Cost document found:', !!costDoc);
     if (costDoc) {
       console.log('Cost items count:', costDoc.cost?.length || 0);
@@ -1238,50 +1238,38 @@ class CPanelUploadService {
         // Input is a buffer
         fileSize = filePathOrBuffer.length;
         console.log(`Buffer size: ${fileSize} bytes`);
-        
         formData.append('file', filePathOrBuffer, {
           filename: fileName,
           contentType: this.getContentType(fileName),
           knownLength: fileSize
         });
-        
       } else if (typeof filePathOrBuffer === 'string') {
         // Input is a file path
         if (!fs.existsSync(filePathOrBuffer)) {
           throw new Error(`File not found: ${filePathOrBuffer}`);
         }
-        
         const stats = fs.statSync(filePathOrBuffer);
         fileSize = stats.size;
         console.log(`File size: ${fileSize} bytes`);
         console.log(`File path: ${filePathOrBuffer}`);
-        
         formData.append('file', fs.createReadStream(filePathOrBuffer), {
           filename: fileName,
           contentType: this.getContentType(fileName),
           knownLength: fileSize
         });
-        
       } else {
         throw new Error('Invalid input: Expected Buffer or file path string');
       }
-      
       // Prepare directory path
       const cleanSubfolder = subfolder.endsWith('/') ? subfolder : `${subfolder}/`;
       const remoteDir = `/home/${this.config.username}/public_html/uploads/${cleanSubfolder}`;
-      
       formData.append('dir', remoteDir);
       formData.append('overwrite', '1');
-      
       console.log(`Uploading to directory: ${remoteDir}`);
-      
       // Prepare authentication
       const authString = Buffer.from(`${this.config.username}:${this.config.password}`).toString('base64');
-      
       // Get form data headers
       const formHeaders = formData.getHeaders();
-      
-      // Make the request
       const response = await axios.post(
         `${this.config.cpanelUrl}/execute/Fileman/upload_files`,
         formData,
@@ -1297,13 +1285,10 @@ class CPanelUploadService {
           maxBodyLength: Infinity
         }
       );
-      
       console.log('cPanel upload response status:', response.status);
       console.log('cPanel upload response data:', JSON.stringify(response.data, null, 2));
-      
       // Parse response to get actual uploaded filename
       let actualFileName = fileName;
-      
       if (response.data && typeof response.data === 'object') {
         if (response.data.status === 1 && response.data.data && response.data.data.uploads) {
           const uploads = response.data.data.uploads;
@@ -1313,34 +1298,26 @@ class CPanelUploadService {
             console.log('Actual uploaded filename from cPanel:', actualFileName);
           }
         }
-        
         // Check for errors in response
         if (response.data.errors && response.data.errors.length > 0) {
           console.warn('cPanel reported errors:', response.data.errors);
         }
       }
-      
       // Construct public URL
       const cleanActualFileName = encodeURIComponent(actualFileName);
       const publicUrl = `https://${this.config.domain}/uploads/${cleanSubfolder}${cleanActualFileName}`;
-      
       console.log('Generated public URL:', publicUrl);
-      
       // Verify URL is accessible (optional, can be disabled in production)
       if (process.env.NODE_ENV !== 'production') {
         await this.verifyUrlAccessible(publicUrl);
       }
-      
       return publicUrl;
-      
     } catch (error) {
       console.error('cPanel Upload Error Details:');
       console.error('Error message:', error.message);
-      
       if (error.response) {
         console.error('Response status:', error.response.status);
         console.error('Response data:', error.response.data);
-        
         if (error.response.status === 401) {
           throw new Error('cPanel authentication failed. Check username and password.');
         } else if (error.response.status === 404) {
@@ -1354,7 +1331,6 @@ class CPanelUploadService {
       } else if (error.code === 'ECONNABORTED') {
         throw new Error('Connection to cPanel timed out. Try reducing file size or check server load.');
       }
-      
       throw new Error(`cPanel upload failed: ${error.message}`);
     }
   }
@@ -1413,9 +1389,7 @@ class CPanelUploadService {
     }
   }
 }
-
 const cpanelService = new CPanelUploadService();
-
 // Authentication middleware
 const requireAuth = (req, res, next) => {
   if (!req.session.user) {
@@ -1423,7 +1397,6 @@ const requireAuth = (req, res, next) => {
   }
   next();
 };
-
 const requireAdmin = (req, res, next) => {
   if (!req.session.user) {
     return res.redirect('/login');
@@ -1433,30 +1406,23 @@ const requireAdmin = (req, res, next) => {
   }
   next();
 };
-
 // GET media endpoint
 app.get('/api/media/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
     const db = conn.useDb(project);
     const collection = db.collection('media');
-
     // Find ALL media documents
     const docs = await collection.find({}).toArray();
-    
     if (!docs || docs.length === 0) {
       return res.status(404).json({ message: 'No media found' });
     }
-
     // Return the first document
     const doc = docs[0];
-    
     if (!doc.resource || !Array.isArray(doc.resource) || doc.resource.length === 0) {
       return res.status(404).json({ message: 'No media resources found' });
     }
-
     res.json(doc);
-    
   } catch (error) {
     console.error('Error fetching media:', error);
     res.status(500).json({ 
@@ -1470,18 +1436,15 @@ app.get('/api/media/:project', async (req, res) => {
 app.post('/api/upload-media', upload.single('file'), async (req, res) => {
   try {
     console.log('Upload media request received');
-    
     if (!req.file) {
       return res.status(400).json({ 
         success: false, 
         error: 'No file uploaded' 
       });
     }
-    
     // Get form data
     const { name, description, date, project = 'aurora' } = req.body;
     console.log('Form data:', { name, description, date, project });
-    
     if (!name || !description || !date) {
       // Clean up if file was saved to disk (local dev only)
       if (req.file.path && fs.existsSync(req.file.path)) {
@@ -1496,88 +1459,65 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         error: 'Missing required fields (name, description, date)' 
       });
     }
-
     // Generate consistent filename
     const timestamp = Date.now();
     const randomSuffix = Math.round(Math.random() * 1E9);
     const originalName = req.file.originalname;
     const fileExt = path.extname(originalName);
     const fileName = `${timestamp}-${randomSuffix}${fileExt}`;
-    
     console.log('Generated filename:', fileName);
     console.log('Is Vercel environment?', !!process.env.VERCEL);
-    
     let publicUrl;
     let tempFilePath;
-    
     try {
       // Handle upload based on environment
       if (process.env.VERCEL) {
         // VERCEL: Use memory buffer and temporary file
         console.log('Processing file in Vercel environment');
-        
         // Create temp file in /tmp directory (allowed on Vercel)
         tempFilePath = `/tmp/${fileName}`;
-        
         // Write buffer to temp file
         await fs.promises.writeFile(tempFilePath, req.file.buffer);
         console.log('File written to temp location:', tempFilePath);
-        
         // Upload from temp file
         publicUrl = await cpanelService.uploadFile(tempFilePath, fileName, `${project}/`);
-        
       } else if (req.file.buffer) {
         // LOCAL with memory storage: Save buffer to local file first
         console.log('Processing file from buffer in local environment');
-        
         const tempDir = 'uploads/temp';
         if (!fs.existsSync(tempDir)) {
           fs.mkdirSync(tempDir, { recursive: true });
         }
-        
         tempFilePath = path.join(tempDir, fileName);
         await fs.promises.writeFile(tempFilePath, req.file.buffer);
-        
         // Upload from temp file
         publicUrl = await cpanelService.uploadFile(tempFilePath, fileName, `${project}/`);
-        
       } else {
         // LOCAL with disk storage: Use existing file path
         console.log('Processing file from disk in local environment');
         console.log('File path:', req.file.path);
-        
         publicUrl = await cpanelService.uploadFile(req.file.path, fileName, `${project}/`);
       }
-      
       console.log('cPanel upload successful:', publicUrl);
-      
     } catch (cpanelError) {
       console.error('cPanel upload failed:', cpanelError.message);
-      
       // Fallback to local storage (only for local development)
       if (!process.env.VERCEL) {
         console.log('Attempting local fallback...');
-        
         const localUploadsDir = path.join(__dirname, 'public', 'uploads', project);
         if (!fs.existsSync(localUploadsDir)) {
           fs.mkdirSync(localUploadsDir, { recursive: true });
         }
-        
         const localFilePath = path.join(localUploadsDir, fileName);
-        
         if (req.file.buffer) {
-          // Copy from buffer
           await fs.promises.writeFile(localFilePath, req.file.buffer);
         } else if (req.file.path && fs.existsSync(req.file.path)) {
-          // Copy from temp file
           await fs.promises.copyFile(req.file.path, localFilePath);
         } else if (tempFilePath && fs.existsSync(tempFilePath)) {
-          // Copy from temp file created earlier
           await fs.promises.copyFile(tempFilePath, localFilePath);
         } else {
           throw new Error('No file data available for fallback');
         }
-        
         publicUrl = `/uploads/${project}/${fileName}`;
         console.log('Using local fallback URL:', publicUrl);
       } else {
@@ -1597,9 +1537,7 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
     if (req.file.path && fs.existsSync(req.file.path) && !process.env.VERCEL) {
       cleanupPromises.push(fs.promises.unlink(req.file.path));
     }
-    
     await Promise.allSettled(cleanupPromises);
-    
     // Format date
     const formatDateToDDMMYYYY = (dateString) => {
       try {
@@ -1613,10 +1551,8 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         return dateString;
       }
     };
-    
     const db = conn.useDb(project.toLowerCase());
     const collection = db.collection('media');
-    
     const newResource = {
       name: name.trim(),
       description: description.trim(),
@@ -1625,13 +1561,10 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
       filename: fileName,
       uploaded_at: new Date()
     };
-
     console.log('Saving to database:', newResource);
-
     // Save to database
     const existingDoc = await collection.findOne({});
     let result;
-    
     if (!existingDoc) {
       result = await collection.insertOne({
         resource: [newResource],
@@ -1658,17 +1591,13 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         type: req.file.mimetype
       }
     });
-
   } catch (error) {
     console.error('Upload error:', error);
-    
     // Cleanup any remaining temp files
     const cleanupPromises = [];
-    
     if (req.file?.path && fs.existsSync(req.file.path) && !process.env.VERCEL) {
       cleanupPromises.push(fs.promises.unlink(req.file.path));
     }
-    
     if (req.file?.buffer && req.file.originalname) {
       // Try to cleanup temp file if it was created
       const tempFileName = `/tmp/${Date.now()}-${req.file.originalname}`;
@@ -1676,9 +1605,7 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         cleanupPromises.push(fs.promises.unlink(tempFileName));
       }
     }
-    
     await Promise.allSettled(cleanupPromises);
-    
     res.status(500).json({ 
       success: false, 
       error: 'Upload failed',
@@ -1698,7 +1625,6 @@ app.post('/api/media/:project', async (req, res) => {
     if (!name || !description || !date || !url) {
       return res.status(400).json({ error: 'All fields are required' });
     }
-
     const newResource = {
       name,
       description,
@@ -1714,8 +1640,7 @@ app.post('/api/media/:project', async (req, res) => {
         resource: [newResource],
         created_at: new Date(),
         updated_at: new Date()
-      });
-      
+      }); 
       return res.status(201).json({
         success: true,
         message: 'Media added to new collection',
@@ -1730,20 +1655,17 @@ app.post('/api/media/:project', async (req, res) => {
           $set: { updated_at: new Date() }
         }
       );
-      
       return res.status(201).json({
         success: true,
         message: 'Media added to existing collection',
         modifiedCount: result.modifiedCount
       });
     }
-
   } catch (error) {
     console.error('Error adding media:', error);
     res.status(500).json({ error: 'Failed to add media' });
   }
 });
-
 //
 app.get('/api/shareholder/aurora', async (req, res) => {
   try {
@@ -1832,7 +1754,6 @@ app.post('/api/shareholder/:project', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 //
 app.post('/api/payment/:project', async (req, res) => {
   try {
@@ -1875,7 +1796,6 @@ app.post('/api/payment/:project', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 // Upload endpoint
 app.post('/api/upload', (req, res, next) => {
   console.log('🔥 Upload hit');
@@ -1928,7 +1848,6 @@ app.post('/api/upload', (req, res, next) => {
     });
   }
 });
-
 // Get all files
 app.get('/api/files', async (req, res) => {
   try {
@@ -1950,7 +1869,6 @@ app.get('/api/files', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 // Get single file by filename
 app.get('/api/files/:filename', async (req, res) => {
   try {
@@ -1978,7 +1896,6 @@ app.get('/api/files/:filename', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 // Delete file
 app.delete('/api/files/:id', async (req, res) => {
   try {
@@ -1989,7 +1906,6 @@ app.delete('/api/files/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 // Get files by project
 app.get('/api/files/project/:project', async (req, res) => {
   try {
@@ -2009,7 +1925,6 @@ app.get('/api/files/project/:project', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 // Get file metadata by ID
 app.get('/api/files/metadata/:id', async (req, res) => {
   try {
@@ -2028,7 +1943,6 @@ app.get('/api/files/metadata/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-//
 // GET costs for a project
 app.get('/api/costs/:project', async (req, res) => {
   try {
@@ -2052,7 +1966,6 @@ app.get('/api/costs/:project', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch costs' });
   }
 });
-
 // POST new cost/voucher
 app.post('/api/costs/:project', async (req, res) => {
   try {
@@ -2121,31 +2034,26 @@ app.post('/api/costs/:project', async (req, res) => {
     res.status(500).json({ error: 'Failed to add cost' });
   }
 });
-
 // milestone
 app.get('/api/milestones/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
     const db = conn.useDb(project);
     const collection = db.collection('milestone'); // Collection name is 'milestone'
-
     // Find milestones for this project
     const doc = await collection.findOne(
       { "project": project },
       { projection: { milestone: 1, _id: 0 } } // Get milestone array
     );
-
     if (!doc || !doc.milestone || doc.milestone.length === 0) {
       return res.status(404).json({ message: 'No milestones found' });
     }
-
     res.json(doc);
   } catch (error) {
     console.error('Error fetching milestones:', error);
     res.status(500).json({ error: 'Failed to fetch milestones' });
   }
 });
-
 // POST new milestone (matching your JSON structure)
 app.post('/api/milestones/:project', async (req, res) => {
   try {
@@ -2214,7 +2122,6 @@ app.post('/api/milestones/:project', async (req, res) => {
     res.status(500).json({ error: 'Failed to add milestone' });
   }
 });
-
 // PUT (update) a specific milestone
 app.put('/api/milestones/:project/:index', async (req, res) => {
   try {
@@ -2280,7 +2187,6 @@ app.put('/api/milestones/:project/:index', async (req, res) => {
     res.status(500).json({ error: 'Failed to update milestone' });
   }
 });
-
 // POST new media
 app.post('/api/media/:project', async (req, res) => {
   try {
@@ -2349,7 +2255,6 @@ app.post('/api/media/:project', async (req, res) => {
     res.status(500).json({ error: 'Failed to add media' });
   }
 });
-
 // login
 app.get('/login', (req, res) => {
   if (req.session.user) {
@@ -2368,18 +2273,20 @@ app.get('/', (req, res) => {
 
 app.post('/api/login', async (req, res) => {
   try {
-    const { mobile, password } = req.body;
-
-    if (!mobile || !password) {
+    // CHANGE: Add project to destructuring
+    const { mobile, password, project } = req.body;
+    
+    if (!mobile || !password || !project) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Mobile and password are required' 
+        message: 'Mobile, password, and project are required' 
       });
     }
     
-    console.log('Login attempt for mobile:', mobile);
+    console.log('Login attempt for mobile:', mobile, 'project:', project);
     
-    const db = conn.useDb('aurora');
+    // CHANGE: Use the selected project as database name
+    const db = conn.useDb(project.toLowerCase());
     const collection = db.collection('shareholder');
     
     const doc = await collection.findOne({ "shareholder.mobile": mobile });
@@ -2407,26 +2314,24 @@ app.post('/api/login', async (req, res) => {
       });
     }
     
-    console.log('Login successful for:', user.name);
+    console.log('Login successful for:', user.name, 'in project:', project);
     
-    // Create user session
+    // CHANGE: Store project in session
     const userSession = {
       id: user.id,
       name: user.name,
       mobile: user.mobile,
       email: user.email,
       flat_number: user.flat_number,
-      project: user.project,
+      project: project.toLowerCase(), // Store selected project
       role: user.role,
       total_installments: user.total_installments,
       installment_amount: user.installment_amount,
       payments: user.payments
     };
-
-    // Set session
+    
     req.session.user = userSession;
     
-    // Save session and set cookie headers
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
@@ -2435,11 +2340,7 @@ app.post('/api/login', async (req, res) => {
           message: 'Session error' 
         });
       }
-      
-      console.log('Session saved, ID:', req.sessionID);
-      console.log('Setting cookie for session:', req.session.cookie);
-      
-      // Send success response with explicit cookie header
+      console.log('Session saved with project:', req.session.user.project);
       res.json({
         success: true,
         message: 'Login successful',
@@ -2448,7 +2349,6 @@ app.post('/api/login', async (req, res) => {
         redirect: user.role === 'admin' ? '/admin' : '/dashboard'
       });
     });
-
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ 
@@ -2477,7 +2377,6 @@ app.post('/api/logout', (req, res) => {
 });
 
 // Routes
-
 app.get('/', (req, res) => {
   res.redirect('/login');
 });
@@ -2486,8 +2385,6 @@ app.get('/admin', (req, res) => {
   res.render('admin', { user: req.session.user });
 });
 
-// Dashboard page
-// FIXED: Tab endpoint - return COMPLETE data structure
 app.get('/tabs/:tabName', async (req, res) => {
   try {
     console.log(`=== TAB REQUEST: ${req.params.tabName} ===`);
@@ -2502,11 +2399,14 @@ app.get('/tabs/:tabName', async (req, res) => {
     
     const userMobile = req.session.user.mobile;
     const userName = req.session.user.name;
+    // CHANGE: Get project from session
+    const projectName = req.session.user.project || 'aurora';
     
-    // ALWAYS use aurora database
-    const auroraDB = conn.useDb('aurora');
+    console.log(`Using database: ${projectName} for tab request`);
     
-    // Initialize response with null values
+    // CHANGE: Use project from session for database
+    const projectDB = conn.useDb(projectName);
+    
     let responseData = {
       activeTab: tabName,
       financialData: null,
@@ -2515,47 +2415,35 @@ app.get('/tabs/:tabName', async (req, res) => {
       gallery: null
     };
     
-    // Fetch data based on requested tab
     if (tabName === 'financial-transparency') {
       console.log('Fetching financial transparency data');
-      
-      // Fetch shareholder
-      const shareholderDoc = await auroraDB.collection('shareholder').findOne({});
+      const shareholderDoc = await projectDB.collection('shareholder').findOne({});
       let shareholder = null;
       if (shareholderDoc && shareholderDoc.shareholder) {
         shareholder = shareholderDoc.shareholder.find(sh => sh.mobile === userMobile);
       }
-      
-      // Fetch cost data
-      const costDoc = await auroraDB.collection('cost').findOne({});
-      
-      // Generate financial data
+      const costDoc = await projectDB.collection('cost').findOne({ project: projectName });
       responseData.financialData = await generateFinancialData(shareholder, costDoc);
       
     } else if (tabName === 'construction-progress') {
       console.log('Fetching construction progress data');
-      
-      // Fetch milestone data
-      const milestoneDoc = await auroraDB.collection('milestone').findOne({});
-      
-      // Generate construction progress
+      const milestoneDoc = await projectDB.collection('milestone').findOne({ project: projectName });
       responseData.constructionProgress = generateConstructionProgressFromDB(milestoneDoc);
       
-    } else if (tabName === 'customization') {
-      console.log('Fetching customization data for user:', userName);
-      
-      // Fetch customization data
-      const customizationDoc = await auroraDB.collection('customization').findOne({});
-      
-      // Generate customization data
-      responseData.customizationData = generateCustomizationFromDB(customizationDoc, userName);
-      
-    } else if (tabName === 'gallery') {
+    } 
+    else if (tabName === 'customization') {
+  console.log('Fetching customization data for user:', userName);
+  const customizationDoc = await projectDB.collection('customization').findOne({});
+  console.log('Customization document found:', !!customizationDoc);
+  if (customizationDoc) {
+    console.log('Has selection array:', !!customizationDoc.selection);
+    console.log('Selection length:', customizationDoc.selection?.length);
+  }
+  responseData.customizationData = generateCustomizationFromDB(customizationDoc, userName);
+}
+ else if (tabName === 'gallery') {
       console.log('Fetching gallery data');
-      
-      // Fetch media data
-      const mediaDoc = await auroraDB.collection('media').findOne({});
-      
+      const mediaDoc = await projectDB.collection('media').findOne({ project: projectName });
       let galleryItems = [];
       if (mediaDoc && mediaDoc.resource && Array.isArray(mediaDoc.resource)) {
         galleryItems = mediaDoc.resource.map(item => ({
@@ -2567,20 +2455,12 @@ app.get('/tabs/:tabName', async (req, res) => {
           filename: item.filename || ''
         }));
       }
-      
       responseData.gallery = {
         title: "Project Gallery",
         subtitle: "Browse through construction progress photos and videos",
         items: galleryItems
       };
     }
-    
-    console.log(`Sending response for ${tabName} tab with data:`, {
-      hasFinancialData: !!responseData.financialData,
-      hasConstructionProgress: !!responseData.constructionProgress,
-      hasCustomizationData: !!responseData.customizationData,
-      hasGallery: !!responseData.gallery
-    });
     
     res.json(responseData);
     
@@ -2589,8 +2469,6 @@ app.get('/tabs/:tabName', async (req, res) => {
     console.error('Error stack:', error.stack);
     
     const { tabName } = req.params;
-    
-    // Return mock data with COMPLETE structure
     const errorResponse = {
       activeTab: tabName,
       financialData: tabName === 'financial-transparency' ? {
@@ -2611,6 +2489,7 @@ app.get('/tabs/:tabName', async (req, res) => {
         items: []
       } : null
     };
+    
     res.json(errorResponse);
   }
 });
@@ -2618,38 +2497,30 @@ app.get('/tabs/:tabName', async (req, res) => {
 app.get('/tabs/customization', async (req, res) => {
   try {
     console.log('=== CUSTOMIZATION TAB REQUEST ===');
-    
     if (!req.session.user) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
-    
     const userName = req.session.user.name;
     console.log('Fetching customization for user:', userName);
-    
     // Use the correct database
     const auroraDB = conn.useDb('aurora');
-    
     // Fetch REAL customization data - FIXED QUERY
     // Don't filter by project since your data doesn't have project field
     const customizationDoc = await auroraDB.collection('customization').findOne({});
     console.log('Customization document found:', !!customizationDoc);
-    
     if (customizationDoc) {
       console.log('Customization document structure:', {
         hasSelection: !!customizationDoc.selection,
         selectionLength: customizationDoc.selection?.length || 0
       });
     }
-    
     const dynamicCustomizationData = generateCustomizationFromDB(customizationDoc, userName);
-    
     res.json({
       activeTab: 'customization',
       financialData: null,
       constructionProgress: null,
       customizationData: dynamicCustomizationData
     });
-    
   } catch (error) {
     console.error('Error loading customization tab:', error);
     res.json({
@@ -2698,17 +2569,18 @@ app.get('/customization/update', (req, res) => {
 });
 
 // Update your server endpoint to use req.params.project instead of hardcoding "aurora"
+// Update your server endpoint to use req.params.project instead of hardcoding "aurora"
 app.get('/api/customization/:project', async (req, res) => {
   try {
     console.log('Customization API called for project:', req.params.project);
-    
     const project = req.params.project.toLowerCase();
     console.log('Using database:', project);
-    
     const db = conn.useDb(project);
     const collection = db.collection('customization');
     
+    // 🔴🔴🔴 REMOVE THE PROJECT FILTER - just get any document 🔴🔴🔴
     const docs = await collection.find({}).toArray();
+    
     console.log('Found documents:', docs.length);
     
     if (!docs || docs.length === 0) {
@@ -2722,7 +2594,6 @@ app.get('/api/customization/:project', async (req, res) => {
     }
     
     res.json(doc);
-    
   } catch (error) {
     console.error('Error fetching customization:', error);
     res.status(500).json({ 
@@ -2731,7 +2602,6 @@ app.get('/api/customization/:project', async (req, res) => {
     });
   }
 });
-
 // POST customization option
 app.post('/api/customization/:project', async (req, res) => {
   try {

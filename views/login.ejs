@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Uninest Real Estate System</title>
-         <link rel="icon" type="image/x-icon" href="https://uninest.com.bd/wp-content/uploads/2025/12/logo-white.webp">
+  <link rel="icon" type="image/x-icon" href="https://uninest.com.bd/wp-content/uploads/2025/12/logo-white.webp">
 
   <style>
     body {
@@ -15,9 +15,8 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      /* Using min-height and padding-top is better for content that might scroll */
       min-height: 100vh; 
-      padding-top: 21px; /* Space to clear the fixed navbar */
+      padding-top: 21px;
     }
 
     .custom-alert {
@@ -38,17 +37,16 @@
     .content-wrapper {
       display: flex;
       flex-direction: column;
-      align-items: center; /* Centers children horizontally within the wrapper */
+      align-items: center; 
       padding: 10px;
       margin-top: 3px; 
-      /* Optional: You can also use margin-bottom for space below the wrapper if needed */
     }
     
     .image-container img {
         max-width: 120px;
         height: auto;
-        border-radius: 5%; /* Optional: for a round logo */
-        margin-bottom: 4px; /* Space between the image and the login box */
+        border-radius: 5%; 
+        margin-bottom: 4px; 
     }
 
     .login-container {
@@ -67,8 +65,6 @@
       font-size: 24px;
       color: #0c48a3;
     }
-
-    /* .image-container { text-align: center; } <-- REMOVED, controlled by .content-wrapper */
 
     .form-group {
       margin-bottom: 20px;
@@ -159,11 +155,8 @@
       font-weight: 600;
     }
 
-    /* --------------------------------- */
-    /* DESKTOP NAVIGATION STYLES (New) */
-    /* --------------------------------- */
     .nav-links {
-      display: flex; /* Show the links in a row on desktop */
+      display: flex;
       gap: 25px;
     }
 
@@ -180,24 +173,19 @@
     }
     
     .menu-btn {
-      display: none; /* Hide the mobile menu button on desktop */
+      display: none;
       background: none;
       border: none;
       font-size: 26px;
       cursor: pointer;
       color: #fff;
     }
-    /* --------------------------------- */
-    /* END DESKTOP NAVIGATION STYLES */
-    /* --------------------------------- */
 
-
-    /* Dropdown menu (Mobile/Active State) */
     .menu {
       display: none;
-      position: absolute; /* Relative to the viewport/document */
+      position: absolute;
       top: 65px; 
-      right: 25px; /* Position close to the edge/button */
+      right: 25px;
       background: #1f1f1f;
       box-shadow: 0 2px 10px rgba(255,255,255,0.2);
       border-radius: 8px;
@@ -254,6 +242,78 @@
   background-color: #4CAF50;
 }
 
+/* Update these styles to match dropdown with text inputs - COMPLETELY MATCHING */
+.form-group select {
+  width: 100%;
+  padding: 12px 16px; /* Same padding as text inputs */
+  border: none; /* Same as text inputs - remove border */
+  border-radius: 6px; /* Same border radius as text inputs */
+  font-size: 16px; /* Same font size */
+  background-color: #2a2a2a; /* SAME background color as mobile/password inputs */
+  color: #fff; /* SAME text color as mobile/password inputs */
+  height: 48px; /* SAME height as text inputs (your inputs have padding 12px = ~48px) */
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%23ffffff'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 18px;
+  padding-right: 45px;
+  font-weight: normal;
+}
+
+/* Focus state - match text inputs */
+.form-group select:focus {
+  outline: 2px solid #ffd700; /* SAME as text inputs */
+  background-color: #2a2a2a; /* Keep same background */
+}
+
+/* Style for options dropdown */
+.form-group select option {
+  background-color: #2a2a2a; /* Match the select background */
+  color: #fff; /* White text */
+  padding: 12px;
+}
+
+/* Placeholder/first option style */
+.form-group select option:first-child {
+  color: #999; /* Gray color for placeholder */
+}
+
+/* Hover state - match text inputs */
+.form-group select:hover {
+  background-color: #333333; /* Slightly lighter on hover - match input hover if you have it */
+}
+
+/* Match the title (label) style with mobile and password labels */
+.form-group label {
+  display: block;
+  font-weight: 600; /* Make it bold like you have with <b> tag */
+  margin-bottom: 6px;
+  color: #0f0303; /* Keep existing color */
+  font-size: 15px; /* Match size */
+}
+
+/* If you want the label to be exactly the same as mobile/password, 
+   add the <b> tag to the project label or use this: */
+.form-group label[for="project"] {
+  font-weight: 700;
+}
+
+/* For the dropdown arrow to be white to match the theme */
+.form-group select {
+  color-scheme: dark;
+}
+
+/* Make the error message style consistent */
+#projectError {
+  color: #ff4c4c;
+  font-size: 14px;
+  margin-top: 5px;
+  display: none;
+}
   </style>
 </head>
 <body>
@@ -283,10 +343,20 @@
       <!-- <h4>Login</h4> -->
        <br>
       <form id="loginForm" novalidate>
+
+         <div class="form-group">
+        <label for="project">Select Project</label>
+        <select id="project" name="project" required>
+          <option value="">-- Select Project --</option>
+          <option value="aurora">UniNest Aurora</option>
+          <option value="greenescape">UniNest Green Escape</option>
+          <option value="godhuli">UniNest Godhuli</option>
+        </select>
+        <div class="error" id="projectError">Please select a project.</div>
+      </div>
           
         <div class="form-group">
           <label for="mobile"><b>Mobile Number</b></label>
-
           <input type="text" id="mobile" name="mobile" placeholder="01..... or +......" maxlength="14" required>
           <div class="error" id="mobileError">Please enter registered mobile number.</div>
         </div>
@@ -305,6 +375,7 @@
 
 <script>
   const form = document.getElementById('loginForm');
+  const projectSelect = document.getElementById('project');
   const mobileInput = document.getElementById('mobile');
   const passwordInput = document.getElementById('password');
   const mobileError = document.getElementById('mobileError');
@@ -314,9 +385,15 @@
 form.addEventListener('submit', async function(e) {
   e.preventDefault();
   let valid = true;
+  projectError.style.display = 'none';
   mobileError.style.display = 'none';
   passwordError.style.display = 'none';
   const mobilePattern = /^(01\d{9}|\+\d{1,13})$/;
+
+      if (!projectSelect.value) {
+      projectError.style.display = 'block';
+      valid = false;
+    }
 
   if (!mobilePattern.test(mobileInput.value.trim())) {
     mobileError.style.display = 'block';
@@ -336,6 +413,7 @@ form.addEventListener('submit', async function(e) {
 
   try {
     const userData = {
+      project: projectSelect.value,
       mobile: mobileInput.value.trim(),
       password: passwordInput.value.trim()
     };
