@@ -1608,6 +1608,193 @@ th {
 .show {
   display: block;
 }
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.3s;
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 10% auto;
+  padding: 0;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s;
+}
+
+.modal-header {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.close {
+  color: #aaa;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #555;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.cancel-btn,
+.submit-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.cancel-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background-color: #5a6268;
+}
+
+.submit-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.submit-btn:hover {
+  background-color: #0056b3;
+}
+
+.submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Loading Spinner */
+.spinner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Success/Error Messages */
+.message {
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 4px;
+  display: none;
+}
+
+.message.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.message.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 </style>
 </head>
 
@@ -1620,11 +1807,45 @@ th {
   <div class="tab" onclick="showTab('gallery', this)">Gallery</div>
   <div class="tab" onclick="showTab('customization', this)">Customization</div>
   <div class="profile-dropdown">
-  <div class="tab" onclick="toggleProfileMenu(event)">Profile &#9660;</div>
-  <div id="profileMenu" class="dropdown-content">
-    <a href="/api/logout">Logout</a>
+    <div class="tab" onclick="toggleProfileMenu(event)">Profile &#9660;</div>
+    <div id="profileMenu" class="dropdown-content">
+      <a href="#" onclick="showNewProjectModal(); return false;">New Project</a>
+      <a href="/api/logout">Logout</a>
+    </div>
   </div>
 </div>
+
+<!-- New Project Modal -->
+<div id="newProjectModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Create New Project</h2>
+      <span class="close" onclick="closeNewProjectModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="newProjectForm" onsubmit="createNewProject(event)">
+        <div class="form-group">
+          <label for="projectName">Project Name:</label>
+          <input type="text" id="projectName" name="projectName" required 
+                 placeholder="Enter project name">
+        </div>
+        <div class="form-group">
+          <label for="projectDescription">Description (Optional):</label>
+          <textarea id="projectDescription" name="projectDescription" 
+                    placeholder="Enter project description" rows="3"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" onclick="closeNewProjectModal()" class="cancel-btn">Cancel</button>
+          <button type="submit" class="submit-btn">Create Project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loadingSpinner" class="spinner-overlay" style="display: none;">
+  <div class="spinner"></div>
 </div>
 </div>
 
@@ -4042,6 +4263,125 @@ window.onclick = function(event) {
     }
   }
 }
+
+// Profile dropdown toggle
+function toggleProfileMenu(event) {
+  event.stopPropagation();
+  const menu = document.getElementById('profileMenu');
+  menu.classList.toggle('show');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+  const menu = document.getElementById('profileMenu');
+  const dropdown = document.querySelector('.profile-dropdown');
+  
+  if (!dropdown.contains(event.target) && menu.classList.contains('show')) {
+    menu.classList.remove('show');
+  }
+});
+
+// Modal functions
+function showNewProjectModal() {
+  document.getElementById('newProjectModal').style.display = 'block';
+  document.getElementById('newProjectForm').reset();
+}
+
+function closeNewProjectModal() {
+  document.getElementById('newProjectModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('newProjectModal');
+  if (event.target == modal) {
+    closeNewProjectModal();
+  }
+}
+
+// Function to show/hide loading spinner
+function showLoading(show) {
+  document.getElementById('loadingSpinner').style.display = show ? 'flex' : 'none';
+}
+
+// Function to show message
+function showMessage(message, type) {
+  // Remove any existing message
+  const existingMessage = document.querySelector('.message');
+  if (existingMessage) {
+    existingMessage.remove();
+  }
+  
+  // Create new message
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `message ${type}`;
+  messageDiv.textContent = message;
+  messageDiv.style.display = 'block';
+  
+  // Insert at the top of modal body
+  const modalBody = document.querySelector('.modal-body');
+  modalBody.insertBefore(messageDiv, modalBody.firstChild);
+  
+  // Auto hide after 3 seconds
+  setTimeout(() => {
+    messageDiv.style.display = 'none';
+    messageDiv.remove();
+  }, 3000);
+}
+
+// Main function to create new project
+async function createNewProject(event) {
+  event.preventDefault();
+  
+  const projectName = document.getElementById('projectName').value.trim();
+  const projectDescription = document.getElementById('projectDescription').value.trim();
+  
+  if (!projectName) {
+    showMessage('Please enter a project name', 'error');
+    return;
+  }
+  
+  // Disable submit button and show loading
+  const submitBtn = document.querySelector('.submit-btn');
+  submitBtn.disabled = true;
+  showLoading(true);
+  
+  try {
+    const response = await fetch('/api/projects/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: projectName,
+        description: projectDescription
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      showMessage('Project created successfully!', 'success');
+      
+      // Close modal after 1.5 seconds
+      setTimeout(() => {
+        closeNewProjectModal();
+        // Optional: Redirect to the new project page
+        // window.location.href = `/admin/${result.projectId}`;
+      }, 1500);
+    } else {
+      showMessage(result.message || 'Failed to create project', 'error');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    showMessage('Network error. Please try again.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    showLoading(false);
+  }
+}
+
+
 </script>
 <div id="success-popup" class="success-popup hidden">
     <i class="fas fa-check-circle"></i>
