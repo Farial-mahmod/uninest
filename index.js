@@ -1702,6 +1702,7 @@ app.post('/api/shareholder/:project', async (req, res) => {
       email,
       mobile,
       password,
+      role,
       total_installments,
       installment_amount
     } = req.body;
@@ -1710,16 +1711,30 @@ app.post('/api/shareholder/:project', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // -------- AUTO GENERATE PAYMENTS ARRAY --------
-    const payments = Array.from(
-      { length: Number(total_installments) },
-      (_, i) => ({
-        installment_number: i + 1,
-        amount_paid: 0,
-        payment_date: "",
-        status: "due"
-      })
-    );
+    let payments = [];
+    let totalInstallmentsNum = 0;
+    let installmentAmountNum = 0;
+    
+    // For admin users, payments array is empty
+    if (role === 'admin') {
+      payments = [];
+      totalInstallmentsNum = 0;
+      installmentAmountNum = 0;
+    } else {
+      // For regular users, generate payments array
+      totalInstallmentsNum = Number(total_installments) || 0;
+      installmentAmountNum = Number(installment_amount) || 0;
+      
+      payments = Array.from(
+        { length: totalInstallmentsNum },
+        (_, i) => ({
+          installment_number: i + 1,
+          amount_paid: 0,
+          payment_date: "",
+          status: "due"
+        })
+      );
+    }
 
     const newShareholder = {
       id,
@@ -1729,17 +1744,19 @@ app.post('/api/shareholder/:project', async (req, res) => {
       email,
       mobile,
       password,
-      total_installments: Number(total_installments),
-      installment_amount: Number(installment_amount),
+      role: role || 'client',
+      total_installments: totalInstallmentsNum,
+      installment_amount: installmentAmountNum,
       payments
     };
 
     const result = await collection.updateOne(
       { "shareholder.project": project },
-      { $push: { shareholder: newShareholder } }
+      { $push: { shareholder: newShareholder } },
+      { upsert: true }
     );
 
-    if (!result.matchedCount) {
+    if (!result.matchedCount && !result.upsertedCount) {
       return res.status(404).json({ message: 'Project document not found' });
     }
 

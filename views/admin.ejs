@@ -1857,10 +1857,10 @@ th {
 <div class="card">
   <div class="card-header">
     <div>
-      <h2>Manage Shareholders</h2>
+      <h2>Manage Roles</h2>
       <div class="subtitle">View and manage all shareholder information</div>
     </div>
-    <button class="btn" onclick="openModal()">Add Shareholder</button>
+    <button class="btn" onclick="openModal()">Add Role</button>
   </div>
   </div><br>
   <!-- <input class="search" placeholder="Search by name, flat number, or share ID..."> -->
@@ -2121,14 +2121,14 @@ th {
   <div class="modal-box">
     <div class="modal-header">
       <div>
-        <h3>Add New Shareholder</h3>
-        <div class="subtitle">Enter shareholder details below</div>
+        <h3>Add New Role</h3>
+        <div class="subtitle">Enter details </div>
       </div>
       <span class="close" onclick="closeModal()">×</span>
     </div>
 
 <div class="form-grid">
-  <input id="sh_id" placeholder="Share ID (example: au-sh-a1)">
+  <input id="sh_id" placeholder="ID (example: au-sh-a1)">
   <input id="sh_project" placeholder="Project name">
 
   <input id="sh_name" placeholder="Full Name">
@@ -2136,17 +2136,25 @@ th {
 
   <input id="sh_email" placeholder="Email">
   <input id="sh_mobile" placeholder="Mobile">
+<input id="sh_password" type="password" placeholder="Password">
 
-  <input id="sh_password" type="password" placeholder="Password">
+<select id="sh_role" style="padding: 10px; border: 1px solid #333; border-radius: 6px; background: #1a1a1a; color: white;" onchange="toggleAdminFields()">
+  <option value="client">Client</option>
+  <option value="admin">Admin</option>
+</select>
 
+<!-- Client-only fields container -->
+<div id="clientFields">
   <input id="sh_total_installments" type="number" placeholder="Total Installments">
   <input id="sh_installment_amount" type="number" placeholder="Installment Amount">
+</div>
+
 </div>
 
 
     <div class="form-actions">
       <button class="btn" style="background:#ddd;color:#000" onclick="closeModal()">Cancel</button>
-      <button class="btn" onclick="addShareholder()">Add Shareholder</button>
+      <button class="btn" onclick="addShareholder()">Add Role</button>
     </div>
   </div>
 </div>
@@ -2387,16 +2395,16 @@ async function fetchShareholders() {
         .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
 
       const status = totalPaid > 0 ? 'Active' : 'Inactive';
-
       const row = `
-        <tr>
-          <td>${sh.id}</td>
-          <td>${sh.name}</td>
-          <td>${sh.flat_number}</td>
-          <td>${sh.mobile}</td>
-          <td>${totalPaid.toLocaleString()}</td>
-        </tr>
-      `;
+  <tr>
+    <td>${sh.id}</td>
+    <td>${sh.name}</td>
+    <td>${sh.flat_number}</td>
+    <td>${sh.mobile}</td>
+    <td>${totalPaid.toLocaleString()}</td>
+    <td><span style="background: ${sh.role === 'admin' ? '#dc2626' : '#059669'}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${sh.role || 'client'}</span></td>
+  </tr>
+`;
 
       tableBody.insertAdjacentHTML('beforeend', row);
     });
@@ -2406,7 +2414,42 @@ async function fetchShareholders() {
   }
 }
 
+function toggleAdminFields() {
+  const role = document.getElementById('sh_role').value;
+  const clientFields = document.getElementById('clientFields');
+  
+  if (role === 'admin') {
+    clientFields.style.display = 'none';
+    // Clear the values when hiding
+    document.getElementById('sh_total_installments').value = '';
+    document.getElementById('sh_installment_amount').value = '';
+  } else {
+    clientFields.style.display = 'block';
+  }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  fetchShareholders();
+  document.getElementById('shareholdersView').style.display = 'block';
+  toggleAdminFields(); // Initialize field visibility
+});
+
 async function addShareholder() {
+  const role = document.getElementById('sh_role').value;
+  
+  // For admin users, set empty values for financial fields
+  let totalInstallments = '';
+  let installmentAmount = '';
+  
+  if (role === 'admin') {
+    totalInstallments = ''; // Empty string for admin
+    installmentAmount = ''; // Empty string for admin
+  } else {
+    totalInstallments = document.getElementById('sh_total_installments').value;
+    installmentAmount = document.getElementById('sh_installment_amount').value;
+  }
+
   const payload = {
     id: document.getElementById('sh_id').value,
     project: document.getElementById('sh_project').value,
@@ -2415,8 +2458,9 @@ async function addShareholder() {
     email: document.getElementById('sh_email').value,
     mobile: document.getElementById('sh_mobile').value,
     password: document.getElementById('sh_password').value,
-    total_installments: document.getElementById('sh_total_installments').value,
-    installment_amount: document.getElementById('sh_installment_amount').value
+    role: role,
+    total_installments: totalInstallments,
+    installment_amount: installmentAmount
   };
 
   if (!payload.id || !payload.name || !payload.mobile) {
@@ -2461,12 +2505,19 @@ function openPaymentModal() {
 }
 
 async function submitPayment() {
+
   const payload = {
-    shareholderId: document.getElementById('paymentShareholder').value,
-    installment_number: document.getElementById('paymentInstallment').value,
-    amount_paid: document.getElementById('paymentAmount').value,
-    payment_date: document.getElementById('paymentDate').value
-  };
+  id: document.getElementById('sh_id').value,
+  project: document.getElementById('sh_project').value,
+  name: document.getElementById('sh_name').value,
+  flat_number: document.getElementById('sh_flat').value,
+  email: document.getElementById('sh_email').value,
+  mobile: document.getElementById('sh_mobile').value,
+  password: document.getElementById('sh_password').value,
+  role: document.getElementById('sh_role').value, // Add this line
+  total_installments: document.getElementById('sh_total_installments').value,
+  installment_amount: document.getElementById('sh_installment_amount').value
+};
 
   if (!payload.shareholderId || !payload.installment_number) {
     return alert('All fields are required');
