@@ -2587,7 +2587,6 @@ app.get('/customization/update', (req, res) => {
 });
 
 // Update your server endpoint to use req.params.project instead of hardcoding "aurora"
-// Update your server endpoint to use req.params.project instead of hardcoding "aurora"
 app.get('/api/customization/:project', async (req, res) => {
   try {
     console.log('Customization API called for project:', req.params.project);
@@ -2595,22 +2594,15 @@ app.get('/api/customization/:project', async (req, res) => {
     console.log('Using database:', project);
     const db = conn.useDb(project);
     const collection = db.collection('customization');
-    
-    // 🔴🔴🔴 REMOVE THE PROJECT FILTER - just get any document 🔴🔴🔴
-    const docs = await collection.find({}).toArray();
-    
+    const docs = await collection.find({}).toArray();  
     console.log('Found documents:', docs.length);
-    
     if (!docs || docs.length === 0) {
       return res.status(404).json({ message: 'No customization found' });
     }
-    
     const doc = docs[0];
-    
     if (!doc.selection || !Array.isArray(doc.selection)) {
       return res.status(404).json({ message: 'No customization selections found' });
     }
-    
     res.json(doc);
   } catch (error) {
     console.error('Error fetching customization:', error);
@@ -2620,23 +2612,20 @@ app.get('/api/customization/:project', async (req, res) => {
     });
   }
 });
+
 // POST customization option
 app.post('/api/customization/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
     const db = conn.useDb(project);
-    const collection = db.collection('customization');
-    
+    const collection = db.collection('customization');    
     const newSelection = req.body;
-    
     // Validate required fields
     if (!newSelection.name || !newSelection.description || !newSelection.from || !newSelection.to) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    
     // Check if any document exists
     const existingDoc = await collection.findOne({});
-    
     if (!existingDoc) {
       // Create first document
       const result = await collection.insertOne({
@@ -2666,10 +2655,224 @@ app.post('/api/customization/:project', async (req, res) => {
         modifiedCount: result.modifiedCount
       });
     }
-    
   } catch (error) {
     console.error('Error adding customization:', error);
     res.status(500).json({ error: 'Failed to add customization option' });
+  }
+});
+
+// Get all projects (database names)
+app.get('/api/projects', async (req, res) => {
+  try {
+    console.log('=== FETCHING PROJECTS ===');
+    
+    // Check if conn is ready
+    if (conn.readyState !== 1) {
+      console.log('Connection state:', conn.readyState);
+      throw new Error('Database not connected');
+    }
+    // conn.db gives you the native MongoDB Db object
+    const adminDb = conn.db.admin();
+    // List all databases
+    const result = await adminDb.listDatabases();
+    console.log('Total databases found:', result.databases.length);
+    // Filter out system databases
+    const excludedDatabases = ['admin', 'data', 'default', 'local'];
+    const projects = result.databases
+      .filter(db => !excludedDatabases.includes(db.name))
+      .map(db => db.name);
+    
+    console.log('Projects after filtering:', projects);
+    
+    res.json({
+      success: true,
+      projects: projects
+    });
+  } catch (error) {
+    console.error('Error fetching databases:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch projects',
+      error: error.message
+    });
+  }
+});
+
+// Create new project database with dummy data
+app.post('/api/projects/create', async (req, res) => {
+  let tempClient = null;
+  
+  try {
+    console.log('=== CREATE NEW PROJECT ===');
+    const { projectName } = req.body;
+    
+    if (!projectName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Project name is required'
+      });
+    }
+    
+    // Sanitize project name (lowercase, no spaces)
+    const sanitizedProjectName = projectName.toLowerCase().replace(/\s+/g, '');
+    console.log('Creating project:', sanitizedProjectName);
+    
+    // Check if project already exists
+    const adminDb = conn.db.admin();
+    const { databases } = await adminDb.listDatabases();
+    
+    if (databases.some(db => db.name === sanitizedProjectName)) {
+      return res.status(400).json({
+        success: false,
+        message: `Project "${sanitizedProjectName}" already exists`
+      });
+    }
+    
+    // Create a temporary connection to the new database
+    // This will automatically create the database when we insert data
+    const { MongoClient } = require('mongodb');
+    const uri = process.env.URI;
+    
+    // Parse the URI and insert the new database name
+    const uriParts = uri.split('/');
+    const baseUri = uriParts.slice(0, -1).join('/'); // Remove last part (database name)
+    const newUri = `${baseUri}/${sanitizedProjectName}`;
+    
+    tempClient = new MongoClient(newUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    
+    await tempClient.connect();
+    const db = tempClient.db();
+    
+    console.log(`Connected to new database: ${sanitizedProjectName}`);
+    
+    // 1. Create COST collection with dummy data
+    await db.collection('cost').insertOne({
+      project: sanitizedProjectName,
+      cost: [
+        {
+          material: "Sand (test data)",
+          date: "2026-02-01",
+          description: "20 sacks for ground floor (test data)",
+          brand: "Yousuf Traders",
+          amount: 0,
+          voucher_link: "https://d1csarkz8obe9u.cloudfront.net/posterpreviews/accounts-purchase-voucher-sample-design-template-28eb2b25d034784faf51550294e36397_screen.jpg?ts=1685555955"
+        }
+      ],
+      updated_at: new Date()
+    });
+    console.log('✅ Cost collection created');
+    
+    // 2. Create CUSTOMIZATION collection with dummy data
+    await db.collection('customization').insertOne({
+      selection: [
+        {
+          name: "Tiles Preference",
+          description: "Tiles for floors",
+          from: "04-02-2026",
+          to: "14-02-2026",
+          option_1: {
+            details: "Xian tiles from China",
+            url: "https://www.shutterstock.com/image-photo/colorful-floral-iznik-ceramic-tile-260nw-2652486655.jpg",
+            voters: []
+          },
+          option_2: {
+            details: "Thai brand tiles",
+            url: "https://media.istockphoto.com/id/482833002/photo/ancient-ceramic-tile-decorated-with-thai-art.jpg?s=612x612&w=0&k=20&c=W7APRWrzhUt6wU_Dl-411zyPC5hkzTKPbSS2yAxwx7U=",
+            voters: []
+          },
+          option_3: {
+            details: "Hua tiles of Hong Kong",
+            url: "https://cdna.artstation.com/p/media_assets/images/images/000/508/786/large/ThaiTempleWallPattern_MainRef.jpg?1570417463",
+            voters: []
+          }
+        }
+      ],
+      updated_at: new Date()
+    });
+    console.log('✅ Customization collection created');
+    
+    // 3. Create MEDIA collection with dummy data
+    await db.collection('media').insertOne({
+      resource: [
+        {
+          name: "Groundwork",
+          description: "Initial Task Set",
+          date: "02-02-2026",
+          url: "https://www.eclcivils.co.uk/wp-content/uploads/2019/09/HR-resize.rpa-19-1024x683.jpg"
+        }
+      ],
+      updated_at: new Date()
+    });
+    console.log('✅ Media collection created');
+    
+    // 4. Create MILESTONE collection with dummy data
+    await db.collection('milestone').insertOne({
+      project: sanitizedProjectName,
+      milestone: [
+        {
+          description: "Main Gate",
+          planned_date: "06-02-2026",
+          completion_date: "",
+          status: "Planned",
+          note: "",
+          updated_at: new Date()
+        }
+      ],
+      updated_at: new Date()
+    });
+    console.log('✅ Milestone collection created');
+    
+    // 5. Create SHAREHOLDER collection with dummy data
+    // Generate admin ID
+    const adminId = `${sanitizedProjectName.substring(0, 2)}-admin-1`;
+    
+    await db.collection('shareholder').insertOne({
+      shareholder: [
+        {
+          id: adminId,
+          project: sanitizedProjectName,
+          name: "Project Admin",
+          flat_number: "Admin",
+          email: `admin@${sanitizedProjectName}.com`,
+          mobile: "01700000000",
+          password: "Admin@123",
+          total_installments: 0,
+          installment_amount: 0,
+          role: "admin",
+          payments: []
+        }
+      ]
+    });
+    console.log('✅ Shareholder collection created with admin user');
+    
+    console.log(`✅ Project "${sanitizedProjectName}" created successfully!`);
+    
+    res.json({
+      success: true,
+      message: `Project "${sanitizedProjectName}" created successfully`,
+      project: sanitizedProjectName,
+      admin: {
+        email: `admin@${sanitizedProjectName}.com`,
+        password: "Admin@123",
+        mobile: "01700000000"
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error creating project:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create project',
+      error: error.message
+    });
+  } finally {
+    if (tempClient) {
+      await tempClient.close();
+      console.log('Temporary connection closed');
+    }
   }
 });
 

@@ -340,17 +340,13 @@
     <br>
  
     <div class="login-container">
-      <!-- <h4>Login</h4> -->
        <br>
       <form id="loginForm" novalidate>
-
          <div class="form-group">
         <label for="project">Select Project</label>
         <select id="project" name="project" required>
           <option value="">-- Select Project --</option>
-          <option value="aurora">UniNest Aurora</option>
-          <option value="greenescape">UniNest Green Escape</option>
-          <option value="godhuli">UniNest Godhuli</option>
+          <!-- Projects will be loaded dynamically -->
         </select>
         <div class="error" id="projectError">Please select a project.</div>
       </div>
@@ -374,10 +370,82 @@
   </div>
 
 <script>
+  // Fetch projects when page loads
+  document.addEventListener('DOMContentLoaded', async function() {
+    console.log('DOM loaded, fetching projects...');
+    await loadProjects();
+  });
+
+  async function loadProjects() {
+    const projectSelect = document.getElementById('project');
+    
+    try {
+      // Show loading state
+      projectSelect.innerHTML = '<option value="">-- Loading Projects --</option>';
+      projectSelect.disabled = true;
+      
+      console.log('Fetching projects from /api/projects...');
+      
+      // Fetch projects from server
+      const response = await fetch('/api/projects');
+      console.log('Response status:', response.status);
+      
+      const result = await response.json();
+      console.log('API Response:', result);
+      
+      if (result.success && result.projects && result.projects.length > 0) {
+        console.log('Projects received:', result.projects);
+        
+        // Clear loading state
+        projectSelect.innerHTML = '<option value="">-- Select Project --</option>';
+        projectSelect.disabled = false;
+        
+        // Add projects to select
+        result.projects.forEach(project => {
+          console.log('Adding project:', project);
+          const option = document.createElement('option');
+          option.value = project; // Database name as value
+          option.textContent = formatProjectName(project); // Formatted name for display
+          projectSelect.appendChild(option);
+        });
+        
+        console.log('Final select HTML:', projectSelect.innerHTML);
+      } else {
+        console.log('No projects found or invalid response');
+        throw new Error(result.message || 'No projects available');
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+      projectSelect.innerHTML = '<option value="">-- Error Loading Projects --</option>';
+      projectSelect.disabled = false;
+      showCustomAlert('Failed to load projects. Please refresh the page.', 'error');
+    }
+  }
+
+  // Helper function to format database names for display
+  function formatProjectName(dbName) {
+    console.log('Formatting project name:', dbName);
+    
+    // Convert to title case and replace underscores/hyphens with spaces
+    let formatted = dbName
+      .split(/[_-]/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+    
+    // Add "UniNest" prefix if it's not already there
+    if (!formatted.toLowerCase().includes('uninest')) {
+      formatted = 'UniNest ' + formatted;
+    }
+    
+    console.log('Formatted name:', formatted);
+    return formatted;
+  }
+
   const form = document.getElementById('loginForm');
   const projectSelect = document.getElementById('project');
   const mobileInput = document.getElementById('mobile');
   const passwordInput = document.getElementById('password');
+  const projectError = document.getElementById('projectError');
   const mobileError = document.getElementById('mobileError');
   const passwordError = document.getElementById('passwordError');
   const loginBtn = form.querySelector('button[type="submit"]');
@@ -390,10 +458,12 @@ form.addEventListener('submit', async function(e) {
   passwordError.style.display = 'none';
   const mobilePattern = /^(01\d{9}|\+\d{1,13})$/;
 
-      if (!projectSelect.value) {
-      projectError.style.display = 'block';
-      valid = false;
-    }
+  console.log('Selected project value:', projectSelect.value); // Debug log
+
+  if (!projectSelect.value) {
+    projectError.style.display = 'block';
+    valid = false;
+  }
 
   if (!mobilePattern.test(mobileInput.value.trim())) {
     mobileError.style.display = 'block';
@@ -417,6 +487,8 @@ form.addEventListener('submit', async function(e) {
       mobile: mobileInput.value.trim(),
       password: passwordInput.value.trim()
     };
+
+    console.log('Sending login data:', userData);
 
     // Send login request
     const response = await fetch('/api/login', {
@@ -481,31 +553,6 @@ function showCustomAlert(message, type = 'error') {
     setTimeout(() => alert.remove(), 300);
   }, 3000);
 }
-
-function showCustomAlert(message, type = 'error') {
-  const alert = document.createElement('div');
-  alert.className = 'custom-alert';
-  alert.textContent = message;
-  
-  // Set background color based on type
-  if (type === 'success') {
-    alert.style.backgroundColor = '#4CAF50';
-  } else {
-    alert.style.backgroundColor = '#ff4c4c';
-  }
-  
-  document.body.appendChild(alert);
-  
-  // Fade in
-  setTimeout(() => alert.style.opacity = '1', 10);
-  
-  // Remove after 5 seconds
-  setTimeout(() => {
-    alert.style.opacity = '0';
-    setTimeout(() => alert.remove(), 300);
-  }, 3000);
-}
-
 </script>
 
 </body>
