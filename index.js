@@ -2400,7 +2400,10 @@ app.get('/', (req, res) => {
 });
 
 app.get('/admin', (req, res) => {
-  res.render('admin', { user: req.session.user });
+  res.render('admin', { 
+    user: req.session.user,
+    project: req.session.user.project || 'aurora' 
+  });
 });
 
 app.get('/tabs/:tabName', async (req, res) => {
@@ -2847,7 +2850,6 @@ app.post('/api/projects/create', async (req, res) => {
       ]
     });
     console.log('✅ Shareholder collection created with admin user');
-    
     console.log(`✅ Project "${sanitizedProjectName}" created successfully!`);
     
     res.json({
@@ -2875,6 +2877,66 @@ app.post('/api/projects/create', async (req, res) => {
     }
   }
 });
+
+// Get project details from about collection
+app.get('/api/project/:projectName/details', async (req, res) => {
+  try {
+    console.log('=== FETCHING PROJECT DETAILS ===');
+    const projectName = req.params.projectName.toLowerCase();
+    
+    console.log('Fetching details for project:', projectName);
+    
+    // Use the project name as the database name
+    const projectDB = conn.useDb(projectName);
+    const collection = projectDB.collection('about');
+    
+    // Find the about document (assuming there's only one)
+    const aboutDoc = await collection.findOne({});
+    
+    if (!aboutDoc) {
+      console.log('No about document found for project:', projectName);
+      return res.status(404).json({
+        success: false,
+        message: 'Project details not found'
+      });
+    }
+    
+    console.log('About document found:', {
+      hasData: !!aboutDoc.data,
+      hasImage: !!aboutDoc.image
+    });
+    
+    res.json({
+      success: true,
+      project: {
+        name: projectName,
+        displayName: formatProjectDisplayName(projectName),
+        data: aboutDoc.data || '',
+        image: aboutDoc.image || ''
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching project details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch project details',
+      error: error.message
+    });
+  }
+});
+
+// Helper function to format project name for display
+function formatProjectDisplayName(projectName) {
+  const displayNames = {
+    'aurora': 'UniNest Aurora',
+    'godhuli': 'UniNest Godhuli',
+    'greenescape': 'UniNest Green Escape'
+  };
+  
+  return displayNames[projectName] || 
+    projectName.charAt(0).toUpperCase() + projectName.slice(1).replace(/([A-Z])/g, ' $1').trim();
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
