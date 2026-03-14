@@ -3979,11 +3979,10 @@ async function uploadSelectedFile() {
     formData.append('description', mediaDescription.trim());
     formData.append('date', mediaDate);
     
-    // Upload to server (which will handle cPanel upload)
+    // Upload to server
     const response = await fetch('/api/upload-media', {
       method: 'POST',
       body: formData
-      // Note: Don't set Content-Type header for FormData
     });
     
     if (!response.ok) {
@@ -4006,10 +4005,10 @@ async function uploadSelectedFile() {
     // Show success message
     showSuccessPopup('Media uploaded successfully!');
     
-    // Close modal after 2 seconds and refresh gallery
+    // MODIFY THIS PART - Replace with page reload
     setTimeout(() => {
       closeAddMediaModal();
-      fetchGallery();
+      location.reload(); // This reloads the entire page
     }, 2000);
 
   } catch (error) {

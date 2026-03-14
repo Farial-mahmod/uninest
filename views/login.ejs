@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Uninest Real Estate System</title>
   <link rel="icon" type="image/x-icon" href="https://uninest.com.bd/wp-content/uploads/2025/12/logo-white.webp">
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     body {
       margin: 0;
@@ -314,6 +314,33 @@
   margin-top: 5px;
   display: none;
 }
+  /* Password toggle icon styles */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 45px; /* Already have this */
+  box-sizing: border-box; /* Add this */
+}
+
+.toggle-password {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #999;
+  font-size: 18px;
+  transition: color 0.3s ease;
+}
+
+.toggle-password:hover {
+  color: #86fc41; /* Gold color on hover to match theme */
+}
+  
   </style>
 </head>
 <body>
@@ -357,11 +384,14 @@
           <div class="error" id="mobileError">Please enter registered mobile number.</div>
         </div>
 
-        <div class="form-group">
-          <label for="password"><b>Password</b></label>
-          <input type="password" id="password" name="password" placeholder="Enter your password" required minlength="6">
-          <div class="error" id="passwordError">Password must be at least 6 characters long.</div>
-        </div>
+<div class="form-group">
+  <label for="password"><b>Password</b></label>
+  <div class="password-wrapper">
+    <input type="password" id="password" name="password" placeholder="Enter your password" required minlength="6">
+    <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
+  </div>
+  <div class="error" id="passwordError">Password must be at least 6 characters long.</div>
+</div>
 
         <button type="submit">Login</button>
         <br><br>
@@ -603,6 +633,32 @@ function showCustomAlert(message, type = 'error') {
     setTimeout(() => alert.remove(), 300);
   }, 3000);
 }
+
+// Password visibility toggle
+document.addEventListener('DOMContentLoaded', function() {
+  const togglePassword = document.querySelector('#togglePassword');
+  const password = document.querySelector('#password');
+  
+  if (togglePassword && password) {
+    togglePassword.addEventListener('click', function() {
+      // Toggle the type attribute
+      const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+      password.setAttribute('type', type);
+      
+      // Toggle the eye icon
+      this.classList.toggle('fa-eye');
+      this.classList.toggle('fa-eye-slash');
+      
+      // Optional: Change color when active
+      if (type === 'text') {
+        this.style.color = '#ffd700'; // Gold when showing password
+      } else {
+        this.style.color = '#999'; // Gray when hiding
+      }
+    });
+  }
+});
+
 </script>
 
 </body>
