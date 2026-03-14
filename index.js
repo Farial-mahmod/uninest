@@ -1575,9 +1575,9 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
   try {
     console.log('Upload media request received');
     
-    // FIX: Get connection first
-    const connection = getConnection();
-    if (!connection || connection.readyState !== 1) {
+    // Ensure database connection - FIX: Use ensureConnection() and store the result
+    const connection = await ensureConnection();
+    if (!connection) {
       return res.status(503).json({ 
         success: false, 
         error: 'Database not connected' 
@@ -1590,9 +1590,11 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         error: 'No file uploaded' 
       });
     }
+    
     // Get form data
     const { name, description, date, project = 'aurora' } = req.body;
     console.log('Form data:', { name, description, date, project });
+    
     if (!name || !description || !date) {
       // Clean up if file was saved to disk (local dev only)
       if (req.file.path && fs.existsSync(req.file.path)) {
@@ -1607,6 +1609,7 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         error: 'Missing required fields (name, description, date)' 
       });
     }
+    
     // Generate consistent filename
     const timestamp = Date.now();
     const randomSuffix = Math.round(Math.random() * 1E9);
@@ -1615,22 +1618,21 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
     const fileName = `${timestamp}-${randomSuffix}${fileExt}`;
     console.log('Generated filename:', fileName);
     console.log('Is Vercel environment?', !!process.env.VERCEL);
+    
     let publicUrl;
     let tempFilePath;
+    
     try {
       // Handle upload based on environment
       if (process.env.VERCEL) {
         // VERCEL: Use memory buffer and temporary file
         console.log('Processing file in Vercel environment');
-        // Create temp file in /tmp directory (allowed on Vercel)
         tempFilePath = `/tmp/${fileName}`;
-        // Write buffer to temp file
         await fs.promises.writeFile(tempFilePath, req.file.buffer);
         console.log('File written to temp location:', tempFilePath);
-        // Upload from temp file
         publicUrl = await cpanelService.uploadFile(tempFilePath, fileName, `${project}/`);
       } else if (req.file.buffer) {
-        // LOCAL with memory storage: Save buffer to local file first
+        // LOCAL with memory storage
         console.log('Processing file from buffer in local environment');
         const tempDir = 'uploads/temp';
         if (!fs.existsSync(tempDir)) {
@@ -1638,17 +1640,18 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         }
         tempFilePath = path.join(tempDir, fileName);
         await fs.promises.writeFile(tempFilePath, req.file.buffer);
-        // Upload from temp file
         publicUrl = await cpanelService.uploadFile(tempFilePath, fileName, `${project}/`);
       } else {
-        // LOCAL with disk storage: Use existing file path
+        // LOCAL with disk storage
         console.log('Processing file from disk in local environment');
         console.log('File path:', req.file.path);
         publicUrl = await cpanelService.uploadFile(req.file.path, fileName, `${project}/`);
       }
       console.log('cPanel upload successful:', publicUrl);
+      
     } catch (cpanelError) {
       console.error('cPanel upload failed:', cpanelError.message);
+      
       // Fallback to local storage (only for local development)
       if (!process.env.VERCEL) {
         console.log('Attempting local fallback...');
@@ -1657,6 +1660,7 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
           fs.mkdirSync(localUploadsDir, { recursive: true });
         }
         const localFilePath = path.join(localUploadsDir, fileName);
+        
         if (req.file.buffer) {
           await fs.promises.writeFile(localFilePath, req.file.buffer);
         } else if (req.file.path && fs.existsSync(req.file.path)) {
@@ -1669,7 +1673,6 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         publicUrl = `/uploads/${project}/${fileName}`;
         console.log('Using local fallback URL:', publicUrl);
       } else {
-        // On Vercel, we can't save locally - create a placeholder URL
         publicUrl = `https://${cpanelService.config.domain}/uploads/${project}/${fileName}`;
         console.log('Created placeholder URL for Vercel:', publicUrl);
       }
@@ -1679,13 +1682,15 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
     const cleanupPromises = [];
     
     if (tempFilePath && fs.existsSync(tempFilePath)) {
-      cleanupPromises.push(fs.promises.unlink(tempFilePath));
+      cleanupPromises.push(fs.promises.unlink(tempFilePath).catch(e => console.log('Temp file cleanup error:', e.message)));
     }
     
     if (req.file.path && fs.existsSync(req.file.path) && !process.env.VERCEL) {
-      cleanupPromises.push(fs.promises.unlink(req.file.path));
+      cleanupPromises.push(fs.promises.unlink(req.file.path).catch(e => console.log('Upload file cleanup error:', e.message)));
     }
+    
     await Promise.allSettled(cleanupPromises);
+    
     // Format date
     const formatDateToDDMMYYYY = (dateString) => {
       try {
@@ -1699,8 +1704,11 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         return dateString;
       }
     };
-    const db = conn.useDb(project.toLowerCase());
+    
+    // FIX: Use the connection variable, not 'conn'
+    const db = connection.useDb(project.toLowerCase());
     const collection = db.collection('media');
+    
     const newResource = {
       name: name.trim(),
       description: description.trim(),
@@ -1709,24 +1717,28 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
       filename: fileName,
       uploaded_at: new Date()
     };
+    
     console.log('Saving to database:', newResource);
+    
     // Save to database
     const existingDoc = await collection.findOne({});
-    let result;
+    
     if (!existingDoc) {
-      result = await collection.insertOne({
+      const result = await collection.insertOne({
         resource: [newResource],
         created_at: new Date(),
         updated_at: new Date()
       });
+      console.log('Created new media document:', result.insertedId);
     } else {
-      result = await collection.updateOne(
+      const result = await collection.updateOne(
         { _id: existingDoc._id },
         {
           $push: { resource: newResource },
           $set: { updated_at: new Date() }
         }
       );
+      console.log('Updated existing media document, modified:', result.modifiedCount);
     }
 
     res.status(201).json({
@@ -1739,21 +1751,19 @@ app.post('/api/upload-media', upload.single('file'), async (req, res) => {
         type: req.file.mimetype
       }
     });
+    
   } catch (error) {
     console.error('Upload error:', error);
+    
     // Cleanup any remaining temp files
-    const cleanupPromises = [];
-    if (req.file?.path && fs.existsSync(req.file.path) && !process.env.VERCEL) {
-      cleanupPromises.push(fs.promises.unlink(req.file.path));
-    }
-    if (req.file?.buffer && req.file.originalname) {
-      // Try to cleanup temp file if it was created
-      const tempFileName = `/tmp/${Date.now()}-${req.file.originalname}`;
-      if (fs.existsSync(tempFileName)) {
-        cleanupPromises.push(fs.promises.unlink(tempFileName));
+    try {
+      if (req.file?.path && fs.existsSync(req.file.path) && !process.env.VERCEL) {
+        await fs.promises.unlink(req.file.path);
       }
+    } catch (cleanupError) {
+      console.error('Final cleanup error:', cleanupError);
     }
-    await Promise.allSettled(cleanupPromises);
+    
     res.status(500).json({ 
       success: false, 
       error: 'Upload failed',
