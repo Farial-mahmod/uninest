@@ -2671,6 +2671,16 @@ async function addShareholder() {
     return alert('ID, Name & Mobile are required');
   }
 
+  if (!payload.project) {
+    return alert('Project name is required');
+  }
+
+  // Show loading state
+  const addButton = event.target;
+  const originalText = addButton.textContent;
+  addButton.textContent = 'Adding...';
+  addButton.disabled = true;
+
   try {
     const res = await fetch(`/api/shareholder/${payload.project}`, {
       method: 'POST',
@@ -2679,13 +2689,37 @@ async function addShareholder() {
     });
 
     const result = await res.json();
-    if (!res.ok) throw new Error(result.message);
+    
+    if (!res.ok) {
+      // Handle specific database errors
+      if (result.error && result.error.includes('database')) {
+        throw new Error('Database connection failed. Please ensure the project exists.');
+      }
+      throw new Error(result.message || result.error || 'Failed to add shareholder');
+    }
 
     closeModal();
     showSuccessPopup('Shareholder added successfully');
+    
+    // Clear form
+    document.getElementById('sh_id').value = '';
+    document.getElementById('sh_project').value = '';
+    document.getElementById('sh_name').value = '';
+    document.getElementById('sh_flat').value = '';
+    document.getElementById('sh_email').value = '';
+    document.getElementById('sh_mobile').value = '';
+    document.getElementById('sh_password').value = '';
+    document.getElementById('sh_total_installments').value = '';
+    document.getElementById('sh_installment_amount').value = '';
+    
     fetchShareholders();
   } catch (err) {
+    console.error('Add shareholder error:', err);
     alert(err.message);
+  } finally {
+    // Reset button state
+    addButton.textContent = originalText;
+    addButton.disabled = false;
   }
 }
 

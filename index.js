@@ -1822,7 +1822,7 @@ app.post('/api/shareholder/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
     
-    // FIX: Use getConnection() instead of conn
+    // Check database connection
     const connection = getConnection();
     if (!connection || connection.readyState !== 1) {
       return res.status(503).json({ message: 'Database not connected' });
@@ -1887,25 +1887,42 @@ app.post('/api/shareholder/:project', async (req, res) => {
       payments
     };
 
-    const result = await collection.updateOne(
-      { "shareholder.project": project },
-      { $push: { shareholder: newShareholder } },
-      { upsert: true }
-    );
-
-    if (!result.matchedCount && !result.upsertedCount) {
-      return res.status(404).json({ message: 'Project document not found' });
+    // FIX: Check if document exists
+    const existingDoc = await collection.findOne({});
+    
+    if (!existingDoc) {
+      // Create new document with shareholders array
+      const result = await collection.insertOne({
+        shareholder: [newShareholder]
+      });
+      
+      if (!result.insertedId) {
+        return res.status(500).json({ message: 'Failed to create document' });
+      }
+    } else {
+      // Update existing document - push to shareholder array
+      const result = await collection.updateOne(
+        {}, // Empty filter to match the first document
+        { $push: { shareholder: newShareholder } }
+      );
+      
+      if (result.modifiedCount === 0) {
+        return res.status(500).json({ message: 'Failed to add shareholder' });
+      }
     }
 
     res.status(201).json({
       success: true,
-      message: 'Shareholder added',
+      message: 'Shareholder added successfully',
       data: newShareholder
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error adding shareholder:', err);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: err.message 
+    });
   }
 });
 //
