@@ -56,8 +56,14 @@ console.log('Environment:', isProduction ? 'Production/Vercel' : 'Development');
 
 // Global connection promise to reuse across serverless functions
 let connectionPromise = null;
-let cachedConnection = null;
 
+// Global connection variable
+// Global connection variable
+let cachedConnection = null;
+let gfs;
+let gridFSBucket;
+
+// Connection function
 async function connectToDatabase() {
   if (cachedConnection && cachedConnection.readyState === 1) {
     console.log('Using existing database connection');
@@ -70,7 +76,7 @@ async function connectToDatabase() {
     const conn = mongoose.createConnection(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000, // 5 seconds timeout
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 10000,
       maxPoolSize: 10,
@@ -106,6 +112,37 @@ async function connectToDatabase() {
   }
 }
 
+// Get connection function - DECLARE ONLY ONCE
+const getConnection = () => cachedConnection;
+
+// Ensure connection helper
+async function ensureConnection() {
+  if (!cachedConnection || cachedConnection.readyState !== 1) {
+    console.log('Connection not ready, attempting to reconnect...');
+    cachedConnection = await connectToDatabase();
+  }
+  return cachedConnection;
+}
+
+// Initialize connection immediately
+connectToDatabase().catch(err => {
+  console.error('Initial connection failed:', err);
+});
+
+// Initialize connection immediately
+connectToDatabase().catch(err => {
+  console.error('Initial connection failed:', err);
+});
+
+// Helper to ensure connection is ready
+async function ensureConnection() {
+  if (!cachedConnection || cachedConnection.readyState !== 1) {
+    console.log('Connection not ready, attempting to reconnect...');
+    cachedConnection = await connectToDatabase();
+  }
+  return cachedConnection;
+}
+
 // Helper function to safely get database connection with fallback
 const getSafeConnection = () => {
   const conn = getConnection();
@@ -120,12 +157,6 @@ const getSafeConnection = () => {
 connectToDatabase().catch(err => {
   console.error('Initial connection failed:', err);
 });
-
-// Replace the conn variable with a getter
-const getConnection = () => cachedConnection;
-
-let gfs;
-let gridFSBucket;
 
 // Mock data (keep as fallback)
 const financialData = {
@@ -1737,57 +1768,87 @@ app.post('/api/media/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
     
-    // FIX: Use getConnection() instead of conn
-    const connection = getConnection();
-    if (!connection || connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not connected' });
+    // Ensure database connection
+    const connection = await ensureConnection();
+    if (!connection) {
+      return res.status(503).json({ 
+        success: false,
+        error: 'Database not connected' 
+      });
     }
     
     const db = connection.useDb(project);
     const collection = db.collection('media');
-    const { name, description, date, url } = req.body;
+    
+    const {
+      name,
+      description,
+      date,
+      url,
+      mediaType
+    } = req.body;
+
     if (!name || !description || !date || !url) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'All fields are required' 
+      });
     }
+
     const newResource = {
       name,
       description,
       date,
       url,
+      mediaType: mediaType || 'photo',
       created_at: new Date()
     };
-    // Check if any document exists
+
+    // Check if document exists
     const existingDoc = await collection.findOne({});
+    
     if (!existingDoc) {
-      // Create first document
+      // Create new document
       const result = await collection.insertOne({
+        project,
         resource: [newResource],
         created_at: new Date(),
         updated_at: new Date()
-      }); 
+      });
+      
+      console.log('Created new media document for project:', project);
+      
       return res.status(201).json({
         success: true,
-        message: 'Media added to new collection',
+        message: 'Media added successfully',
         insertedId: result.insertedId
       });
     } else {
-      // Add to existing document
+      // Update existing document
       const result = await collection.updateOne(
-        { _id: existingDoc._id },
+        {},
         {
           $push: { resource: newResource },
           $set: { updated_at: new Date() }
         }
       );
+      
+      console.log('Added media to existing document:', newResource.name);
+      
       return res.status(201).json({
         success: true,
-        message: 'Media added to existing collection',
+        message: 'Media added successfully',
         modifiedCount: result.modifiedCount
       });
     }
+
   } catch (error) {
     console.error('Error adding media:', error);
-    res.status(500).json({ error: 'Failed to add media' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to add media',
+      details: error.message 
+    });
   }
 });
 //
@@ -1822,10 +1883,13 @@ app.post('/api/shareholder/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
     
-    // Check database connection
-    const connection = getConnection();
-    if (!connection || connection.readyState !== 1) {
-      return res.status(503).json({ message: 'Database not connected' });
+    // Ensure database connection
+    const connection = await ensureConnection();
+    if (!connection) {
+      return res.status(503).json({ 
+        success: false,
+        message: 'Database not connected' 
+      });
     }
     
     const db = connection.useDb(project);
@@ -1845,20 +1909,21 @@ app.post('/api/shareholder/:project', async (req, res) => {
     } = req.body;
 
     if (!id || !name || !flat_number || !mobile) {
-      return res.status(400).json({ message: 'Missing required fields' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Missing required fields' 
+      });
     }
 
     let payments = [];
     let totalInstallmentsNum = 0;
     let installmentAmountNum = 0;
     
-    // For admin users, payments array is empty
     if (role === 'admin') {
       payments = [];
       totalInstallmentsNum = 0;
       installmentAmountNum = 0;
     } else {
-      // For regular users, generate payments array
       totalInstallmentsNum = Number(total_installments) || 0;
       installmentAmountNum = Number(installment_amount) || 0;
       
@@ -1884,31 +1949,47 @@ app.post('/api/shareholder/:project', async (req, res) => {
       role: role || 'client',
       total_installments: totalInstallmentsNum,
       installment_amount: installmentAmountNum,
-      payments
+      payments,
+      created_at: new Date()
     };
 
-    // FIX: Check if document exists
+    // Check if document exists
     const existingDoc = await collection.findOne({});
     
     if (!existingDoc) {
       // Create new document with shareholders array
       const result = await collection.insertOne({
-        shareholder: [newShareholder]
+        shareholder: [newShareholder],
+        created_at: new Date(),
+        updated_at: new Date()
       });
       
       if (!result.insertedId) {
-        return res.status(500).json({ message: 'Failed to create document' });
+        return res.status(500).json({ 
+          success: false,
+          message: 'Failed to create document' 
+        });
       }
+      
+      console.log('Created new document with shareholder:', newShareholder.id);
     } else {
-      // Update existing document - push to shareholder array
+      // Update existing document
       const result = await collection.updateOne(
-        {}, // Empty filter to match the first document
-        { $push: { shareholder: newShareholder } }
+        {}, 
+        { 
+          $push: { shareholder: newShareholder },
+          $set: { updated_at: new Date() }
+        }
       );
       
       if (result.modifiedCount === 0) {
-        return res.status(500).json({ message: 'Failed to add shareholder' });
+        return res.status(500).json({ 
+          success: false,
+          message: 'Failed to add shareholder' 
+        });
       }
+      
+      console.log('Added shareholder to existing document:', newShareholder.id);
     }
 
     res.status(201).json({
@@ -1920,6 +2001,7 @@ app.post('/api/shareholder/:project', async (req, res) => {
   } catch (err) {
     console.error('Error adding shareholder:', err);
     res.status(500).json({ 
+      success: false,
       message: 'Server error', 
       error: err.message 
     });
@@ -2156,10 +2238,13 @@ app.post('/api/costs/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
     
-    // FIX: Use getConnection() instead of conn
-    const connection = getConnection();
-    if (!connection || connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not connected' });
+    // Ensure database connection
+    const connection = await ensureConnection();
+    if (!connection) {
+      return res.status(503).json({ 
+        success: false,
+        error: 'Database not connected' 
+      });
     }
     
     const db = connection.useDb(project);
@@ -2175,7 +2260,10 @@ app.post('/api/costs/:project', async (req, res) => {
     } = req.body;
 
     if (!material || !date || !description || !amount) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Missing required fields' 
+      });
     }
 
     const newCost = {
@@ -2184,14 +2272,15 @@ app.post('/api/costs/:project', async (req, res) => {
       description,
       brand: brand || '',
       amount: Number(amount),
-      voucher_link: voucher_link || ''
+      voucher_link: voucher_link || '',
+      created_at: new Date()
     };
 
-    // Check if project document exists
-    const projectExists = await collection.findOne({ project });
+    // Check if document exists
+    const existingDoc = await collection.findOne({});
     
-    if (!projectExists) {
-      // Create new project document with first cost
+    if (!existingDoc) {
+      // Create new document
       const result = await collection.insertOne({
         project,
         cost: [newCost],
@@ -2199,31 +2288,39 @@ app.post('/api/costs/:project', async (req, res) => {
         updated_at: new Date()
       });
       
+      console.log('Created new cost document for project:', project);
+      
       return res.status(201).json({
         success: true,
-        message: 'Cost added to new project',
+        message: 'Cost added successfully',
         insertedId: result.insertedId
       });
     } else {
-      // Add to existing project's cost array
+      // Update existing document
       const result = await collection.updateOne(
-        { project },
+        {},
         {
           $push: { cost: newCost },
           $set: { updated_at: new Date() }
         }
       );
       
+      console.log('Added cost to existing document:', newCost.description);
+      
       return res.status(201).json({
         success: true,
-        message: 'Cost added to existing project',
+        message: 'Cost added successfully',
         modifiedCount: result.modifiedCount
       });
     }
 
   } catch (error) {
     console.error('Error adding cost:', error);
-    res.status(500).json({ error: 'Failed to add cost' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to add cost',
+      details: error.message 
+    });
   }
 });
 // milestone
@@ -2258,10 +2355,13 @@ app.post('/api/milestones/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
     
-    // FIX: Use getConnection() instead of conn
-    const connection = getConnection();
-    if (!connection || connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not connected' });
+    // Ensure database connection
+    const connection = await ensureConnection();
+    if (!connection) {
+      return res.status(503).json({ 
+        success: false,
+        error: 'Database not connected' 
+      });
     }
     
     const db = connection.useDb(project);
@@ -2275,9 +2375,11 @@ app.post('/api/milestones/:project', async (req, res) => {
       note
     } = req.body;
 
-    // Validate required fields
     if (!description || !planned_date) {
-      return res.status(400).json({ error: 'Description and planned date are required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Description and planned date are required' 
+      });
     }
 
     const newMilestone = {
@@ -2289,11 +2391,11 @@ app.post('/api/milestones/:project', async (req, res) => {
       created_at: new Date()
     };
 
-    // Check if project document exists
-    const projectExists = await collection.findOne({ project });
+    // Check if document exists
+    const existingDoc = await collection.findOne({});
     
-    if (!projectExists) {
-      // Create new project document with first milestone
+    if (!existingDoc) {
+      // Create new document
       const result = await collection.insertOne({
         project,
         milestone: [newMilestone],
@@ -2301,31 +2403,39 @@ app.post('/api/milestones/:project', async (req, res) => {
         updated_at: new Date()
       });
       
+      console.log('Created new milestone document for project:', project);
+      
       return res.status(201).json({
         success: true,
-        message: 'Milestone added to new project',
+        message: 'Milestone added successfully',
         insertedId: result.insertedId
       });
     } else {
-      // Add to existing project's milestone array
+      // Update existing document
       const result = await collection.updateOne(
-        { project },
+        {},
         {
           $push: { milestone: newMilestone },
           $set: { updated_at: new Date() }
         }
       );
       
+      console.log('Added milestone to existing document:', newMilestone.description);
+      
       return res.status(201).json({
         success: true,
-        message: 'Milestone added to existing project',
+        message: 'Milestone added successfully',
         modifiedCount: result.modifiedCount
       });
     }
 
   } catch (error) {
     console.error('Error adding milestone:', error);
-    res.status(500).json({ error: 'Failed to add milestone' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to add milestone',
+      details: error.message 
+    });
   }
 });
 // PUT (update) a specific milestone
