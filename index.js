@@ -1864,7 +1864,6 @@ app.post('/api/media/:project', async (req, res) => {
 //
 app.get('/api/shareholder/aurora', async (req, res) => {
   try {
-    // FIX: Use getConnection() instead of conn
     const connection = getConnection();
     if (!connection || connection.readyState !== 1) {
       return res.status(503).json({ message: 'Database not connected' });
@@ -1873,25 +1872,32 @@ app.get('/api/shareholder/aurora', async (req, res) => {
     const db = connection.useDb('aurora');
     const collection = db.collection('shareholder');
 
-    const doc = await collection.findOne(
-      { "shareholder.project": "aurora" },
-      { projection: { shareholder: 1, _id: 0 } }
-    );
+    // Get the document
+    const doc = await collection.findOne({});
 
     if (!doc || !doc.shareholder || doc.shareholder.length === 0) {
       return res.status(404).json({ message: 'No shareholders found' });
     }
 
-    res.json(doc.shareholder);
+    // Filter shareholders by project
+    const shareholders = doc.shareholder.filter(sh => sh.project === 'aurora');
+    
+    if (shareholders.length === 0) {
+      return res.status(404).json({ message: 'No shareholders found for project aurora' });
+    }
+
+    res.json(shareholders);
   } catch (error) {
     console.error('Error fetching shareholders:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 //
+
 app.post('/api/shareholder/:project', async (req, res) => {
   try {
-    const project = req.params.project.toLowerCase();
+    const project = req.params.project.toLowerCase(); // This comes from the URL parameter
     
     // Ensure database connection
     const connection = await ensureConnection();
@@ -1907,7 +1913,7 @@ app.post('/api/shareholder/:project', async (req, res) => {
 
     const {
       id,
-      project: bodyProject,
+      // Remove project from body or use it differently
       name,
       flat_number,
       email,
@@ -1918,10 +1924,19 @@ app.post('/api/shareholder/:project', async (req, res) => {
       installment_amount
     } = req.body;
 
-    if (!id || !name || !flat_number || !mobile) {
+    // MODIFIED VALIDATION - Check required fields based on role
+    if (!id || !name || !mobile) {
       return res.status(400).json({ 
         success: false,
-        message: 'Missing required fields' 
+        message: 'ID, Name, and Mobile are required' 
+      });
+    }
+
+    // For clients, flat_number is required
+    if (role !== 'admin' && !flat_number) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Flat Number is required for clients' 
       });
     }
 
@@ -1950,10 +1965,10 @@ app.post('/api/shareholder/:project', async (req, res) => {
 
     const newShareholder = {
       id,
-      project: bodyProject || project,
+      project: project, // Use the project from URL parameter, not from body
       name,
-      flat_number,
-      email,
+      flat_number: flat_number || '', // Allow empty for admin
+      email: email || '',
       mobile,
       password,
       role: role || 'client',
@@ -2017,6 +2032,7 @@ app.post('/api/shareholder/:project', async (req, res) => {
     });
   }
 });
+
 //
 app.post('/api/payment/:project', async (req, res) => {
   try {

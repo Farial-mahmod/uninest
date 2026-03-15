@@ -2323,6 +2323,7 @@ th {
 <!-- Modal -->
 <div class="modal" id="modal">
   <div class="modal-box">
+
     <div class="modal-header">
       <div>
         <h3>Add New Role</h3>
@@ -2332,29 +2333,29 @@ th {
     </div>
 
 <div class="form-grid">
+
+  <select id="sh_role" style="padding: 10px; border: 1px solid #333; border-radius: 6px; background: #1a1a1a; color: white;" onchange="toggleAdminFields()">
+    <option value="client">Client</option>
+    <option value="admin">Admin</option>
+  </select>
+
   <input id="sh_id" placeholder="ID (example: au-sh-a1)">
   <input id="sh_project" placeholder="Project name">
 
   <input id="sh_name" placeholder="Full Name">
-  <input id="sh_flat" placeholder="Flat Number">
 
   <input id="sh_email" placeholder="Email">
   <input id="sh_mobile" placeholder="Mobile">
-<input id="sh_password" type="password" placeholder="Password">
 
-<select id="sh_role" style="padding: 10px; border: 1px solid #333; border-radius: 6px; background: #1a1a1a; color: white;" onchange="toggleAdminFields()">
-  <option value="client">Client</option>
-  <option value="admin">Admin</option>
-</select>
+  <input id="sh_password" type="password" placeholder="Password">
+  <input id="sh_confirm_password" type="password" placeholder="Confirm Password">
 
-<!-- Client-only fields container -->
-<div id="clientFields">
+  <!-- Client-only fields - placed directly in grid -->
+  <input id="sh_flat" placeholder="Flat Number">
   <input id="sh_total_installments" type="number" placeholder="Total Installments">
-  <input id="sh_installment_amount" type="number" placeholder="Installment Amount">
-</div>
+  <input id="sh_installment_amount" type="number" placeholder="Installment Amount" style="grid-column: 1 / -1;">
 
 </div>
-
 
     <div class="form-actions">
       <button class="btn" style="background:#ddd;color:#000" onclick="closeModal()">Cancel</button>
@@ -2620,15 +2621,23 @@ async function fetchShareholders() {
 
 function toggleAdminFields() {
   const role = document.getElementById('sh_role').value;
-  const clientFields = document.getElementById('clientFields');
+  const flatField = document.getElementById('sh_flat');
+  const totalInstallmentsField = document.getElementById('sh_total_installments');
+  const installmentAmountField = document.getElementById('sh_installment_amount');
   
   if (role === 'admin') {
-    clientFields.style.display = 'none';
-    // Clear the values when hiding
-    document.getElementById('sh_total_installments').value = '';
-    document.getElementById('sh_installment_amount').value = '';
+    flatField.style.display = 'none';
+    totalInstallmentsField.style.display = 'none';
+    installmentAmountField.style.display = 'none';
+    
+    // Clear the values
+    flatField.value = '';
+    totalInstallmentsField.value = '';
+    installmentAmountField.value = '';
   } else {
-    clientFields.style.display = 'block';
+    flatField.style.display = 'block'; // or 'inline-block' depending on your needs
+    totalInstallmentsField.style.display = 'block';
+    installmentAmountField.style.display = 'block';
   }
 }
 
@@ -2640,25 +2649,40 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function addShareholder() {
-  const role = document.getElementById('sh_role').value;
+  // Password validation
+  const password = document.getElementById('sh_password').value;
+  const confirmPassword = document.getElementById('sh_confirm_password').value;
   
-  // For admin users, set empty values for financial fields
+  if (password !== confirmPassword) {
+    alert('Password and Confirm Password must match');
+    return;
+  }
+
+  const role = document.getElementById('sh_role').value;
+
+  let flatNumber = '';
   let totalInstallments = '';
   let installmentAmount = '';
   
   if (role === 'admin') {
-    totalInstallments = ''; // Empty string for admin
-    installmentAmount = ''; // Empty string for admin
+    flatNumber = '';
+    totalInstallments = '';
+    installmentAmount = '';
   } else {
+    flatNumber = document.getElementById('sh_flat').value;
     totalInstallments = document.getElementById('sh_total_installments').value;
     installmentAmount = document.getElementById('sh_installment_amount').value;
   }
 
+  // FIX: Get the project from the session or a hidden field
+  // For now, let's hardcode it to 'aurora' since that's your project
+  const projectName = 'aurora'; // This should come from your session/user context
+
   const payload = {
     id: document.getElementById('sh_id').value,
-    project: document.getElementById('sh_project').value,
+    project: projectName, // Use the fixed project name, not the input value
     name: document.getElementById('sh_name').value,
-    flat_number: document.getElementById('sh_flat').value,
+    flat_number: flatNumber,
     email: document.getElementById('sh_email').value,
     mobile: document.getElementById('sh_mobile').value,
     password: document.getElementById('sh_password').value,
@@ -2667,12 +2691,22 @@ async function addShareholder() {
     installment_amount: installmentAmount
   };
 
+  // Modified validation - different rules based on role
   if (!payload.id || !payload.name || !payload.mobile) {
     return alert('ID, Name & Mobile are required');
   }
 
-  if (!payload.project) {
-    return alert('Project name is required');
+  // For clients, validate additional fields
+  if (role === 'client') {
+    if (!payload.flat_number) {
+      return alert('Flat Number is required for clients');
+    }
+    if (!payload.total_installments || !payload.installment_amount) {
+      return alert('Total Installments and Installment Amount are required for clients');
+    }
+    if (!payload.project) {
+      return alert('Project name is required for clients');
+    }
   }
 
   // Show loading state
@@ -2682,7 +2716,7 @@ async function addShareholder() {
   addButton.disabled = true;
 
   try {
-    const res = await fetch(`/api/shareholder/${payload.project}`, {
+    const res = await fetch(`/api/shareholder/${payload.project || 'default'}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -2760,7 +2794,12 @@ function openPaymentModal() {
   // Clear form fields
   document.getElementById('paymentInstallment').value = '';
   document.getElementById('paymentAmount').value = '';
-  document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0]; // Set today as default
+  
+  // MODIFIED: Set default date to 10th of current month
+  const today = new Date();
+  const tenthOfMonth = new Date(today.getFullYear(), today.getMonth(), 11);
+  const formattedDate = tenthOfMonth.toISOString().split('T')[0];
+  document.getElementById('paymentDate').value = formattedDate;
   
   // Populate shareholders dropdown
   populatePaymentShareholders();
@@ -2817,6 +2856,8 @@ async function submitPayment() {
 }
 
 // Fetch and display costs/vouchers
+
+// Fetch and display costs/vouchers
 async function fetchCosts() {
   try {
     const res = await fetch('/api/costs/aurora');
@@ -2845,6 +2886,10 @@ async function fetchCosts() {
     const costs = data.cost;
     // Debug log
     console.log('Fetched costs:', costs);
+    
+    // Calculate total amount
+    let totalAmount = 0;
+    
     if (costs.length === 0) {
       tableBody.innerHTML = `
         <tr>
@@ -2853,41 +2898,53 @@ async function fetchCosts() {
           </td>
         </tr>
       `;
-      return;
-    }
-    
-    costs.forEach((cost, index) => {
-      // Generate a unique ID if none exists
-      const voucherId = cost.voucher_id || `VCH-${new Date().getFullYear()}-${(index + 1).toString().padStart(3, '0')}`;
+    } else {
+      costs.forEach((cost, index) => {
+        // Add to total
+        totalAmount += cost.amount || 0;
+        
+        // Generate a unique ID if none exists
+        const voucherId = cost.voucher_id || `VCH-${new Date().getFullYear()}-${(index + 1).toString().padStart(3, '0')}`;
+        
+        const row = `
+          <tr>
+            <td>${voucherId}</td>
+            <td>${cost.date || 'N/A'}</td>
+            <td>${cost.description || 'No description'}</td>
+            <td>${cost.brand || 'N/A'}</td>
+            <td>
+              <span class="category-badge" style="
+                background: ${getCategoryColor(cost.material)};
+                color: white;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+              ">
+                ${cost.material || 'Other'}
+              </span>
+            </td>
+            <td><strong>৳${(cost.amount || 0).toLocaleString()}</strong></td>
+            <td>
+              ${cost.voucher_link ? 
+                `<a href="${cost.voucher_link}" target="_blank" style="color: #0066cc">View Voucher</a>` : 
+                'No invoice'
+              }
+            </td>
+          </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', row);
+      });
       
-      const row = `
-        <tr>
-          <td>${voucherId}</td>
-          <td>${cost.date || 'N/A'}</td>
-          <td>${cost.description || 'No description'}</td>
-          <td>${cost.brand || 'N/A'}</td>
-          <td>
-            <span class="category-badge" style="
-              background: ${getCategoryColor(cost.material)};
-              color: white;
-              padding: 4px 8px;
-              border-radius: 12px;
-              font-size: 12px;
-            ">
-              ${cost.material || 'Other'}
-            </span>
-          </td>
-          <td><strong>৳${(cost.amount || 0).toLocaleString()}</strong></td>
-          <td>
-            ${cost.voucher_link ? 
-              `<a href="${cost.voucher_link}" target="_blank" style="color: #0066cc">View Voucher</a>` : 
-              'No invoice'
-            }
-          </td>
+      // Add total row at the end
+      const totalRow = `
+        <tr style="background-color: #f8f9fa; font-weight: bold; border-top: 2px solid #dee2e6;">
+          <td colspan="5" style="text-align: right; padding: 14px;">TOTAL:</td>
+          <td><strong>৳${totalAmount.toLocaleString()}</strong></td>
+          <td></td>
         </tr>
       `;
-      tableBody.insertAdjacentHTML('beforeend', row);
-    });
+      tableBody.insertAdjacentHTML('beforeend', totalRow);
+    }
     
   } catch (err) {
     console.error('Failed to load costs:', err);
