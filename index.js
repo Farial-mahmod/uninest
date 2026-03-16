@@ -1862,42 +1862,61 @@ app.post('/api/media/:project', async (req, res) => {
   }
 });
 //
-app.get('/api/shareholder/aurora', async (req, res) => {
+
+// GET shareholders for a specific project
+app.get('/api/shareholder/:project', async (req, res) => {
   try {
+    const project = req.params.project.toLowerCase();
+    console.log(`Fetching shareholders for project: ${project}`);
+    
+    // Ensure database connection
     const connection = getConnection();
     if (!connection || connection.readyState !== 1) {
-      return res.status(503).json({ message: 'Database not connected' });
+      return res.status(503).json({ 
+        success: false,
+        message: 'Database not connected' 
+      });
     }
     
-    const db = connection.useDb('aurora');
+    // Use the project name as the database name
+    const db = connection.useDb(project);
     const collection = db.collection('shareholder');
 
-    // Get the document
+    // Find the document (no need to filter by project field since we're already in the correct DB)
     const doc = await collection.findOne({});
 
     if (!doc || !doc.shareholder || doc.shareholder.length === 0) {
-      return res.status(404).json({ message: 'No shareholders found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'No shareholders found for this project' 
+      });
     }
 
-    // Filter shareholders by project
-    const shareholders = doc.shareholder.filter(sh => sh.project === 'aurora');
-    
-    if (shareholders.length === 0) {
-      return res.status(404).json({ message: 'No shareholders found for project aurora' });
-    }
+    // Optional: Filter shareholders by project field if it exists in each shareholder object
+    // This ensures we only return shareholders with matching project
+    const shareholders = doc.shareholder.filter(sh => 
+      !sh.project || sh.project === project
+    );
 
     res.json(shareholders);
+    
   } catch (error) {
     console.error('Error fetching shareholders:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Internal server error',
+      error: error.message 
+    });
   }
 });
 
 //
 
+// POST new shareholder for a specific project
 app.post('/api/shareholder/:project', async (req, res) => {
   try {
-    const project = req.params.project.toLowerCase(); // This comes from the URL parameter
+    const project = req.params.project.toLowerCase();
+    console.log(`Adding shareholder to project: ${project}`);
     
     // Ensure database connection
     const connection = await ensureConnection();
@@ -1913,7 +1932,6 @@ app.post('/api/shareholder/:project', async (req, res) => {
 
     const {
       id,
-      // Remove project from body or use it differently
       name,
       flat_number,
       email,
@@ -1924,7 +1942,7 @@ app.post('/api/shareholder/:project', async (req, res) => {
       installment_amount
     } = req.body;
 
-    // MODIFIED VALIDATION - Check required fields based on role
+    // Validate required fields
     if (!id || !name || !mobile) {
       return res.status(400).json({ 
         success: false,
@@ -1965,9 +1983,9 @@ app.post('/api/shareholder/:project', async (req, res) => {
 
     const newShareholder = {
       id,
-      project: project, // Use the project from URL parameter, not from body
+      project: project, // Store the project name
       name,
-      flat_number: flat_number || '', // Allow empty for admin
+      flat_number: flat_number || '',
       email: email || '',
       mobile,
       password,
@@ -2025,6 +2043,59 @@ app.post('/api/shareholder/:project', async (req, res) => {
 
   } catch (err) {
     console.error('Error adding shareholder:', err);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error', 
+      error: err.message 
+    });
+  }
+});
+
+// DELETE shareholder by ID
+app.delete('/api/shareholder/:project/:shareholderId', async (req, res) => {
+  try {
+    const project = req.params.project.toLowerCase();
+    const shareholderId = req.params.shareholderId;
+    
+    console.log(`Deleting shareholder ${shareholderId} from project: ${project}`);
+    
+    // Ensure database connection
+    const connection = getConnection();
+    if (!connection || connection.readyState !== 1) {
+      return res.status(503).json({ 
+        success: false,
+        message: 'Database not connected' 
+      });
+    }
+    
+    const db = connection.useDb(project);
+    const collection = db.collection('shareholder');
+    
+    // Find the document and remove the shareholder from the array
+    const result = await collection.updateOne(
+      {}, // Find the document (assuming one document per project)
+      { 
+        $pull: { shareholder: { id: shareholderId } },
+        $set: { updated_at: new Date() }
+      }
+    );
+    
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Shareholder not found' 
+      });
+    }
+    
+    console.log(`Shareholder ${shareholderId} deleted successfully`);
+    
+    res.json({
+      success: true,
+      message: 'Shareholder deleted successfully'
+    });
+    
+  } catch (err) {
+    console.error('Error deleting shareholder:', err);
     res.status(500).json({ 
       success: false,
       message: 'Server error', 

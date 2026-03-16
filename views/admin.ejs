@@ -2066,8 +2066,18 @@ th {
     </div>
     <button class="btn" onclick="openModal()">Add Role</button>
   </div>
+  
+  <!-- ADD PROJECT SELECTOR HERE -->
+  <div style="align-items: center; gap: 15px; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+    <label for="projectSelector" style="font-weight: 600; color: #333;">Select Project:</label>
+    <select id="projectSelector" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+      <option value="">-- Select Project --</option>
+    </select>
+    <button class="btn" onclick="loadShareholdersForProject()" style="padding: 10px 20px;">Load</button>
+  </div>
+  
   </div><br>
-  <!-- <input class="search" placeholder="Search by name, flat number, or share ID..."> -->
+  
 <table>
   <thead>
     <tr>
@@ -2076,8 +2086,8 @@ th {
       <th>Flat</th>
       <th>Contact</th>
       <th>Total Payment</th>
-      <!-- <th>Status</th> -->
-      <!-- <th>Actions</th> -->
+      <th>Role</th>
+       <th>Action</th>
     </tr>
   </thead>
 
@@ -2578,6 +2588,159 @@ th {
 
 <script>
 
+  // Load projects into the dropdown
+async function loadProjectsForSelector() {
+  const projectSelect = document.getElementById('projectSelector');
+  
+  try {
+    projectSelect.innerHTML = '<option value="">-- Loading Projects --</option>';
+    
+    const response = await fetch('/api/projects');
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch projects');
+    }
+    
+    const result = await response.json();
+    
+    projectSelect.innerHTML = '<option value="">-- Select Project --</option>';
+    
+    // Get projects from response
+    let projects = [];
+    if (result.success && result.projects) {
+      projects = result.projects;
+    } else if (Array.isArray(result)) {
+      projects = result;
+    }
+    
+    if (projects.length > 0) {
+      projects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project;
+        option.textContent = formatProjectDisplayName(project);
+        projectSelect.appendChild(option);
+      });
+    } else {
+      // Fallback projects
+      const fallbackProjects = ['aurora', 'greenescape', 'godhuli'];
+      fallbackProjects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project;
+        option.textContent = formatProjectDisplayName(project);
+        projectSelect.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.error('Error loading projects:', error);
+    projectSelect.innerHTML = '<option value="">-- Error Loading Projects --</option>';
+    
+    // Add fallback options
+    setTimeout(() => {
+      projectSelect.innerHTML = '<option value="">-- Select Project --</option>';
+      const fallbackProjects = ['aurora', 'greenescape', 'godhuli'];
+      fallbackProjects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project;
+        option.textContent = formatProjectDisplayName(project);
+        projectSelect.appendChild(option);
+      });
+    }, 1000);
+  }
+}
+
+// Format project name for display
+function formatProjectDisplayName(projectName) {
+  const displayNames = {
+    'aurora': 'UniNest Aurora',
+    'godhuli': 'UniNest Godhuli',
+    'greenescape': 'UniNest Green Escape'
+  };
+  
+  return displayNames[projectName] || 
+    projectName.charAt(0).toUpperCase() + projectName.slice(1).replace(/([A-Z])/g, ' $1').trim();
+}
+
+// Load shareholders for selected project
+
+// Load shareholders for selected project
+async function loadShareholdersForProject() {
+  const projectSelect = document.getElementById('projectSelector');
+  const project = projectSelect.value;
+  
+  if (!project) {
+    alert('Please select a project');
+    return;
+  }
+  
+  const tableBody = document.getElementById('tableBody');
+  tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">Loading shareholders...</td></tr>';
+  
+  try {
+    // Use the selected project name in the API call
+    const response = await fetch(`/api/shareholder/${project}`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">No shareholders found for this project</td></tr>';
+        return;
+      }
+      throw new Error('Failed to fetch shareholders');
+    }
+    
+    const shareholders = await response.json();
+    
+    if (!shareholders || shareholders.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">No shareholders found for this project</td></tr>';
+      return;
+    }
+    
+    // Clear and populate table
+    tableBody.innerHTML = '';
+    
+    shareholders.forEach((sh, index) => {
+      // Calculate total paid
+      const totalPaid = (sh.payments || [])
+        .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
+      
+      const row = `
+        <tr>
+          <td>${sh.id || 'N/A'}</td>
+          <td>${sh.name || 'N/A'}</td>
+          <td>${sh.flat_number || 'N/A'}</td>
+          <td>${sh.mobile || 'N/A'}</td>
+          <td>৳${totalPaid.toLocaleString()}</td>
+          <td>
+            <span style="background: ${sh.role === 'admin' ? '#dc2626' : '#059669'}; 
+                         color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">
+              ${sh.role || 'client'}
+            </span>
+          </td>
+          <td>
+            <button onclick="deleteShareholder('${project}', '${sh.id}', '${sh.name}')" 
+                    style="background: #dc2626; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              Delete
+            </button>
+          </td>
+        </tr>
+      `;
+      
+      tableBody.insertAdjacentHTML('beforeend', row);
+    });
+    
+  } catch (err) {
+    console.error('Failed to load shareholders:', err);
+    tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+      Error loading shareholders: ${err.message}
+    </td></tr>`;
+  }
+}
+
+// Load projects when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  fetchShareholders(); // Load default shareholders
+  loadProjectsForSelector(); // Load projects into dropdown
+});
+
   let currentCustomizationData = null;
 
 document.addEventListener('DOMContentLoaded', fetchShareholders);
@@ -2589,33 +2752,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function fetchShareholders() {
   try {
-
-    const res = await fetch('/api/shareholder/aurora');
-    const shareholders = await res.json();
+    // Load default project (aurora) on page load
+    const response = await fetch('/api/shareholder/aurora');
+    const shareholders = await response.json();
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = '';
 
+    if (!shareholders || shareholders.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">No shareholders found</td></tr>';
+      return;
+    }
+
     shareholders.forEach(sh => {
-      const totalPaid = sh.payments
+      const totalPaid = (sh.payments || [])
         .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
 
-      const status = totalPaid > 0 ? 'Active' : 'Inactive';
       const row = `
-  <tr>
-    <td>${sh.id}</td>
-    <td>${sh.name}</td>
-    <td>${sh.flat_number}</td>
-    <td>${sh.mobile}</td>
-    <td>${totalPaid.toLocaleString()}</td>
-    <td><span style="background: ${sh.role === 'admin' ? '#dc2626' : '#059669'}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${sh.role || 'client'}</span></td>
-  </tr>
-`;
+        <tr>
+          <td>${sh.id}</td>
+          <td>${sh.name}</td>
+          <td>${sh.flat_number}</td>
+          <td>${sh.mobile}</td>
+          <td>৳${totalPaid.toLocaleString()}</td>
+          <td>
+            <span style="background: ${sh.role === 'admin' ? '#dc2626' : '#059669'}; 
+                         color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">
+              ${sh.role || 'client'}
+            </span>
+          </td>
+          <td>
+            <button onclick="deleteShareholder('aurora', '${sh.id}', '${sh.name}')" 
+                    style="background: #dc2626; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              Delete
+            </button>
+          </td>
+        </tr>
+      `;
 
       tableBody.insertAdjacentHTML('beforeend', row);
     });
 
   } catch (err) {
     console.error('Failed to load shareholders:', err);
+    const tableBody = document.getElementById('tableBody');
+    tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+      Error loading shareholders: ${err.message}
+    </td></tr>`;
   }
 }
 
@@ -2641,11 +2823,52 @@ function toggleAdminFields() {
   }
 }
 
+// Delete shareholder function
+async function deleteShareholder(project, shareholderId, shareholderName) {
+  // Confirm deletion
+  if (!confirm(`Are you sure you want to delete ${shareholderName} (ID: ${shareholderId})?`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/shareholder/${project}/${shareholderId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to delete shareholder');
+    }
+    
+    // Show success message
+    showSuccessPopup(`Shareholder ${shareholderName} deleted successfully`);
+    
+    // Refresh the shareholders list
+    loadShareholdersForProject();
+    
+  } catch (err) {
+    console.error('Delete shareholder error:', err);
+    alert(`Error deleting shareholder: ${err.message}`);
+  }
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-  fetchShareholders();
   document.getElementById('shareholdersView').style.display = 'block';
-  toggleAdminFields(); // Initialize field visibility
+  loadProjectsForSelector();
+  
+  // After projects are loaded, select the first one and load its shareholders
+  setTimeout(() => {
+    const projectSelect = document.getElementById('projectSelector');
+    if (projectSelect.options.length > 1) { // Has options besides the default
+      projectSelect.selectedIndex = 1; // Select the first real project
+      loadShareholdersForProject();
+    }
+  }, 500);
 });
 
 async function addShareholder() {
@@ -2659,6 +2882,15 @@ async function addShareholder() {
   }
 
   const role = document.getElementById('sh_role').value;
+  
+  // Get the selected project from the dropdown
+  const projectSelect = document.getElementById('projectSelector');
+  const selectedProject = projectSelect.value;
+  
+  if (!selectedProject) {
+    alert('Please select a project first');
+    return;
+  }
 
   let flatNumber = '';
   let totalInstallments = '';
@@ -2674,13 +2906,9 @@ async function addShareholder() {
     installmentAmount = document.getElementById('sh_installment_amount').value;
   }
 
-  // FIX: Get the project from the session or a hidden field
-  // For now, let's hardcode it to 'aurora' since that's your project
-  const projectName = 'aurora'; // This should come from your session/user context
-
   const payload = {
     id: document.getElementById('sh_id').value,
-    project: projectName, // Use the fixed project name, not the input value
+    project: selectedProject, // Use the selected project
     name: document.getElementById('sh_name').value,
     flat_number: flatNumber,
     email: document.getElementById('sh_email').value,
@@ -2691,21 +2919,18 @@ async function addShareholder() {
     installment_amount: installmentAmount
   };
 
-  // Modified validation - different rules based on role
+  // Validation
   if (!payload.id || !payload.name || !payload.mobile) {
     return alert('ID, Name & Mobile are required');
   }
 
-  // For clients, validate additional fields
+  // For clients, validate flat_number and financial fields
   if (role === 'client') {
     if (!payload.flat_number) {
       return alert('Flat Number is required for clients');
     }
     if (!payload.total_installments || !payload.installment_amount) {
       return alert('Total Installments and Installment Amount are required for clients');
-    }
-    if (!payload.project) {
-      return alert('Project name is required for clients');
     }
   }
 
@@ -2716,7 +2941,8 @@ async function addShareholder() {
   addButton.disabled = true;
 
   try {
-    const res = await fetch(`/api/shareholder/${payload.project || 'default'}`, {
+    // Use the selected project in the API URL
+    const res = await fetch(`/api/shareholder/${selectedProject}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -2725,7 +2951,6 @@ async function addShareholder() {
     const result = await res.json();
     
     if (!res.ok) {
-      // Handle specific database errors
       if (result.error && result.error.includes('database')) {
         throw new Error('Database connection failed. Please ensure the project exists.');
       }
@@ -2746,7 +2971,9 @@ async function addShareholder() {
     document.getElementById('sh_total_installments').value = '';
     document.getElementById('sh_installment_amount').value = '';
     
-    fetchShareholders();
+    // Refresh the shareholders list for the current project
+    loadShareholdersForProject();
+    
   } catch (err) {
     console.error('Add shareholder error:', err);
     alert(err.message);
@@ -3708,6 +3935,19 @@ function showTab(tab, el) {
 }
 
 function openModal() {
+  // Get the currently selected project
+  const projectSelect = document.getElementById('projectSelector');
+  const selectedProject = projectSelect.value;
+  
+  if (!selectedProject) {
+    alert('Please select a project first');
+    return;
+  }
+  
+  // Set the project field in the modal
+  document.getElementById('sh_project').value = selectedProject;
+  
+  // Show modal
   document.getElementById('modal').classList.add('active');
 }
 
