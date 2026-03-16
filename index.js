@@ -58,71 +58,80 @@ console.log('Environment:', isProduction ? 'Production/Vercel' : 'Development');
 let connectionPromise = null;
 
 // Global connection variable
-// Global connection variable
 let cachedConnection = null;
 let gfs;
 let gridFSBucket;
 
-// Connection function
+// Connection function optimized for Vercel
+// Connection function optimized for Vercel
 async function connectToDatabase() {
   if (cachedConnection && cachedConnection.readyState === 1) {
-    console.log('Using existing database connection');
+    console.log('[Vercel] Using existing database connection');
     return cachedConnection;
   }
 
-  console.log('Creating new database connection...');
+  console.log('[Vercel] Creating new database connection...');
   
   try {
+    // Remove deprecated options and use only valid ones
     const conn = mongoose.createConnection(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000,
-      maxPoolSize: 10,
+      // Remove these deprecated options:
+      // useNewUrlParser: true,
+      // useUnifiedTopology: true,
+      
+      // Keep only valid connection options
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 60000,
+      connectTimeoutMS: 20000,
+      maxPoolSize: 5,
       minPoolSize: 1,
       maxIdleTimeMS: 10000,
-      waitQueueTimeoutMS: 5000
+      waitQueueTimeoutMS: 10000,
+      // Remove bufferCommands and bufferMaxEntries as they're not needed
     });
 
     await new Promise((resolve, reject) => {
       conn.once('open', () => {
-        console.log('MongoDB Connected Successfully');
+        console.log('[Vercel] MongoDB Connected Successfully');
         cachedConnection = conn;
         
-        // Initialize GridFSBucket
-        gridFSBucket = new mongoose.mongo.GridFSBucket(conn.db, {
-          bucketName: 'media'
-        });
-        gfs = conn.db.collection('media.files');
+        // Initialize GridFSBucket if needed
+        try {
+          if (conn.db) {
+            gridFSBucket = new mongoose.mongo.GridFSBucket(conn.db, {
+              bucketName: 'media'
+            });
+            gfs = conn.db.collection('media.files');
+          }
+        } catch (gridError) {
+          console.error('[Vercel] GridFS initialization error:', gridError);
+        }
         
         resolve(conn);
       });
       
       conn.on('error', (err) => {
-        console.error('MongoDB connection error:', err);
+        console.error('[Vercel] MongoDB connection error:', err);
         reject(err);
       });
+      
+      // Add timeout for connection
+      setTimeout(() => {
+        if (!cachedConnection) {
+          reject(new Error('Connection timeout after 15 seconds'));
+        }
+      }, 15000);
     });
 
     return conn;
   } catch (error) {
-    console.error('Failed to connect to MongoDB:', error);
+    console.error('[Vercel] Failed to connect to MongoDB:', error);
     throw error;
   }
 }
 
 // Get connection function - DECLARE ONLY ONCE
 const getConnection = () => cachedConnection;
-
-// Ensure connection helper
-async function ensureConnection() {
-  if (!cachedConnection || cachedConnection.readyState !== 1) {
-    console.log('Connection not ready, attempting to reconnect...');
-    cachedConnection = await connectToDatabase();
-  }
-  return cachedConnection;
-}
 
 // Initialize connection immediately
 connectToDatabase().catch(err => {
@@ -135,12 +144,29 @@ connectToDatabase().catch(err => {
 });
 
 // Helper to ensure connection is ready
+// Ensure connection helper with better error handling for Vercel
 async function ensureConnection() {
-  if (!cachedConnection || cachedConnection.readyState !== 1) {
-    console.log('Connection not ready, attempting to reconnect...');
-    cachedConnection = await connectToDatabase();
+  try {
+    if (cachedConnection && cachedConnection.readyState === 1) {
+      console.log('[Vercel] Using existing connection');
+      return cachedConnection;
+    }
+    
+    console.log('[Vercel] Creating new database connection...');
+    
+    // Add timeout to connection attempt
+    const connectionPromise = connectToDatabase();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout after 10 seconds')), 10000)
+    );
+    
+    cachedConnection = await Promise.race([connectionPromise, timeoutPromise]);
+    return cachedConnection;
+    
+  } catch (error) {
+    console.error('[Vercel] Failed to ensure connection:', error);
+    return null;
   }
-  return cachedConnection;
 }
 
 // Helper function to safely get database connection with fallback
@@ -2262,40 +2288,75 @@ app.get('/api/files/metadata/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// GET costs for a project
 // GET costs for a project
 app.get('/api/costs/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
+    console.log(`[Vercel] Fetching costs for project: ${project}`);
     
-    // FIX: Use getConnection() instead of conn
-    const connection = getConnection();
+    // Use ensureConnection instead of getConnection
+    const connection = await ensureConnection();
     if (!connection || connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not connected' });
+      console.error('[Vercel] Database not connected');
+      return res.status(503).json({ 
+        success: false,
+        error: 'Database not connected' 
+      });
     }
     
+    // Use the project name as the database name
     const db = connection.useDb(project);
     const collection = db.collection('cost');
 
-    // Find the document for this project
-    const doc = await collection.findOne(
-      { "project": project },
-      { projection: { cost: 1, _id: 0 } }
-    );
+    // Find the document - don't filter by project field
+    const doc = await collection.findOne({});
 
-    if (!doc || !doc.cost || doc.cost.length === 0) {
-      return res.status(404).json({ message: 'No costs found for this project' });
+    if (!doc) {
+      console.log(`[Vercel] No cost document found for project: ${project}`);
+      return res.status(404).json({ 
+        success: false,
+        message: 'No costs found for this project' 
+      });
     }
 
-    res.json(doc);
+    // Check if the document has a cost array
+    if (!doc.cost || !Array.isArray(doc.cost)) {
+      console.log(`[Vercel] Cost document found but no cost array for project: ${project}`);
+      return res.status(404).json({ 
+        success: false,
+        message: 'No cost data found in the document' 
+      });
+    }
+
+    console.log(`[Vercel] Found ${doc.cost.length} cost items for project: ${project}`);
+    
+    // Return the document with the cost array
+    res.json({
+      cost: doc.cost,
+      _id: doc._id,
+      updated_at: doc.updated_at
+    });
+    
   } catch (error) {
-    console.error('Error fetching costs:', error);
-    res.status(500).json({ error: 'Failed to fetch costs' });
+    console.error('[Vercel] Error fetching costs:', error);
+    console.error('[Vercel] Error stack:', error.stack);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch costs',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
+
+// POST new cost/voucher
 // POST new cost/voucher
 app.post('/api/costs/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
+    console.log(`[Vercel] Adding cost to project: ${project}`);
     
     // Ensure database connection
     const connection = await ensureConnection();
@@ -2347,7 +2408,7 @@ app.post('/api/costs/:project', async (req, res) => {
         updated_at: new Date()
       });
       
-      console.log('Created new cost document for project:', project);
+      console.log(`[Vercel] Created new cost document for project: ${project}`);
       
       return res.status(201).json({
         success: true,
@@ -2364,7 +2425,7 @@ app.post('/api/costs/:project', async (req, res) => {
         }
       );
       
-      console.log('Added cost to existing document:', newCost.description);
+      console.log(`[Vercel] Added cost to existing document:`, newCost.description);
       
       return res.status(201).json({
         success: true,
@@ -2374,7 +2435,7 @@ app.post('/api/costs/:project', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Error adding cost:', error);
+    console.error('[Vercel] Error adding cost:', error);
     res.status(500).json({ 
       success: false,
       error: 'Failed to add cost',
@@ -2382,6 +2443,7 @@ app.post('/api/costs/:project', async (req, res) => {
     });
   }
 });
+
 // milestone
 app.get('/api/milestones/:project', async (req, res) => {
   try {
@@ -3148,10 +3210,26 @@ app.get('/api/projects', async (req, res) => {
   });
 });
 
-// Create new project database with dummy data
-// Around line 3190 - Create project endpoint
 app.post('/api/projects/create', async (req, res) => {
-  let tempClient = null;
+// Create a temporary connection to the new database
+const { MongoClient } = require('mongodb');
+const uri = process.env.URI;
+
+// Parse the URI and insert the new database name
+const uriParts = uri.split('/');
+const baseUri = uriParts.slice(0, -1).join('/'); // Remove last part (database name)
+const newUri = `${baseUri}/${sanitizedProjectName}`;
+
+tempClient = new MongoClient(newUri, {
+  // Remove deprecated options
+  // useNewUrlParser: true,
+  // useUnifiedTopology: true,
+  
+  // Use only valid options
+  serverSelectionTimeoutMS: 10000,
+  connectTimeoutMS: 20000,
+  socketTimeoutMS: 60000
+});
   
   try {
     console.log('=== CREATE NEW PROJECT ===');

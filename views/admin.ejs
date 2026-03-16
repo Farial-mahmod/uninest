@@ -3452,9 +3452,34 @@ async function fetchPayments() {
 }
 
 // Fetch and display costs/vouchers
+// Fetch and display costs/vouchers
 async function fetchCosts() {
   try {
-    const res = await fetch('/api/costs/aurora');
+    // Get the selected project
+    const projectSelect = document.getElementById('projectSelector');
+    const project = projectSelect ? projectSelect.value : 'aurora';
+    
+    if (!project) {
+      alert('Please select a project first');
+      return;
+    }
+    
+    console.log(`Fetching costs for project: ${project}`);
+    
+    // Add timeout to fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
+    const res = await fetch(`/api/costs/${project}`, {
+      signal: controller.signal,
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    
+    clearTimeout(timeoutId);
+    
     const data = await res.json();
     const tableBody = document.getElementById('costsTableBody');
     
@@ -3464,6 +3489,18 @@ async function fetchCosts() {
     }
     
     tableBody.innerHTML = '';
+    
+    // Check if response is ok
+    if (!res.ok) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 40px; color: #666">
+            ${data.message || data.error || 'No cost data found'}
+          </td>
+        </tr>
+      `;
+      return;
+    }
     
     // Check if data has the expected structure
     if (!data || !data.cost || !Array.isArray(data.cost)) {
@@ -3477,9 +3514,9 @@ async function fetchCosts() {
       `;
       return;
     }
+    
     const costs = data.cost;
-    // Debug log
-    console.log('Fetched costs:', costs);
+    console.log(`Fetched ${costs.length} costs:`, costs);
     
     // Calculate total amount
     let totalAmount = 0;
@@ -3542,12 +3579,18 @@ async function fetchCosts() {
     
   } catch (err) {
     console.error('Failed to load costs:', err);
+    
+    let errorMessage = err.message;
+    if (err.name === 'AbortError') {
+      errorMessage = 'Request timeout. Please check your connection.';
+    }
+    
     const tableBody = document.getElementById('costsTableBody');
     if (tableBody) {
       tableBody.innerHTML = `
         <tr>
           <td colspan="8" style="text-align: center; padding: 40px; color: #666">
-            Error loading costs: ${err.message}
+            Error loading costs: ${errorMessage}
           </td>
         </tr>
       `;
