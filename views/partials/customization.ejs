@@ -120,27 +120,45 @@
 </div>
 <script>
 // Function to handle option selection
-function selectOption(category, optionIndex) {
-    // Show loading state on tile gallery item
-    const tileElement = document.querySelector(`.tile-gallery-item[data-option-index="${optionIndex}"]`);
-    if (tileElement) tileElement.classList.add('loading');
-    // Send selection to server
-    fetch(`/customization/update?category=${category}&optionIndex=${optionIndex}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update the Your Selection section without full reload
-                updateYourSelection(data.customizationData.yourSelection);
-                
-                // Update selected states in the UI
-                updateSelectedStates(category, optionIndex);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            // Remove loading states
-            if (tileElement) tileElement.classList.remove('loading');
-        });
+// Function to select a customization option
+async function selectOption(categoryIndex, optionNumber) {
+  try {
+    console.log(`Selecting option ${optionNumber} for category ${categoryIndex}`);
+    
+    const response = await fetch('/api/customization/vote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        categoryIndex: categoryIndex,
+        optionNumber: optionNumber
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to update selection');
+    }
+    
+    if (result.success) {
+      showSuccessPopup('Selection updated successfully!');
+      
+      // Refresh the customization data
+      if (result.customizationData) {
+        renderCustomization(result.customizationData.customizationOptions.categories);
+        updateYourSelection(result.customizationData.yourSelection);
+      } else {
+        // If no data in response, fetch fresh data
+        fetchCustomization();
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error selecting option:', error);
+    alert('Failed to update selection: ' + error.message);
+  }
 }
 // Function to update selected states in the UI
 function updateSelectedStates(category, selectedIndex) {
@@ -154,39 +172,69 @@ function updateSelectedStates(category, selectedIndex) {
     });
 }
 
-// Function to update Your Selection section without page reload
-function updateYourSelection(yourSelection) {
-    const selectionItems = document.querySelector('.selection-items');
-    if (!selectionItems) return;
-    selectionItems.innerHTML = yourSelection.items.map(item => `
-        <div class="selection-item">
-            <div class="selection-header">
-                <h4>${item.name}:</h4>
-                <span class="selection-value">${item.value}</span>
-            </div>
-            <div class="selection-details">
-                <div class="brand-info">
-                    <span class="label">Brand:</span>
-                    <span class="value">${item.brand}</span>
-                </div>
-                <div class="cost-info">
-                    <span class="label">Total Upgrade Cost:</span>
-                    <span class="cost ${item.upgradeCost}">
-                        ${item.upgradeCost}
-                    </span>
-                </div>
-            </div>
-            ${item.image ? `
-                <div class="selected-tile-preview">
-                    <img src="${item.image}" alt="${item.value}" class="tile-image">
-                </div>
-            ` : ''}
+// Update the "Your Current Selection" section
+
+// Update the "Your Current Selection" section
+function updateYourSelection(selectionData) {
+  const customizationGrid = document.getElementById('customizationGrid');
+  
+  // Find or create the selection section
+  let selectionSection = document.querySelector('.your-selection-section');
+  
+  if (!selectionSection) {
+    // Create the selection section if it doesn't exist
+    selectionSection = document.createElement('div');
+    selectionSection.className = 'your-selection-section';
+    selectionSection.innerHTML = `
+      <h3>Your Current Selection</h3>
+      <div class="subtitle">You can modify these until the customization window closes.</div>
+      <div class="selection-items" id="selectionItems"></div>
+    `;
+    
+    // Insert it before the customization grid
+    customizationGrid.parentNode.insertBefore(selectionSection, customizationGrid);
+  }
+  
+  const selectionItems = document.getElementById('selectionItems') || 
+                        selectionSection.querySelector('.selection-items');
+  
+  if (!selectionItems) return;
+  
+  if (!selectionData || !selectionData.items || selectionData.items.length === 0) {
+    selectionItems.innerHTML = '<p class="no-selection">No selections made yet.</p>';
+    return;
+  }
+  
+  let html = '';
+  selectionData.items.forEach(item => {
+    // Create other voters list
+    let otherVotersHtml = '';
+    if (item.voters && item.voters.length > 1) {
+      const otherVoters = item.voters.filter(v => v !== '<%= user.name %>'); // Filter out current user
+      if (otherVoters.length > 0) {
+        otherVotersHtml = `
+          <div class="other-voters">
+            <small>Also selected by: ${otherVoters.join(', ')}</small>
+          </div>
+        `;
+      }
+    }
+    
+    html += `
+      <div class="selection-item">
+        <img src="${item.image || 'https://via.placeholder.com/100x80'}" alt="${item.name}">
+        <div class="selection-info">
+          <strong>${item.name}</strong>
+          <div>${item.value}</div>
+          <small>${item.brand}</small>
+          ${otherVotersHtml}
         </div>
-    `).join('');
-    // Remove loading states
-    document.querySelectorAll('.loading').forEach(el => el.classList.remove('loading'));
-    // Show success message
-    showSuccessMessage('Selection updated successfully!');
+        <div class="selection-cost">${item.upgradeCost}</div>
+      </div>
+    `;
+  });
+  
+  selectionItems.innerHTML = html;
 }
 
 // Show temporary success message

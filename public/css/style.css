@@ -2568,13 +2568,28 @@ main {
   margin-top: 6px;
 }
 
-/* Payments row */
+/* Payment row styles */
 .payment-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  transition: background 0.2s;
+}
+
+.payment-row:hover {
+  background: #f5f5f5;
+}
+
+.payment-row:last-child {
+  border-bottom: none;
+}
+
+.payment-row .subtitle {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
 }
 
 /* Costs: Budget grid */

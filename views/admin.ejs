@@ -183,14 +183,7 @@ th {
   margin-top: 20px;
 }
 
-/* Payments row */
-.payment-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
-}
+
 
 /* Costs: Budget grid */
 .budget-grid {
@@ -1999,6 +1992,169 @@ th {
   cursor: not-allowed;
 }
 
+/* Your Current Selection Styles */
+.your-selection-section {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.your-selection-section h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.selection-items {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.selection-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.selection-item img {
+  width: 100px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.selection-info {
+  flex: 1;
+}
+
+.selection-info strong {
+  display: block;
+  font-size: 16px;
+  color: #333;
+}
+
+.selection-info div {
+  font-size: 14px;
+  color: #555;
+  margin: 4px 0;
+}
+
+.selection-info small {
+  font-size: 12px;
+  color: #888;
+}
+
+.selection-cost {
+  font-weight: 600;
+  color: #059669;
+  font-size: 16px;
+  padding: 0 15px;
+}
+
+.no-selection {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Voters list styles */
+.voters-list {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+  font-size: 12px;
+  text-align: left;
+}
+
+.voters-list strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #555;
+}
+
+.voters-list ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #666;
+}
+
+.voters-list li {
+  margin-bottom: 2px;
+}
+
+.voters-list em {
+  color: #999;
+  font-style: italic;
+}
+
+/* Option item adjustments */
+.option-item {
+  text-align: center;
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  transition: all 0.3s;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.option-item:hover {
+  border-color: #0066cc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.option-item.selected {
+  border-color: #0066cc;
+  background: rgba(0, 102, 204, 0.05);
+  box-shadow: 0 0 0 2px rgba(0,102,204,0.2);
+}
+
+.option-item img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.option-item h4 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.option-item p {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  color: #666;
+  flex-grow: 1;
+}
+
+/* Other voters styles */
+.other-voters {
+  margin-top: 5px;
+  font-size: 11px;
+  color: #888;
+}
+
+.other-voters small {
+  color: #666;
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
 </style>
 </head>
 
@@ -2067,13 +2223,13 @@ th {
     <button class="btn" onclick="openModal()">Add Role</button>
   </div>
   
-  <!-- ADD PROJECT SELECTOR HERE -->
+  <!-- PROJECT SELECTOR -->
   <div style="align-items: center; gap: 15px; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px;">
     <label for="projectSelector" style="font-weight: 600; color: #333;">Select Project:</label>
-    <select id="projectSelector" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+    <select id="projectSelector" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onchange="onProjectChange()">
       <option value="">-- Select Project --</option>
     </select>
-    <button class="btn" onclick="loadShareholdersForProject()" style="padding: 10px 20px;">Load</button>
+    <button class="btn" onclick="loadShareholdersForProject()" style="padding: 10px 20px;">Load Shareholders</button>
   </div>
   
   </div><br>
@@ -2087,7 +2243,7 @@ th {
       <th>Contact</th>
       <th>Total Payment</th>
       <th>Role</th>
-       <th>Action</th>
+      <th>Action</th>
     </tr>
   </thead>
 
@@ -2103,8 +2259,41 @@ th {
       <h2>Manage Payments</h2>
     </div>
     <button class="btn" onclick="openPaymentModal()">Add Payment</button>
-  </div><br>
+  </div>
+  
+  <!-- Use the same project selector reference -->
+  <div style="align-items: center; gap: 15px; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+    <label for="paymentProjectSelector" style="font-weight: 600; color: #333;">Project:</label>
+    <select id="paymentProjectSelector" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;" onchange="loadPaymentShareholders()">
+      <option value="">-- Select Project --</option>
+    </select>
+  </div>
+  
+  <!-- Shareholder selector (same as in Record New Payment dialog) -->
+  <div style="align-items: center; gap: 15px; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+    <label for="paymentShareholderSelector" style="font-weight: 600; color: #333;">Select Shareholder:</label>
+    <select id="paymentShareholderSelector" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+      <option value="">-- Select Shareholder --</option>
+    </select>
+    <button class="btn" onclick="loadSelectedShareholderPayments()" style="padding: 10px 20px;">View Payments</button>
+  </div>
+  
+  <!-- Payments List Container -->
+  <div id="paymentsList" style="margin-top: 20px;">
+    <!-- Payments will be loaded here -->
+  </div>
+  
+  <!-- Total Container -->
+  <div id="paymentsTotal" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; font-weight: bold; text-align: right; display: none;">
+    Total Amount: <span id="totalAmount">৳0</span>
+  </div>
+
+    <br>
+<b>All Payments</b>
+<br><br>
+
 </div>
+
 <!-- COSTS VIEW -->
 <div class="card" id="costsView" style="display:none">
   <div class="card-header">
@@ -2589,6 +2778,8 @@ th {
 <script>
 
   // Load projects into the dropdown
+
+// Load projects into the dropdown
 async function loadProjectsForSelector() {
   const projectSelect = document.getElementById('projectSelector');
   
@@ -2630,6 +2821,22 @@ async function loadProjectsForSelector() {
         projectSelect.appendChild(option);
       });
     }
+    
+    // Add event listener to load users when project changes
+    projectSelect.addEventListener('change', function() {
+      // Clear user selector when project changes
+      const userSelect = document.getElementById('userSelector');
+      if (userSelect) {
+        userSelect.innerHTML = '<option value="">-- Select Project First --</option>';
+      }
+      // Clear payments list
+      const paymentsList = document.getElementById('paymentsList');
+      if (paymentsList) {
+        paymentsList.innerHTML = '';
+      }
+      document.getElementById('paymentsTotal').style.display = 'none';
+    });
+    
   } catch (error) {
     console.error('Error loading projects:', error);
     projectSelect.innerHTML = '<option value="">-- Error Loading Projects --</option>';
@@ -2857,15 +3064,17 @@ async function deleteShareholder(project, shareholderId, shareholderName) {
 }
 
 // Initialize on page load
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('shareholdersView').style.display = 'block';
-  loadProjectsForSelector();
+  loadProjectsForSelectors();
   
   // After projects are loaded, select the first one and load its shareholders
   setTimeout(() => {
     const projectSelect = document.getElementById('projectSelector');
-    if (projectSelect.options.length > 1) { // Has options besides the default
-      projectSelect.selectedIndex = 1; // Select the first real project
+    if (projectSelect.options.length > 1) {
+      projectSelect.selectedIndex = 1;
+      onProjectChange(); // Sync the payment project selector
       loadShareholdersForProject();
     }
   }, 500);
@@ -3082,7 +3291,165 @@ async function submitPayment() {
   }
 }
 
-// Fetch and display costs/vouchers
+// Load users into the dropdown based on selected project
+async function loadUsersForSelector() {
+  const projectSelect = document.getElementById('projectSelector');
+  const userSelect = document.getElementById('userSelector');
+  const project = projectSelect.value;
+  
+  if (!project) {
+    userSelect.innerHTML = '<option value="">-- Select Project First --</option>';
+    return;
+  }
+  
+  try {
+    userSelect.innerHTML = '<option value="">-- Loading Users --</option>';
+    userSelect.disabled = true;
+    
+    const response = await fetch(`/api/shareholder/${project}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch users');
+    }
+    
+    const shareholders = await response.json();
+    
+    userSelect.innerHTML = '<option value="">-- Select User --</option>';
+    userSelect.disabled = false;
+    
+    // Filter out admin users if you want only clients with payments
+    const users = shareholders.filter(sh => sh.role !== 'admin');
+    
+    if (users.length === 0) {
+      userSelect.innerHTML = '<option value="">-- No users found --</option>';
+      return;
+    }
+    
+    users.forEach(user => {
+      const option = document.createElement('option');
+      option.value = JSON.stringify({
+        id: user.id,
+        name: user.name,
+        flat: user.flat_number
+      });
+      option.textContent = `${user.name} (${user.flat_number || 'No Flat'})`;
+      userSelect.appendChild(option);
+    });
+    
+  } catch (error) {
+    console.error('Error loading users:', error);
+    userSelect.innerHTML = '<option value="">-- Error Loading Users --</option>';
+    userSelect.disabled = false;
+  }
+}
+
+// Load payments for selected user
+async function loadUserPayments() {
+  const projectSelect = document.getElementById('projectSelector');
+  const userSelect = document.getElementById('userSelector');
+  const paymentsList = document.getElementById('paymentsList');
+  const paymentsTotal = document.getElementById('paymentsTotal');
+  const totalAmountSpan = document.getElementById('totalAmount');
+  
+  const project = projectSelect.value;
+  const selectedUser = userSelect.value;
+  
+  if (!project) {
+    alert('Please select a project first');
+    return;
+  }
+  
+  if (!selectedUser) {
+    alert('Please select a user');
+    return;
+  }
+  
+  try {
+    const userData = JSON.parse(selectedUser);
+    paymentsList.innerHTML = '<div style="text-align: center; padding: 40px;">Loading payments...</div>';
+    paymentsTotal.style.display = 'none';
+    
+    const response = await fetch(`/api/shareholder/${project}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch user data');
+    }
+    
+    const shareholders = await response.json();
+    const user = shareholders.find(sh => sh.id === userData.id);
+    
+    if (!user) {
+      paymentsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">User not found</div>';
+      return;
+    }
+    
+    // Get payments and filter out unpaid ones if desired
+    const payments = user.payments || [];
+    const paidPayments = payments.filter(p => p.amount_paid > 0);
+    
+    if (paidPayments.length === 0) {
+      paymentsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No payments found for this user</div>';
+      paymentsTotal.style.display = 'none';
+      return;
+    }
+    
+    // Calculate total
+    const total = paidPayments.reduce((sum, p) => sum + (p.amount_paid || 0), 0);
+    
+    // Display payments
+    let html = `
+      <h3>Payments for ${user.name} (${user.flat_number || 'No Flat'})</h3>
+      <div style="margin-top: 20px;">
+    `;
+    
+    paidPayments.sort((a, b) => (a.installment_number || 0) - (b.installment_number || 0));
+    
+    paidPayments.forEach(payment => {
+      const paymentDate = payment.payment_date || 'N/A';
+      const amount = payment.amount_paid || 0;
+      
+      html += `
+        <div class="payment-row" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee;">
+          <div>
+            <strong>Installment ${payment.installment_number || 'N/A'}</strong>
+            <div class="subtitle">Date: ${paymentDate}</div>
+          </div>
+          <div style="font-weight: bold; color: #059669;">৳${amount.toLocaleString()}</div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    
+    paymentsList.innerHTML = html;
+    
+    // Show total
+    totalAmountSpan.textContent = `৳${total.toLocaleString()}`;
+    paymentsTotal.style.display = 'block';
+    
+  } catch (error) {
+    console.error('Error loading payments:', error);
+    paymentsList.innerHTML = `<div style="text-align: center; padding: 40px; color: #666;">
+      Error loading payments: ${error.message}
+    </div>`;
+    paymentsTotal.style.display = 'none';
+  }
+}
+
+// Update the existing fetchPayments function to work with the new UI
+async function fetchPayments() {
+  // This function is now replaced by loadUserPayments
+  // But we'll keep it for backward compatibility
+  const projectSelect = document.getElementById('projectSelector');
+  const project = projectSelect.value;
+  
+  if (!project) {
+    return;
+  }
+  
+  // Load users for the dropdown
+  await loadUsersForSelector();
+}
 
 // Fetch and display costs/vouchers
 async function fetchCosts() {
@@ -3248,6 +3615,323 @@ function getCategoryColor(category) {
     'Other Expenses': '#4b5563'
   };
   return colors[category] || '#6b7280';
+}
+
+// Handle project change in shareholders tab
+function onProjectChange() {
+  const projectSelect = document.getElementById('projectSelector');
+  const project = projectSelect.value;
+  
+  // Also update the payment project selector if it exists
+  const paymentProjectSelect = document.getElementById('paymentProjectSelector');
+  if (paymentProjectSelect) {
+    paymentProjectSelect.value = project;
+  }
+}
+
+// Load projects into both selectors
+
+// Load projects into both selectors
+async function loadProjectsForSelectors() {
+  const projectSelect = document.getElementById('projectSelector');
+  const paymentProjectSelect = document.getElementById('paymentProjectSelector');
+  
+  try {
+    projectSelect.innerHTML = '<option value="">-- Loading Projects --</option>';
+    if (paymentProjectSelect) {
+      paymentProjectSelect.innerHTML = '<option value="">-- Loading Projects --</option>';
+    }
+    
+    const response = await fetch('/api/projects');
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch projects');
+    }
+    
+    const result = await response.json();
+    
+    // Get projects from response
+    let projects = [];
+    if (result.success && result.projects) {
+      projects = result.projects;
+    } else if (Array.isArray(result)) {
+      projects = result;
+    }
+    
+    // Use the projects from the response, or fallback to hardcoded ones
+    const projectsToUse = projects.length > 0 ? projects : ['aurora', 'greenescape', 'godhuli'];
+    
+    // Populate both selectors
+    projectSelect.innerHTML = '<option value="">-- Select Project --</option>';
+    if (paymentProjectSelect) {
+      paymentProjectSelect.innerHTML = '<option value="">-- Select Project --</option>';
+    }
+    
+    projectsToUse.forEach(project => {
+      const option = document.createElement('option');
+      option.value = project;
+      option.textContent = formatProjectDisplayName(project);
+      projectSelect.appendChild(option);
+      
+      if (paymentProjectSelect) {
+        const paymentOption = document.createElement('option');
+        paymentOption.value = project;
+        paymentOption.textContent = formatProjectDisplayName(project);
+        paymentProjectSelect.appendChild(paymentOption);
+      }
+    });
+    
+    console.log('Projects loaded:', projectsToUse);
+    
+  } catch (error) {
+    console.error('Error loading projects:', error);
+    projectSelect.innerHTML = '<option value="">-- Error Loading Projects --</option>';
+    if (paymentProjectSelect) {
+      paymentProjectSelect.innerHTML = '<option value="">-- Error Loading Projects --</option>';
+    }
+    
+    // Add fallback options
+    setTimeout(() => {
+      projectSelect.innerHTML = '<option value="">-- Select Project --</option>';
+      if (paymentProjectSelect) {
+        paymentProjectSelect.innerHTML = '<option value="">-- Select Project --</option>';
+      }
+      
+      const fallbackProjects = ['aurora', 'greenescape', 'godhuli'];
+      fallbackProjects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project;
+        option.textContent = formatProjectDisplayName(project);
+        projectSelect.appendChild(option);
+        
+        if (paymentProjectSelect) {
+          const paymentOption = document.createElement('option');
+          paymentOption.value = project;
+          paymentOption.textContent = formatProjectDisplayName(project);
+          paymentProjectSelect.appendChild(paymentOption);
+        }
+      });
+    }, 1000);
+  }
+}
+
+// Load shareholders for the selected project (Shareholders tab)
+// Load shareholders for the selected project (Shareholders tab)
+async function loadShareholdersForProject() {
+  const projectSelect = document.getElementById('projectSelector');
+  const project = projectSelect.value;
+  
+  if (!project) {
+    alert('Please select a project');
+    return;
+  }
+  
+  const tableBody = document.getElementById('tableBody');
+  tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">Loading shareholders...</td></tr>';
+  
+  try {
+    console.log(`Fetching shareholders from: /api/shareholder/${project}`);
+    const response = await fetch(`/api/shareholder/${project}`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">No shareholders found for this project</td></tr>';
+        return;
+      }
+      throw new Error('Failed to fetch shareholders');
+    }
+    
+    const shareholders = await response.json();
+    console.log(`Found ${shareholders.length} shareholders for project ${project}`);
+    
+    if (!shareholders || shareholders.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">No shareholders found for this project</td></tr>';
+      return;
+    }
+    
+    // Clear and populate table
+    tableBody.innerHTML = '';
+    
+    shareholders.forEach(sh => {
+      const totalPaid = (sh.payments || [])
+        .reduce((sum, p) => sum + (p.amount_paid || 0), 0);
+      
+      const row = `
+        <tr>
+          <td>${sh.id || 'N/A'}</td>
+          <td>${sh.name || 'N/A'}</td>
+          <td>${sh.flat_number || 'N/A'}</td>
+          <td>${sh.mobile || 'N/A'}</td>
+          <td>৳${totalPaid.toLocaleString()}</td>
+          <td>
+            <span style="background: ${sh.role === 'admin' ? '#dc2626' : '#059669'}; 
+                         color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">
+              ${sh.role || 'client'}
+            </span>
+          </td>
+          <td>
+            <button onclick="deleteShareholder('${project}', '${sh.id}', '${sh.name}')" 
+                    style="background: #dc2626; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              Delete
+            </button>
+          </td>
+        </tr>
+      `;
+      
+      tableBody.insertAdjacentHTML('beforeend', row);
+    });
+    
+  } catch (err) {
+    console.error('Failed to load shareholders:', err);
+    tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">
+      Error loading shareholders: ${err.message}
+    </td></tr>`;
+  }
+}
+
+// Load shareholders into the payment dropdown (same as in payment modal)
+async function loadPaymentShareholders() {
+  const projectSelect = document.getElementById('paymentProjectSelector');
+  const project = projectSelect.value;
+  const shareholderSelect = document.getElementById('paymentShareholderSelector');
+  
+  if (!project) {
+    shareholderSelect.innerHTML = '<option value="">-- Select Project First --</option>';
+    return;
+  }
+  
+  try {
+    shareholderSelect.innerHTML = '<option value="">-- Loading Shareholders --</option>';
+    shareholderSelect.disabled = true;
+    
+    const response = await fetch(`/api/shareholder/${project}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch shareholders');
+    }
+    
+    const shareholders = await response.json();
+    
+    shareholderSelect.innerHTML = '<option value="">-- Select Shareholder --</option>';
+    shareholderSelect.disabled = false;
+    
+    // Filter out admin users since they don't have payments
+    const clients = shareholders.filter(sh => sh.role !== 'admin');
+    
+    if (clients.length === 0) {
+      shareholderSelect.innerHTML = '<option value="">-- No clients found --</option>';
+      return;
+    }
+    
+    clients.forEach(sh => {
+      const option = document.createElement('option');
+      option.value = JSON.stringify({
+        id: sh.id,
+        name: sh.name,
+        flat: sh.flat_number
+      });
+      option.textContent = `${sh.name} (${sh.flat_number || 'No Flat'})`;
+      shareholderSelect.appendChild(option);
+    });
+    
+  } catch (error) {
+    console.error('Error loading shareholders:', error);
+    shareholderSelect.innerHTML = '<option value="">-- Error Loading Shareholders --</option>';
+    shareholderSelect.disabled = false;
+  }
+}
+
+// Load payments for selected shareholder
+async function loadSelectedShareholderPayments() {
+  const projectSelect = document.getElementById('paymentProjectSelector');
+  const shareholderSelect = document.getElementById('paymentShareholderSelector');
+  const paymentsList = document.getElementById('paymentsList');
+  const paymentsTotal = document.getElementById('paymentsTotal');
+  const totalAmountSpan = document.getElementById('totalAmount');
+  
+  const project = projectSelect.value;
+  const selectedShareholder = shareholderSelect.value;
+  
+  if (!project) {
+    alert('Please select a project');
+    return;
+  }
+  
+  if (!selectedShareholder) {
+    alert('Please select a shareholder');
+    return;
+  }
+  
+  try {
+    const shareholderData = JSON.parse(selectedShareholder);
+    paymentsList.innerHTML = '<div style="text-align: center; padding: 40px;">Loading payments...</div>';
+    paymentsTotal.style.display = 'none';
+    
+    const response = await fetch(`/api/shareholder/${project}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch shareholder data');
+    }
+    
+    const shareholders = await response.json();
+    const shareholder = shareholders.find(sh => sh.id === shareholderData.id);
+    
+    if (!shareholder) {
+      paymentsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Shareholder not found</div>';
+      return;
+    }
+    
+    // Get payments and filter out unpaid ones
+    const payments = shareholder.payments || [];
+    const paidPayments = payments.filter(p => p.amount_paid > 0);
+    
+    if (paidPayments.length === 0) {
+      paymentsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No payments found for this shareholder</div>';
+      paymentsTotal.style.display = 'none';
+      return;
+    }
+    
+    // Calculate total
+    const total = paidPayments.reduce((sum, p) => sum + (p.amount_paid || 0), 0);
+    
+    // Display payments
+    let html = `
+      <h3>Payments for ${shareholder.name} (${shareholder.flat_number || 'No Flat'})</h3>
+      <div style="margin-top: 20px; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
+    `;
+    
+    paidPayments.sort((a, b) => (a.installment_number || 0) - (b.installment_number || 0));
+    
+    paidPayments.forEach(payment => {
+      const paymentDate = payment.payment_date || 'N/A';
+      const amount = payment.amount_paid || 0;
+      
+      html += `
+        <div class="payment-row" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee;">
+          <div>
+            <strong>Installment ${payment.installment_number || 'N/A'}</strong>
+            <div class="subtitle">Date: ${paymentDate}</div>
+          </div>
+          <div style="font-weight: bold; color: #059669;">৳${amount.toLocaleString()}</div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    
+    paymentsList.innerHTML = html;
+    
+    // Show total
+    totalAmountSpan.textContent = `৳${total.toLocaleString()}`;
+    paymentsTotal.style.display = 'block';
+    
+  } catch (error) {
+    console.error('Error loading payments:', error);
+    paymentsList.innerHTML = `<div style="text-align: center; padding: 40px; color: #666;">
+      Error loading payments: ${error.message}
+    </div>`;
+    paymentsTotal.style.display = 'none';
+  }
 }
 
 // Fetch and display milestones from API
@@ -3899,7 +4583,6 @@ function closePaymentModal() {
 }
 
 function showTab(tab, el) {
-  // Map tab names to view IDs
   const views = {
     shareholders: 'shareholdersView',
     payments: 'paymentsView',
@@ -3926,10 +4609,19 @@ function showTab(tab, el) {
   el.classList.add('active');
 
   // Lazy-load data
-  if (tab === 'payments') fetchPayments();
+  if (tab === 'payments') {
+    // Sync the payment project selector with the main one
+    const mainProjectSelect = document.getElementById('projectSelector');
+    const paymentProjectSelect = document.getElementById('paymentProjectSelector');
+    if (mainProjectSelect && paymentProjectSelect) {
+      paymentProjectSelect.value = mainProjectSelect.value;
+      if (mainProjectSelect.value) {
+        loadPaymentShareholders();
+      }
+    }
+  }
   if (tab === 'costs') fetchCosts(); 
   if (tab === 'milestones') fetchMilestones();
-  // if (tab === 'gallery') loadGallery();
   if (tab === 'gallery') fetchGallery();
   if (tab === 'customization') fetchCustomization();
 }
@@ -4448,6 +5140,7 @@ function openAddMediaModal() {
 // Customization data
 
 // 1. Fetch customization data
+// 1. Fetch customization data
 async function fetchCustomization() {
   try {
     console.log('=== FETCHING CUSTOMIZATION ===');
@@ -4473,15 +5166,8 @@ async function fetchCustomization() {
     const data = await res.json();
     console.log('=== API RESPONSE DATA ===');
     console.log('Full response:', data);
-    console.log('Has selection?', !!data.selection);
-    console.log('Selection is array?', Array.isArray(data.selection));
-    console.log('Selection length:', data.selection ? data.selection.length : 0);
     
-    if (data.selection && data.selection.length > 0) {
-      console.log('First item in selection:', data.selection[0]);
-    }
-    
-    currentCustomizationData = data; // Now this will work
+    currentCustomizationData = data;
     
     if (!data.selection || !Array.isArray(data.selection)) {
       console.log('No valid selection array found');
@@ -4492,13 +5178,17 @@ async function fetchCustomization() {
     console.log('Rendering', data.selection.length, 'items');
     renderCustomization(data.selection);
     
+    // If there's user selection data, update that section too
+    if (data.userSelections) {
+      updateYourSelection(data.userSelections);
+    }
+    
   } catch (err) {
     console.error('Customization fetch failed:', err);
     showEmptyCustomization();
   }
 }
 
-// 2. Render customization options
 // 2. Render customization options
 function renderCustomization(selections) {
   console.log('=== RENDER CUSTOMIZATION ===');
@@ -4526,23 +5216,14 @@ function renderCustomization(selections) {
     const card = document.createElement('div');
     card.className = 'customization-card';
     
-    // Debug each property
-    console.log('Name:', selection.name);
-    console.log('Description:', selection.description);
-    console.log('From:', selection.from);
-    console.log('To:', selection.to);
-    console.log('Option 1:', selection.option_1);
-    console.log('Option 2:', selection.option_2);
-    console.log('Option 3:', selection.option_3);
-    
     card.innerHTML = `
       <h3>${selection.name || 'No Name'}</h3>
       <div class="date-range">${selection.from || 'No date'} - ${selection.to || 'No date'}</div>
       <p>${selection.description || 'No description'}</p>
       <div class="options-grid">
-        ${renderOptionItem(selection.option_1, 1)}
-        ${renderOptionItem(selection.option_2, 2)}
-        ${renderOptionItem(selection.option_3, 3)}
+        ${renderOptionItem(selection.option_1, 1, index)}
+        ${renderOptionItem(selection.option_2, 2, index)}
+        ${renderOptionItem(selection.option_3, 3, index)}
       </div>
     `;
     
@@ -4552,8 +5233,8 @@ function renderCustomization(selections) {
   console.log('Finished rendering', selections.length, 'cards');
 }
 
-function renderOptionItem(option, number) {
-  console.log(`Rendering option ${number}:`, option);
+function renderOptionItem(option, number, categoryIndex) {
+  console.log(`Rendering option ${number} for category ${categoryIndex}:`, option);
   
   if (!option || !option.url) {
     return `<div class="option-item">
@@ -4565,30 +5246,32 @@ function renderOptionItem(option, number) {
     </div>`;
   }
   
-  return `<div class="option-item">
+  // Add selected class if this option is selected
+  const selectedClass = option.selected ? 'selected' : '';
+  
+  // Create voters list HTML
+  let votersHtml = '';
+  if (option.voters && option.voters.length > 0) {
+    votersHtml = `
+      <div class="voters-list">
+        <strong>Selected by:</strong>
+        <ul>
+          ${option.voters.map(voter => `<li>${voter}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  } else {
+    votersHtml = `<div class="voters-list"><em>No selections yet</em></div>`;
+  }
+  
+  return `<div class="option-item ${selectedClass}" onclick="selectOption(${categoryIndex}, ${number})">
     <img src="${option.url}" alt="Option ${number}" onerror="this.src='https://via.placeholder.com/200x120?text=Image+Error'">
     <h4>Option ${number}</h4>
     <p>${option.details}</p>
+    ${votersHtml}
   </div>`;
 }
 
-function renderOptionItem(option, number) {
-  if (!option || !option.url) {
-    return `<div class="option-item">
-      <div style="height:120px;background:#f5f5f5;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;">
-        <span style="color:#999;font-size:12px;">Option ${number}</span>
-      </div>
-      <h4>Option ${number}</h4>
-      <p>${option?.details || 'No details'}</p>
-    </div>`;
-  }
-  
-  return `<div class="option-item" onclick="selectOption(${number})">
-    <img src="${option.url}" alt="Option ${number}" onerror="this.src='https://via.placeholder.com/200x120?text=Image+Error'">
-    <h4>Option ${number}</h4>
-    <p>${option.details}</p>
-  </div>`;
-}
 
 function showEmptyCustomization() {
   const grid = document.getElementById('customizationGrid');

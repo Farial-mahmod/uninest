@@ -901,6 +901,7 @@ function generateConstructionProgressFromDB(milestoneDoc) {
     timeline: timeline
   };
 }
+
 // Helper function to generate customization from database
 // Helper function to generate customization from database
 function generateCustomizationFromDB(customizationDoc, userName = '') {
@@ -965,12 +966,14 @@ function generateCustomizationFromDB(customizationDoc, userName = '') {
             surface: 'Premium',
             image: option.url || '',
             upgradeCost: i === 1 ? '৳15,000' : i === 2 ? '৳25,000' : '৳18,000',
-            selected: isSelected
+            selected: isSelected,
+            voters: option.voters || [] // Add voters array to options
           });
           
           console.log(`  Option ${i}:`, { 
             selected: isSelected, 
-            votersCount: option.voters?.length || 0 
+            votersCount: option.voters?.length || 0,
+            voters: option.voters || []
           });
         }
       }
@@ -1014,7 +1017,8 @@ function generateCustomizationFromDB(customizationDoc, userName = '') {
             value: `Option ${i}`,
             brand: option.details || '',
             upgradeCost: i === 1 ? '৳15,000' : i === 2 ? '৳25,000' : '৳18,000',
-            image: option.url || ''
+            image: option.url || '',
+            voters: option.voters || [] // Add voters to user selections too
           });
           console.log(`✅ User selected option ${i} for ${item.name}`);
           break; // User can only select one option per category
@@ -1076,8 +1080,10 @@ app.post('/api/customization/vote', async (req, res) => {
     const userName = req.session.user.name;
     const projectName = req.session.user.project || 'aurora';
     
-    // FIX: Use getConnection() instead of conn
-    const connection = getConnection();
+    console.log('Vote details:', { categoryIndex, optionNumber, userName, projectName });
+    
+    // Ensure database connection
+    const connection = await ensureConnection();
     if (!connection || connection.readyState !== 1) {
       return res.status(503).json({ 
         success: false, 
@@ -1087,8 +1093,11 @@ app.post('/api/customization/vote', async (req, res) => {
     
     const projectDB = connection.useDb(projectName);    
     const collection = projectDB.collection('customization');
-    const doc = await collection.findOne({ project: projectName });
+    
+    // FIX: Don't filter by project field - just get the document
+    const doc = await collection.findOne({});
     console.log('Found document:', !!doc);
+    
     if (!doc || !doc.selection || !Array.isArray(doc.selection)) {
       console.log('Document structure issue:', {
         hasDoc: !!doc,
@@ -1100,19 +1109,24 @@ app.post('/api/customization/vote', async (req, res) => {
         message: 'Customization data not found' 
       });
     }
+    
     console.log('Selection array length:', doc.selection.length);
     console.log('Category index requested:', categoryIndex);
+    
     if (categoryIndex >= doc.selection.length) {
       return res.status(400).json({ 
         success: false, 
         message: 'Invalid category index' 
       });
     }
+    
     const category = doc.selection[categoryIndex];
     const optionKey = `option_${optionNumber}`;
+    
     console.log('Category:', category.name);
     console.log('Option key:', optionKey);
     console.log('Has option:', !!category[optionKey]);
+    
     if (!category[optionKey]) {
       return res.status(400).json({ 
         success: false, 
@@ -1122,6 +1136,7 @@ app.post('/api/customization/vote', async (req, res) => {
     
     console.log('Current voters for option', optionNumber, ':', category[optionKey].voters);
     console.log('User name to add:', userName);
+    
     // Remove user from all voters arrays in this category first
     const updateOperations = {};
     for (let i = 1; i <= 3; i++) {
@@ -1141,7 +1156,9 @@ app.post('/api/customization/vote', async (req, res) => {
       updateOperations[`selection.${categoryIndex}.${optionKey}.voters`] = selectedOptionVoters;
       console.log(`Added ${userName} to option ${optionNumber} voters`);
     }
+    
     console.log('Update operations:', updateOperations);
+    
     // Update the document
     const result = await collection.updateOne(
       { _id: doc._id },
@@ -1161,13 +1178,12 @@ app.post('/api/customization/vote', async (req, res) => {
       console.log('No documents were modified');
     }
     
+    // Get the updated document
     const updatedDoc = await collection.findOne({ _id: doc._id });
-    console.log('Updated document option voters:', {
-      option1: updatedDoc.selection[categoryIndex].option_1?.voters,
-      option2: updatedDoc.selection[categoryIndex].option_2?.voters,
-      option3: updatedDoc.selection[categoryIndex].option_3?.voters
-    });
+    
+    // Generate updated customization data for the frontend
     const updatedCustomizationData = generateCustomizationFromDB(updatedDoc, userName);
+    
     res.json({
       success: true,
       message: 'Selection updated successfully',
@@ -1184,6 +1200,7 @@ app.post('/api/customization/vote', async (req, res) => {
     });
   }
 });
+
 
 app.get('/cost-tabs/:tabId', async (req, res) => {
   try {
@@ -1863,14 +1880,14 @@ app.post('/api/media/:project', async (req, res) => {
 });
 //
 
-// GET shareholders for a specific project
+// GET shareholders for ANY project (dynamic endpoint)
 app.get('/api/shareholder/:project', async (req, res) => {
   try {
     const project = req.params.project.toLowerCase();
     console.log(`Fetching shareholders for project: ${project}`);
     
     // Ensure database connection
-    const connection = getConnection();
+    const connection = await ensureConnection();
     if (!connection || connection.readyState !== 1) {
       return res.status(503).json({ 
         success: false,
@@ -1892,8 +1909,7 @@ app.get('/api/shareholder/:project', async (req, res) => {
       });
     }
 
-    // Optional: Filter shareholders by project field if it exists in each shareholder object
-    // This ensures we only return shareholders with matching project
+    // Filter shareholders by project field to be safe
     const shareholders = doc.shareholder.filter(sh => 
       !sh.project || sh.project === project
     );
@@ -1912,11 +1928,9 @@ app.get('/api/shareholder/:project', async (req, res) => {
 
 //
 
-// POST new shareholder for a specific project
 app.post('/api/shareholder/:project', async (req, res) => {
   try {
-    const project = req.params.project.toLowerCase();
-    console.log(`Adding shareholder to project: ${project}`);
+    const project = req.params.project.toLowerCase(); // This comes from the URL parameter
     
     // Ensure database connection
     const connection = await ensureConnection();
@@ -1932,6 +1946,7 @@ app.post('/api/shareholder/:project', async (req, res) => {
 
     const {
       id,
+      // Remove project from body or use it differently
       name,
       flat_number,
       email,
@@ -1942,7 +1957,7 @@ app.post('/api/shareholder/:project', async (req, res) => {
       installment_amount
     } = req.body;
 
-    // Validate required fields
+    // MODIFIED VALIDATION - Check required fields based on role
     if (!id || !name || !mobile) {
       return res.status(400).json({ 
         success: false,
@@ -1983,9 +1998,9 @@ app.post('/api/shareholder/:project', async (req, res) => {
 
     const newShareholder = {
       id,
-      project: project, // Store the project name
+      project: project, // Use the project from URL parameter, not from body
       name,
-      flat_number: flat_number || '',
+      flat_number: flat_number || '', // Allow empty for admin
       email: email || '',
       mobile,
       password,
@@ -2043,59 +2058,6 @@ app.post('/api/shareholder/:project', async (req, res) => {
 
   } catch (err) {
     console.error('Error adding shareholder:', err);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error', 
-      error: err.message 
-    });
-  }
-});
-
-// DELETE shareholder by ID
-app.delete('/api/shareholder/:project/:shareholderId', async (req, res) => {
-  try {
-    const project = req.params.project.toLowerCase();
-    const shareholderId = req.params.shareholderId;
-    
-    console.log(`Deleting shareholder ${shareholderId} from project: ${project}`);
-    
-    // Ensure database connection
-    const connection = getConnection();
-    if (!connection || connection.readyState !== 1) {
-      return res.status(503).json({ 
-        success: false,
-        message: 'Database not connected' 
-      });
-    }
-    
-    const db = connection.useDb(project);
-    const collection = db.collection('shareholder');
-    
-    // Find the document and remove the shareholder from the array
-    const result = await collection.updateOne(
-      {}, // Find the document (assuming one document per project)
-      { 
-        $pull: { shareholder: { id: shareholderId } },
-        $set: { updated_at: new Date() }
-      }
-    );
-    
-    if (result.modifiedCount === 0) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Shareholder not found' 
-      });
-    }
-    
-    console.log(`Shareholder ${shareholderId} deleted successfully`);
-    
-    res.json({
-      success: true,
-      message: 'Shareholder deleted successfully'
-    });
-    
-  } catch (err) {
-    console.error('Error deleting shareholder:', err);
     res.status(500).json({ 
       success: false,
       message: 'Server error', 
